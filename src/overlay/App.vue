@@ -41,6 +41,12 @@ onMounted(async () => {
     }
   });
 
+  /*
+  listen<string>('global_mouse_click', async (event) => {
+    console.log(event);
+  });
+  */
+
   currentWindow.onFocusChanged(async ({ payload: _focused }) => {
     await invoke("hide_titlebar_command");
   });
