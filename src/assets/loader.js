@@ -67,13 +67,13 @@ for (const folder of folders) {
     }
 
     try {
-        const component = await loadModule(vueFilePath, baseLoaderOptions)
-        app.component(name, component)
+      const component = await loadModule(vueFilePath, baseLoaderOptions)
+      app.component(name, component)
 
-        const element = document.createElement(name);
-        overlay.appendChild(element);
+      const element = document.createElement(name);
+      overlay.appendChild(element);
 
-        console.log(`[loader]: ✅ Widget "${name}" loaded`)
+      console.log(`[loader]: ✅ Widget "${name}" loaded`)
     } catch (err) {
         console.error(`[loader]: ❌ Errore while loading widget "${name}":`, err)
     }

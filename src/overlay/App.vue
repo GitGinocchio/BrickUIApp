@@ -22,10 +22,6 @@ onMounted(async () => {
 
   let isClickThroughEnabled = false;
 
-  document.addEventListener('mousemove', () => {
-    console.log('mouse moved');
-  });
-
   listen<[number, number]>('global_mouse_move', async (event) => {
     const [screenX, screenY] = event.payload;
     const element = document.elementFromPoint(screenX, screenY + yOffset);

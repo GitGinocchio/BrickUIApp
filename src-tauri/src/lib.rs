@@ -1,8 +1,13 @@
-mod overlay_utils;
-use crate::overlay_utils::{
+mod overlay;
+use crate::overlay::utils::{
     disable_click_through, enable_click_through, hide_taskbar, 
-    hide_titlebar, show_taskbar, start_input_listener
+    hide_titlebar, show_taskbar
 };
+
+mod events;
+use crate::events::start_input_listener;
+
+//mod plugins;
 
 use tauri::{Manager, WindowEvent};
 
@@ -49,6 +54,11 @@ pub fn run() {
             app.manage(BrickUIState::new(&path));
 
             start_input_listener(app.handle().clone());
+
+            match show_taskbar() {
+                Ok(_) => println!("Taskbar mostrata con successo"),
+                Err(e) => eprintln!("Errore nel mostrare la taskbar: {e:?}"),
+            }
 
             match hide_taskbar(false) {
                 Ok(_) => println!("Taskbar nascosta con successo"),
