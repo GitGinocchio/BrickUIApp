@@ -1,5 +1,8 @@
-import { create, NButton, NCard } from 'naive-ui'
+import { create, NButton, NCard, NForm, NFormItem, NGi, NGrid, NSelect, NSpace, NSwitch, NTabPane, NTabs } from 'naive-ui'
 
 export function createNaiveUi() {
-  return create({ components: [NButton, NCard] })
+  return create({ components: [
+    NButton, NCard, NCard, NSwitch, NGi, NGrid, NSpace, NSelect,
+    NFormItem, NForm, NTabPane, NTabs,
+  ] })
 }

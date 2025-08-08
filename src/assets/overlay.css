@@ -1,0 +1,15 @@
+
+* {
+    pointer-events: none;
+    cursor: auto;
+}
+
+html {
+    width: 100vw;
+    height: 100vh;
+}
+
+body {
+    height: min-content;
+    width: min-content;
+}

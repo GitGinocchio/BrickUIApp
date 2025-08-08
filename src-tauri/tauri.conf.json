@@ -7,23 +7,28 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "frontendDist": "../src/dist"
   },
   "app": {
     "windows": [
       {
         "label": "settings",
         "title": "Brick UI [Settings]",
+        "url" : "index.html",
         "width": 800,
         "height": 600,
+        "center" : true,
         "resizable": true,
+        "alwaysOnTop": false,
         "fullscreen": false,
+        "devtools": true,
         "focus" : false,
         "visible": true
       },
       {
         "label": "overlay",
         "title": "Brick UI [Overlay]",
+        "url" : "/overlay/index.html",
         "transparent": true,
         "decorations": false,
         "fullscreen": true,
@@ -31,23 +36,26 @@
         "hiddenTitle": true,
         "shadow": true,
         "theme" : "Dark",
-        "parent": "settings",
         "maximized": true,
         "devtools": true,
         "skipTaskbar": true,
         "alwaysOnTop": true,
         "resizable": false,
         "visible": true,
-        "focus" : false
+        "focus" : true
       }
     ],
+    "withGlobalTauri": true,
     "security": {
-      "csp": null
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {
-    "active": true,
-    "targets": "msi",
+    "active": false,
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

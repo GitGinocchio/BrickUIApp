@@ -1,0 +1,14 @@
+scripts:
+#  - src: "https://cdn.example.com/script.js"       # URL of the script to load
+#    type: "text/javascript"                        # (optional) "text/javascript" or "module"
+#    async: true                                    # (optional) load the script asynchronously if true
+#    defer: true                                    # (optional) execute script after parsing if true
+#    integrity: ""                                  # (optional) SRI hash for integrity check
+#    crossorigin: "anonymous"                       # (optional) CORS policy: "anonymous" or "use-credentials"
+
+styles:
+#  - href: "https://cdn.example.com/theme.css"      # URL of the CSS file
+#    rel: "stylesheet"                              # (optional) usually "stylesheet"
+#    media: "all"                                   # (optional) media query, e.g. "screen", "print", "all"
+#    integrity: ""                                  # (optional) SRI hash
+#    crossorigin: "anonymous"                       # (optional) CORS policy

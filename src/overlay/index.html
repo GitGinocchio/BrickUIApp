@@ -3,7 +3,10 @@
   <head>
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self' asset: data: blob: http://asset.localhost;
-      script-src 'self' asset: http://asset.localhost;
+      script-src 'unsafe-eval' 'self' asset: http://asset.localhost 
+        'sha256-WNFD/eU3iGIz3T1KnLd3VUue+lFDZrzi6u4I/U8GGds=' https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm
+        'sha256-WCjzMsGm4FrAjof1HjwoqId2CabTEy2JnJfUjaEscno=' https://unpkg.com/vue@3.5.18/dist/vue.global.prod.js 
+        'sha256-ARV0Eah86yaV1qsmKVNH83FEpxlFUONZ5Nyas3jVdzs=' https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js;
       connect-src 'self' ws: http://asset.localhost http://ipc.localhost;
       style-src 'self' 'unsafe-inline' asset:;
       img-src 'self' asset: data: blob: https: http://asset.localhost;
@@ -14,7 +17,7 @@
     ">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="./assets/index.css">
+    <link rel="stylesheet" href="./assets/overlay.css">
   </head>
 
   <body>

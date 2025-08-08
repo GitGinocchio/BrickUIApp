@@ -1,0 +1,3 @@
+plugins:
+#  - name: naiveui
+#    components: [NButton, NDialog]
