@@ -1,16 +1,14 @@
 use std::{ffi::OsString, fs::File, io::BufWriter, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
 use uuid::Uuid;
 use windows::{
-    core::{BOOL, PCWSTR},
+    core::{BOOL, PCWSTR, PWSTR},
     Win32::{
         Foundation::*, Graphics::Gdi::*, System::{
-            Diagnostics::ToolHelp::*,
             Threading::*,
         }, UI::{Shell::ExtractIconExW, WindowsAndMessaging::*}
     },
 };
 use image::{ImageBuffer, Rgba};
-use tauri::command;
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
@@ -19,23 +17,37 @@ fn get_window_text(hwnd: HWND) -> Option<String> {
     }
 
     let mut buffer = vec![0u16; (len + 1) as usize];
-    unsafe {
-        GetWindowTextW(hwnd, PWSTR(buffer.as_mut_ptr()), len + 1);
+    let buffer = buffer.as_mut_slice();
+
+    let copied_len = unsafe {
+        GetWindowTextW(hwnd, buffer)
+    };
+
+    if copied_len == 0 {
+        return None;
     }
 
-    Some(String::from_utf16_lossy(&buffer[..len as usize]))
+    Some(String::from_utf16_lossy(&buffer[..copied_len as usize]))
 }
+
 
 fn get_exe_path(pid: u32) -> Option<PathBuf> {
     unsafe {
-        let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+        let handle = match OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid) {
+            Ok(handle) => handle,
+            Err(e) => { 
+                eprintln!("Errore durante l'ottenimento del percorso dell'eseguibile: {e}");
+                return None; 
+            }
+        };
+
         if handle.is_invalid() {
             return None;
         }
 
         let mut buffer = vec![0u16; 260];
         let mut size = buffer.len() as u32;
-        if QueryFullProcessImageNameW(handle, 0, PWSTR(buffer.as_mut_ptr()), &mut size).as_bool() {
+        if QueryFullProcessImageNameW(handle, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut size).is_ok() {
             CloseHandle(handle);
             Some(PathBuf::from(OsString::from_wide(&buffer[..size as usize])))
         } else {
@@ -76,20 +88,20 @@ fn extract_icon(path: &PathBuf) -> Option<PathBuf> {
         let path = temp_dir.join(filename);
 
         let file = File::create(&path).ok()?;
-        let writer = BufWriter::new(file);
-        image::DynamicImage::ImageRgba8(img_buf).flipv().write_to(writer, image::ImageOutputFormat::Png).ok()?;
+        let mut writer = BufWriter::new(file);
+        image::DynamicImage::ImageRgba8(img_buf).flipv().write_to(&mut writer, image::ImageFormat::Png).ok()?;
 
         Some(path)
     }
 }
 
 #[derive(serde::Serialize)]
-struct WindowIcon {
+pub struct WindowIcon {
     title: String,
     icon_path: String,
 }
 
-#[command]
+#[tauri::command]
 pub fn get_taskbar_icons() -> Vec<WindowIcon> {
     let mut results = Vec::new();
 

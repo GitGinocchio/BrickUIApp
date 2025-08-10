@@ -1,42 +1,20 @@
-mod overlay;
-use crate::overlay::utils::{
-    disable_click_through, enable_click_through, hide_taskbar, 
-    hide_titlebar, show_taskbar
+mod overlay_window;
+use crate::overlay_window::utils::{
+    hide_taskbar, 
+    show_taskbar, 
+    remove_titlebar
 };
 
-mod events;
-use crate::events::start_input_listener;
+mod global_events;
+use crate::global_events::start_global_input_listener;
 
-//mod plugins;
+mod winapi;
+use crate::winapi::taskbar::apps::get_taskbar_icons;
 
 use tauri::{Manager, WindowEvent};
 
 mod state;
 use state::BrickUIState;
-
-#[tauri::command]
-async fn disable_click_through_command(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app.get_webview_window("overlay").ok_or("Overlay window not found")?;
-    disable_click_through(&window);
-    println!("Disabled click through");
-    Ok(())
-}
-
-#[tauri::command]
-async fn enable_click_through_command(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app.get_webview_window("overlay").ok_or("Overlay window not found")?;
-    enable_click_through(&window);
-    println!("Enabled click through");
-    Ok(())
-}
-
-#[tauri::command]
-async fn hide_titlebar_command(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app.get_webview_window("overlay").ok_or("Overlay window not found")?;
-    hide_titlebar(&window);
-    println!("Enabled click through");
-    Ok(())
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,16 +22,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            disable_click_through_command,
-            enable_click_through_command,
-            hide_titlebar_command
+            get_taskbar_icons
         ])
         .setup(|app| {
             let path = app.app_handle().path().app_data_dir()?;
 
             app.manage(BrickUIState::new(&path));
-
-            start_input_listener(app.handle().clone());
 
             match show_taskbar() {
                 Ok(_) => println!("Taskbar mostrata con successo"),
@@ -65,10 +39,11 @@ pub fn run() {
                 Err(e) => eprintln!("Errore nel nascondere la taskbar: {e:?}"),
             }
 
-            let window = app.get_webview_window("overlay").unwrap();
-            hide_titlebar(&window);
-            enable_click_through(&window);
-            //window.open_devtools();
+            let webview = app.get_webview_window("overlay").unwrap();
+            let window = &webview.get_window("overlay").unwrap();
+            remove_titlebar(window);
+
+            start_global_input_listener(app.handle().clone());
 
             Ok(())
         })

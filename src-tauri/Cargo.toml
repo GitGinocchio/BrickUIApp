@@ -15,13 +15,13 @@ name = "brickui_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.3.1", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
-tauri-plugin-opener = "2"
+tauri = { version = "2.7.0", features = ["protocol-asset", "unstable"] }
+tauri-plugin-opener = "2.4.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = "1.0.0"
 
 windows = { version = "0.61.3", features = [
     "Win32_UI_WindowsAndMessaging", 
@@ -34,7 +34,7 @@ winreg = "0.55.0"
 raw-window-handle = "0.6.2"
 winit = "0.29"
 wry = "0.52.1"
-rdev = "0.5.3"
+rdev = { version = "0.5.3", features = [ "serialize"] }
 tauri-plugin-fs = "2.4.1"
-uuid = "1.17.0"
+uuid = { version = "1.17.0", features = [ "v4"] }
 image = "0.25.6"

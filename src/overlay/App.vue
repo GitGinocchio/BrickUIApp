@@ -7,48 +7,40 @@ import { onMounted, ref } from 'vue';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
-import { invoke } from '@tauri-apps/api/core';
 import { appendScript } from '../assets/utils';
 import { applyCsp, buildCsp } from '../csp';
+import { invoke } from '@tauri-apps/api/core';
 
 const isVisible = ref(false);
 
 onMounted(async () => {
   const currentWindow = getCurrentWindow();
-  const yOffset = 25;
+  await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
+  await currentWindow.setIgnoreCursorEvents(true);
+  await currentWindow.maximize();
 
-  await currentWindow.setPosition(new LogicalPosition(0, -yOffset));
-  await currentWindow.setSize(new LogicalSize(1920, 1080 + yOffset - 10));
+  // Questo rimuove un bordo di 1px sopra (non so come)
+  await currentWindow.setPosition(new LogicalPosition(0, 0));
+
+  await currentWindow.show();
 
   let isClickThroughEnabled = false;
 
-  listen<[number, number]>('global_mouse_move', async (event) => {
+  listen<[number, number]>('global_mouse_moved', async (event) => {
     const [screenX, screenY] = event.payload;
-    const element = document.elementFromPoint(screenX, screenY + yOffset);
+    const element = document.elementFromPoint(screenX, screenY);
 
     if (element?.tagName === "HTML" && !isClickThroughEnabled) {
       isClickThroughEnabled = true;
-      await invoke("enable_click_through_command");
-      await invoke("hide_titlebar_command");
+      await currentWindow.setIgnoreCursorEvents(true);
       return;
     } else if (element?.tagName === "HTML") return;
 
     const shouldEnable = !element;
     if (shouldEnable !== isClickThroughEnabled) {
       isClickThroughEnabled = shouldEnable;
-      await invoke(shouldEnable ? "enable_click_through_command" : "disable_click_through_command");
-      await invoke("hide_titlebar_command");
+      await currentWindow.setIgnoreCursorEvents(shouldEnable);
     }
-  });
-
-  /*
-  listen<string>('global_mouse_click', async (event) => {
-    console.log(event);
-  });
-  */
-
-  currentWindow.onFocusChanged(async ({ payload: _focused }) => {
-    await invoke("hide_titlebar_command");
   });
 
   await appendScript("../assets/externals.js", "module");

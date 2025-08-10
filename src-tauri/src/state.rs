@@ -1,5 +1,9 @@
 use std::{fs, path::PathBuf};
 
+use tauri::Runtime;
+
+use crate::overlay_window::window::Overlay;
+
 fn copy_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     let externals_file = path.join("externals.yml");
     let plugins_file = path.join("plugins.yml");
@@ -19,11 +23,15 @@ fn copy_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
+//pub struct BrickUIState<R: Runtime> {
 pub struct BrickUIState {
-    path: PathBuf
+    path: PathBuf,
+    //overlay: Overlay<R>
 }
 
+//impl<R: Runtime> BrickUIState<R> {
 impl BrickUIState {
+    //pub fn new(path: &PathBuf, overlay: Overlay<R>) -> Self {
     pub fn new(path: &PathBuf) -> Self {
         fs::create_dir_all(&path).expect("Errore nella creazione della directory di dati");
         fs::create_dir_all(&path.join("bricks")).expect("Errore nella creazione della directory per i widgets");
@@ -32,11 +40,18 @@ impl BrickUIState {
         copy_templates_if_missing(path).expect("Errore durante la creazione dei template");
 
         Self {
-            path: path.clone()
+            path: path.clone(),
+            //overlay: overlay
         }
     }
 
     pub fn get_path(&self) -> PathBuf {
         return self.path.clone();
     }
+
+    /*
+    pub fn get_overlay(&self) -> PathBuf {
+        return self.path.clone();
+    }
+    */
 }
