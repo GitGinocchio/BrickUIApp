@@ -28,6 +28,9 @@
   questo perche' piu' sicuro e perche' i dati possono essere mantenuti nello stato generale dell'app
   e possono essere passati al frontend con dei metodi `invoke` in modo facile
 
+- Cercare di capire e risolvere l'ottenimento delle applicazioni nella taskbar nativa di windows
+  e rendere disponibile il comando con invoke
+
 - Creare la logica Rust per l'invio di eventi globali (mouse, click, ecc.) che magari possono essere utilizzati dall'utente
 
 - Al momento la creazione delle finestre la lasciamo a tauri
