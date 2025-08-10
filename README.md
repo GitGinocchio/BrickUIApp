@@ -10,6 +10,10 @@
 - Bisogna aggiungere la possibilita' di creare un nuovo brick in app (quindi copiare il template `/src-tauri/assets/brick-template` nella cartella bricks)
   e dare la possibilita di aprire la cartella per sviluppare il brick (successivamente anche per l'editor visuale)
 
+- Implementare i global bricks (cartella `/globals` nella directory in AppData)
+  cioe' dei brick riutilizzabili all'interno di altri brick
+  (quindi rendere impossibile l'utilizzo di brick nella cartella bricks all'interno di altri bricks)
+
 - Il caricamento di dati dovrebbe avvenire sempre (o il piu' possibile) dal backend Rust
   questo perche' piu' sicuro e perche' i dati possono essere mantenuti nello stato generale dell'app
   e possono essere ottenuti con dei metodi invoke in modo facile
