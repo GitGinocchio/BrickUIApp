@@ -1,4 +1,6 @@
 
+- Creare un wrapper per l'api `listen` di tauri, (come e' stato gia' fatto in `src/overlay/apis.ts`)
+  di modo da permettere all'utente di ascoltare solo alcuni eventi
 
 - Bisogna aggiungere nel backend rust in `src-tauri/src/state.rs` la creazione del file `settings.yml`
   dal template `settings-template.yml` in `src-tauri/assets/settings-template.yml`
@@ -14,17 +16,19 @@
   cioe' dei brick riutilizzabili all'interno di altri brick
   (quindi rendere impossibile l'utilizzo di brick nella cartella bricks all'interno di altri bricks)
 
-- Il caricamento di dati dovrebbe avvenire sempre (o il piu' possibile) dal backend Rust
-  questo perche' piu' sicuro e perche' i dati possono essere mantenuti nello stato generale dell'app
-  e possono essere ottenuti con dei metodi invoke in modo facile
-
 - Bisogna implementare la possibilita' di abilitare e disabilitare i brick a runtime (non dovrebbe essere difficile)
+
+- Bisogna creare la logica per il caricamento dei dati per ogni brick (da mostrare anche nella pagina apposita)
+  quindi dal file `brick.yml` (guardare anche il template in `src-tauri/assets/brick-template`)
 
 - Implementare anche il fatto che ogni elemento in `defineProps` presente in un brick deve essere visto come 
   delle impostazioni per il relativo brick e quando vengono modificate nei settings devono cambiare in tempo reale
 
-- Bisogna creare la logica per il caricamento dei dati per ogni brick (da mostrare anche nella pagina apposita)
-  quindi dal file `brick.yml` (guardare anche il template in `src-tauri/assets/brick-template`)
+- Il caricamento di dati dovrebbe avvenire sempre (o il piu' possibile) dal backend Rust
+  questo perche' piu' sicuro e perche' i dati possono essere mantenuti nello stato generale dell'app
+  e possono essere passati al frontend con dei metodi `invoke` in modo facile
+
+- Creare la logica Rust per l'invio di eventi globali (mouse, click, ecc.) che magari possono essere utilizzati dall'utente
 
 - Al momento la creazione delle finestre la lasciamo a tauri
   piu avanti sarebbe meglio utilizzare `overlay::window::Overlay` per l'overlay
