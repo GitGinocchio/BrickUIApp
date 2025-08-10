@@ -11,6 +11,8 @@ use crate::global_events::start_global_input_listener;
 mod winapi;
 use crate::winapi::taskbar::apps::get_taskbar_icons;
 
+mod bricks;
+
 use tauri::{Manager, WindowEvent};
 
 mod state;

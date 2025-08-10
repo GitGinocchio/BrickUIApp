@@ -25,7 +25,7 @@ pub fn start_global_input_listener<R: tauri::Runtime>(app_handle: tauri::AppHand
                 EventType::ButtonRelease(button) => {
                     let _ = app_handle.emit_to(
                         "overlay", 
-                        "global_mouse_relased", 
+                        "global_mouse_released", 
                         format!("{:?}", button)
                     );
                 },

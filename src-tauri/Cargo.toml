@@ -22,6 +22,7 @@ tauri = { version = "2.7.0", features = ["protocol-asset", "unstable"] }
 tauri-plugin-opener = "2.4.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.0"
+serde_yaml = "0.9.33"
 
 windows = { version = "0.61.3", features = [
     "Win32_UI_WindowsAndMessaging", 
@@ -31,9 +32,6 @@ windows = { version = "0.61.3", features = [
     "Win32_Graphics_Gdi"
 ] }
 winreg = "0.55.0"
-raw-window-handle = "0.6.2"
-winit = "0.29"
-wry = "0.52.1"
 rdev = { version = "0.5.3", features = [ "serialize"] }
 tauri-plugin-fs = "2.4.1"
 uuid = { version = "1.17.0", features = [ "v4"] }

@@ -1,19 +1,2 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Brick {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    // altri campi dal template
-}
-
-impl BrickUIState {
-    pub fn load_brick(&self) -> std::io::Result<Brick> {
-        let brick_path = self.path.join("bricks").join("brick.yml");
-        let content = fs::read_to_string(&brick_path)?;
-        let brick: Brick = serde_yaml::from_str(&content)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        Ok(brick)
-    }
-}
+name: Brick name
+description: Brick description
