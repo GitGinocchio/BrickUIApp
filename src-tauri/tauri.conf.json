@@ -22,7 +22,7 @@
         "alwaysOnTop": false,
         "fullscreen": false,
         "devtools": true,
-        "focus" : false,
+        "focus" : true,
         "visible": true
       },
       {
@@ -44,7 +44,7 @@
         "focus" : true
       }
     ],
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "security": {
       "assetProtocol": {
         "enable": true,

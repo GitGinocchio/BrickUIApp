@@ -1,4 +1,4 @@
-import { scripts, styles } from "./assets/externals";
+import { scripts, styles } from "@assets/js/externals.js";
 
 export async function buildCsp() {
   const scriptHashesAndUrls = await Promise.all(

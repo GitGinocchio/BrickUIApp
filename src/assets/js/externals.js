@@ -1,5 +1,6 @@
-const { readTextFile, BaseDirectory } = window.__TAURI__.fs;
-const { appDataDir : getAppDataDir, join } = window.__TAURI__.path;
+
+const { readTextFile, BaseDirectory } = window.tauri.fs;
+const { appDataDir : getAppDataDir, join } = window.tauri.path;
 import jsyaml from 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm';
 import { appendScript, appendStyle } from './utils';
 

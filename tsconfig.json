@@ -19,7 +19,20 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vue"]
+    /*"types": ["vue"], */
+    "typeRoots" : ["./src/types", "./node_modules/@types"],
+    "baseUrl": "./src",
+    "paths": {
+      "@assets/js/*": ["./assets/js/*"],
+      "@types/*": ["./types/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/overlay.ts", "src/assets/loader.js"]
+  "include": [
+    "src/**/*.js",
+    "src/**/*.ts", 
+    "src/**/*.d.ts", 
+    "src/**/*.tsx", 
+    "src/**/*.vue", 
+    "src/**/*.brick"
+  ]
 }

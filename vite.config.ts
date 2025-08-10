@@ -7,11 +7,14 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [vue()],
+  plugins: [vue({
+    include: [/\.vue$/, /\.brick$/]
+  })],
 
   resolve: {
     alias: {
-      vue: 'vue/dist/vue.esm-bundler.js'
+      vue: 'vue/dist/vue.esm-bundler.js',
+      '@assets/js': resolve(__dirname, 'src/assets/js')
     }
   },
 

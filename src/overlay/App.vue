@@ -1,60 +1,91 @@
 <template>
-  <div id="overlay" :class="{ show: isVisible }"></div>
+  <div id="overlay" ref="overlay" :class="{ show: isVisible }"></div>
 </template>
 
-<script setup lang="ts"> 
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
-import { appendScript } from '../assets/utils';
+import { appendScript } from '@assets/js/utils.js';
 import { applyCsp, buildCsp } from '../csp';
-import { invoke } from '@tauri-apps/api/core';
 
+import { useNotification } from 'naive-ui';
+
+const notification = useNotification();
+
+const overlay = ref<HTMLElement>();
 const isVisible = ref(false);
 
 onMounted(async () => {
-  const currentWindow = getCurrentWindow();
-  await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
-  await currentWindow.setIgnoreCursorEvents(true);
-  await currentWindow.maximize();
+  try {
+    const currentWindow = getCurrentWindow();
+    await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
+    await currentWindow.setIgnoreCursorEvents(true);
+    await currentWindow.maximize();
 
-  // Questo rimuove un bordo di 1px sopra (non so come)
-  await currentWindow.setPosition(new LogicalPosition(0, 0));
+    await currentWindow.setPosition(new LogicalPosition(0, 0));
+    await currentWindow.show();
 
-  await currentWindow.show();
+    let isClickThroughEnabled = false;
 
-  let isClickThroughEnabled = false;
+    listen<[number, number]>('global_mouse_moved', async (event) => {
+      const [screenX, screenY] = event.payload;
+      const element = document.elementFromPoint(screenX, screenY);
 
-  listen<[number, number]>('global_mouse_moved', async (event) => {
-    const [screenX, screenY] = event.payload;
-    const element = document.elementFromPoint(screenX, screenY);
 
-    if (element?.tagName === "HTML" && !isClickThroughEnabled) {
-      isClickThroughEnabled = true;
-      await currentWindow.setIgnoreCursorEvents(true);
-      return;
-    } else if (element?.tagName === "HTML") return;
+      if (element?.tagName === "HTML" && !isClickThroughEnabled) {
+        isClickThroughEnabled = true;
+        await currentWindow.setIgnoreCursorEvents(true);
+        console.log("Enabled click through");
+        return;
+      } else if (element?.tagName === "HTML") return;
 
-    const shouldEnable = !element;
-    if (shouldEnable !== isClickThroughEnabled) {
-      isClickThroughEnabled = shouldEnable;
-      await currentWindow.setIgnoreCursorEvents(shouldEnable);
-    }
-  });
+      const shouldEnable = !element;
+      if (shouldEnable !== isClickThroughEnabled) {
+        isClickThroughEnabled = shouldEnable;
+        await currentWindow.setIgnoreCursorEvents(shouldEnable);
+        console.log("Disabled click through");
+      }
+    });
 
-  await appendScript("../assets/externals.js", "module");
+    await appendScript("../assets/js/externals.js", "module");
 
-  const csp = await buildCsp();
-  await applyCsp(csp);
+    //const csp = await buildCsp();
+    //await applyCsp(csp);
 
-  await appendScript("https://unpkg.com/vue@3.5.18/dist/vue.global.prod.js");
-  await appendScript("https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js");
-  await appendScript("../assets/loader.js", "module");
+    await appendScript("https://unpkg.com/vue@3.5.18/dist/vue.global.prod.js");
+    await appendScript("https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js");
+    await appendScript("../assets/js/loader.js", "module");
 
-  isVisible.value = true;
-  
-}); 
+    notification.success({
+      title: "Bricks loaded successfully!",
+      description: "All bricks has been loaded successfully",
+      keepAliveOnHover : true,
+      duration: 3000,
+      closable : true
+    });
+
+    isVisible.value = true;
+  } catch (error) {
+    console.error("Errore in onMounted:", error);
+    notification.error({
+      title: "Something went wrong while loading bricks",
+      description: `Error occurred while loading bricks: ${error}`,
+      closable : false
+    });
+    isVisible.value = false;
+  }
+
+  if (overlay.value.hasChildNodes()) {
+    notification.warning({
+      title: "No bricks were found",
+      description: "You should create a brick first!",
+      keepAliveOnHover : true,
+      closable: false
+    });
+  }
+});
 
 </script>
 
@@ -78,9 +109,4 @@ onMounted(async () => {
   opacity: 1;
 }
 
-.warning {
-  width: max-content;
-  color: orange;
-  pointer-events: none;
-}
 </style>
