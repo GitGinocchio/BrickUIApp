@@ -25,6 +25,15 @@
   </n-config-provider>
 </template>
 
+<style scoped>
+
+:deep(.n-menu-item .n-menu-item-content){
+  padding-left: 18px !important;
+  margin-right: 2px;
+}
+
+</style>
+
 <script setup lang="ts">
 import { ref, h } from 'vue'
 import { useRouter } from 'vue-router'
