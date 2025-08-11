@@ -60,42 +60,146 @@ fn default_version() -> [u8; 3] { [1, 0, 0] }
 #[schemars(description = "Enumeration of supported property types for a Brick.")]
 pub enum Prop {
     #[serde(rename = "string")]
-    #[schemars(description = "A property holding a string value.")]
+    #[schemars(description = "String property type.")]
     String {
-        #[schemars(description = "Current string value of the property.")]
-        value: String,
-
-        #[schemars(description = "Default string value of the property.")]
-        default: String,
+        #[serde(flatten)]
+        data: PropType<String>,
     },
-
     #[serde(rename = "int")]
-    #[schemars(description = "A property holding an integer value.")]
+    #[schemars(description = "Integer property type.")]
     Int {
-        #[schemars(description = "Current integer value of the property.")]
-        value: i64,
-
-        #[schemars(description = "Default integer value of the property.")]
-        default: i64,
+        #[serde(flatten)]
+        data: NumericPropType<i64>,
     },
-
-    #[serde(rename = "bool")]
-    #[schemars(description = "A property holding a boolean value.")]
-    Bool {
-        #[schemars(description = "Current boolean value of the property.")]
-        value: bool,
-
-        #[schemars(description = "Default boolean value of the property.")]
-        default: bool,
+    #[serde(rename = "float")]
+    #[schemars(description = "Floating point property type.")]
+    Float {
+        #[serde(flatten)]
+        data: NumericPropType<f64>,
     },
-
+    #[serde(rename = "string-array")]
+    #[schemars(description = "Array property containing a list of string values.")]
+    StringArray {
+        #[serde(flatten)]
+        data: ArrayPropType<String>,
+    },
+    #[serde(rename = "int-array")]
+    #[schemars(description = "Array property containing a list of integer values.")]
+    IntArray {
+        #[serde(flatten)]
+        data: ArrayPropType<i64>,
+    },
+    #[serde(rename = "float-array")]
+    #[schemars(description = "Array property containing a list of floating point values.")]
+    FloatArray {
+        #[serde(flatten)]
+        data: ArrayPropType<f64>,
+    },
+    #[serde(rename = "string-select")]
+    #[schemars(description = "Selectable property with predefined string options.")]
+    StringSelect {
+        #[serde(flatten)]
+        data: SelectablePropType<String>,
+    },
+    #[serde(rename = "int-select")]
+    #[schemars(description = "Selectable property with predefined integer options.")]
+    IntSelect {
+        #[serde(flatten)]
+        data: SelectablePropType<i64>,
+    },
+    #[serde(rename = "float-select")]
+    #[schemars(description = "Selectable property with predefined floating point options.")]
+    FloatSelect {
+        #[serde(flatten)]
+        data: SelectablePropType<f64>,
+    },
     #[serde(rename = "array")]
-    #[schemars(description = "A property holding an array of JSON values.")]
+    #[schemars(description = "Array property containing a list of generic values.")]
     Array {
-        #[schemars(description = "Current array value of the property.")]
-        value: Vec<serde_json::Value>,
-
-        #[schemars(description = "Default array value of the property.")]
-        default: Vec<serde_json::Value>,
+        #[serde(flatten)]
+        data: ArrayPropType<serde_json::Value>,  
     },
+    #[serde(rename = "select")]
+    #[schemars(description = "Selectable property with predefined generic options.")]
+    Select {
+        #[serde(flatten)]
+        data: SelectablePropType<serde_json::Value>,  
+    },
+    #[serde(rename = "any")]
+    #[schemars(description = "Generic property type.")]
+    Any {
+        #[serde(flatten)]
+        data: serde_json::Value
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Generic property container.")]
+pub struct PropType<T> {
+    #[schemars(description = "Current value of the property. May be null if `nullable` is true.")]
+    value: Option<T>,
+
+    #[schemars(description = "Default value of the property.")]
+    default: Option<T>,
+
+    #[serde(default)]
+    #[schemars(description = "Indicates whether this property can be null.")]
+    nullable: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Property container for numeric types, including optional bounds.")]
+pub struct NumericPropType<T> {
+    #[serde(flatten)]
+    #[schemars(description = "Base property data.")]
+    base: PropType<T>,
+
+    #[schemars(description = "Minimum allowed value (inclusive).")]
+    min: Option<T>,
+
+    #[schemars(description = "Maximum allowed value (inclusive).")]
+    max: Option<T>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Array property container with typed values.")]
+pub struct ArrayPropType<T> {
+    #[serde(default)]
+    #[schemars(description = "Indicates whether this array property can be null.")]
+    pub nullable: bool,
+
+    #[schemars(description = "Default value of the array property.")]
+    pub default: Option<Vec<T>>,
+
+    #[schemars(description = "Current value of the array property.")]
+    pub values: Option<Vec<T>>,
+
+    #[schemars(description = "Minimum number of items allowed in the array.")]
+    pub min_items: Option<usize>,
+
+    #[schemars(description = "Maximum number of items allowed in the array.")]
+    pub max_items: Option<usize>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Selectable property container with typed options.")]
+pub struct SelectablePropType<T> {
+    #[schemars(description = "List of selectable options.")]
+    pub options: Vec<T>,
+
+    #[schemars(description = "Currently selected option.")]
+    pub selected: Option<T>,
+
+    #[schemars(description = "Default selected option.")]
+    pub default_selected: Option<T>,
+
+    #[serde(default)]
+    #[schemars(description = "Indicates whether this property can be null.")]
+    pub nullable: bool,
+
+    #[schemars(description = "Minimum number of selections allowed.")]
+    pub min_selections: Option<usize>,
+
+    #[schemars(description = "Maximum number of selections allowed.")]
+    pub max_selections: Option<usize>,
 }
