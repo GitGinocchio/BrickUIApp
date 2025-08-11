@@ -5,6 +5,7 @@ import * as event from '@tauri-apps/api/event';
 //import type * as Tauri from '@tauri-apps/api/';
 
 const allowedCommands = new Set<string>([
+  "get_bricks"
 ]);
 
 const allowedEmitEvents = new Set<string>([
@@ -20,16 +21,12 @@ const allowedListenEvents = new Set<event.EventName>([
   "global_mouse_released",
   "global_key_pressed",
   "global_key_released",
-  "global_wheel"
+  "global_wheel",
+  "toggle_brick"
 ]);
 
 const allowedOnceEvents = new Set<event.EventName>([
-  "global_mouse_moved",
-  "global_mouse_pressed",
-  "global_mouse_released",
-  "global_key_pressed",
-  "global_key_released",
-  "global_wheel"
+  ...allowedListenEvents
 ]);
 
 async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.InvokeOptions): Promise<any> {

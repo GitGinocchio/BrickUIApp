@@ -7,7 +7,10 @@
     <p v-if="brick.description">{{ brick.description }}</p>
 
     <n-space justify="space-between" align="center" class="mb-3">
-      <n-switch v-model:value="brick.enabled" />
+      <n-switch 
+        v-model:value="brick.enabled" 
+        @update:value="$emit('toggle')"
+        />
       <n-button size="small" @click="$emit('open-settings', brick.name)">Settings</n-button>
     </n-space>
 
@@ -49,13 +52,14 @@
 </template>
 
 <script setup lang="ts">
+import { NSwitch, NSpace } from 'naive-ui';
 import { Brick } from 'interfaces/brick'
 
 defineProps<{
   brick: Brick
 }>()
 
-defineEmits(['open-settings'])
+defineEmits(['open-settings', 'toggle'])
 </script>
 
 <style scoped>

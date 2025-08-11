@@ -1,17 +1,15 @@
+const { BaseDirectory, join, appDataDir: getAppDataDir } = window.tauri.path;
+const { invoke } = window.tauri.core;
+const { listen } = window.tauri.event;
+const { loadModule } = window['vue3-sfc-loader'];
 import { normalizePath } from "./path";
+import { toCustomElementName } from "./utils";
 
 const overlay = document.getElementById("overlay");
 
-const { readDir } = window.tauri.fs;
-const { BaseDirectory, join, appDataDir: getAppDataDir } = window.tauri.path;
-
 const appDataDir = await getAppDataDir();
 
-const { loadModule } = window['vue3-sfc-loader'];
-
-const app = Vue.createApp();
-
-const folders = await readDir('bricks', { baseDir: BaseDirectory.AppData });
+let app = Vue.createApp();
 
 const baseLoaderOptions = {
   moduleCache: {
@@ -28,7 +26,7 @@ const baseLoaderOptions = {
       return res.text();
     }
 
-    if (!url.endsWith(`${baseLoaderOptions.__brick_name}/widget.vue`)) {
+    if (!url.endsWith(`${baseLoaderOptions.__brick_name}/brick.vue`)) {
       console.log(`[loader]: Component "${baseLoaderOptions.__brick_name}" requesting ${url}`);
     }
 
@@ -56,31 +54,61 @@ const baseLoaderOptions = {
   timeout: 30000,
 }
 
-for (const folder of folders) {
-    if (!folder.name) continue
+// Mappa per tenere traccia degli elementi montati
+const mountedBricks = new Set();
 
-    const name = folder.name
-    const widgetsDir = await join(appDataDir, 'bricks');
-    const widgetDir = await join(widgetsDir, name);
-    const vueFilePath = normalizePath(await join(widgetDir, 'brick.vue'));
+async function loadBrick(name) {
+  const widgetsDir = await join(appDataDir, 'bricks');
+  const widgetDir = await join(widgetsDir, name);
+  const vueFilePath = normalizePath(await join(widgetDir, 'brick.vue'));
 
-    const loaderOptions = {
-      ...baseLoaderOptions,
-      __brick_path: widgetDir,
-      __brick_name: name
-    }
+  console.log(vueFilePath);
 
-    try {
-      const component = await loadModule(vueFilePath, loaderOptions)
-      app.component(name, component)
+  const loaderOptions = {
+    ...baseLoaderOptions,
+    __brick_path: widgetDir,
+    __brick_name: name
+  };
 
-      const element = document.createElement(name);
-      overlay.appendChild(element);
+  try {
+    const component = await loadModule(vueFilePath, loaderOptions);
+    app.component(name, component);
 
-      console.log(`[loader]: ✅ Widget "${name}" loaded`)
-    } catch (err) {
-        console.error(`[loader]: ❌ Errore while loading widget "${name}":`, err)
-    }
+    const element = document.createElement(toCustomElementName(name));
+    overlay.appendChild(element);
+
+    console.log(`[loader]: ✅ Widget "${name}" loaded`);
+  } catch (err) {
+    console.error(`[loader]: ❌ Errore while loading widget "${name}":`, err);
+  }
+}
+
+listen('toggle_brick', async (event) => {
+  const { name }  = event.payload;
+
+  if (mountedBricks.has(name)) {
+    mountedBricks.delete(name);
+  } else {
+    mountedBricks.add(name);
+  }
+
+  app.unmount(null, true);
+
+  app = Vue.createApp();
+
+  for (const name of mountedBricks) {
+    await loadBrick(name);
+  }
+
+  app.mount('#overlay');
+});
+
+const bricks = await invoke('get_bricks');
+
+for (const brick of bricks) {
+  if (!brick.name) continue;
+  await loadBrick(brick.name);
+  mountedBricks.add(brick.name);
 }
 
 app.mount('#overlay');

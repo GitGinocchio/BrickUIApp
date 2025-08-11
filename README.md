@@ -1,4 +1,9 @@
 
+- Sistemare i permessi per l'api tauri magari con un token generato a runtime che deve essere scambiato per emettere o ascoltare eventi particolari che solo la finestra overlay puo' ascoltare
+
+- Problema con le cartelle per i nomi dei brick perche' possono essere uguali infatti taskBar e TaskBar vengono viste allo stesso modo
+  questo e' un problema da risolvere e si potrebbe sistemare con il kebab-case
+
 - Creare un wrapper per l'api `listen` di tauri, (come e' stato gia' fatto in `src/overlay/apis.ts`)
   di modo da permettere all'utente di ascoltare solo alcuni eventi
 
