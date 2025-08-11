@@ -4,6 +4,8 @@
 - Problema con le cartelle per i nomi dei brick perche' possono essere uguali infatti taskBar e TaskBar vengono viste allo stesso modo
   questo e' un problema da risolvere e si potrebbe sistemare con il kebab-case
 
+- Gestire il caso in cui un'altra app e' a schermo intero, quindi tutti i brick (o quelli configurati per farlo) devono essere tolti
+
 - Creare un wrapper per l'api `listen` di tauri, (come e' stato gia' fatto in `src/overlay/apis.ts`)
   di modo da permettere all'utente di ascoltare solo alcuni eventi
 
