@@ -51,7 +51,7 @@ const menu = ref('/widgets')
 const collapsed = ref(false)
 
 const menuOptions = [
-  { label: 'Widget Manager', key: '/widgets',      icon: () => h(LayoutDashboardIcon) },
+  { label: 'Bricks Manager', key: '/widgets',      icon: () => h(LayoutDashboardIcon) },
   { label: 'Settings',       key: '/settings',     icon: () => h(SettingsIcon)},
   { label: 'Marketplace',    key: '/marketplace',  icon: () => h(StoreIcon)}
 ]

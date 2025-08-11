@@ -4,10 +4,7 @@ use windows::{
         Foundation::{HWND, LPARAM, RECT}, UI::{
             Shell::{SHAppBarMessage, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA},
             WindowsAndMessaging::{
-                FindWindowA, GetWindowLongPtrW, GetWindowRect, SetWindowLongPtrW, 
-                SetWindowPos, ShowWindow, GWL_STYLE, HWND_TOPMOST, SWP_FRAMECHANGED, SWP_NOACTIVATE, 
-                SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOW, WS_CAPTION, 
-                WS_THICKFRAME
+                FindWindowA, GetWindowLongPtrW, GetWindowRect, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_STYLE, HWND_BOTTOM, HWND_TOPMOST, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOW, WS_CAPTION, WS_THICKFRAME
             },
         }
     },
@@ -41,12 +38,12 @@ pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), WinError> {
 
         SetWindowPos(
             taskbar,
-            Some(HWND_TOPMOST),
+            Some(HWND_BOTTOM),
             0,
             -100,
             0,
             0,
-            SWP_NOSIZE | SWP_NOMOVE,
+            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE,
         )?;
 
         Ok(())

@@ -1,9 +1,9 @@
 <template>
   <n-space vertical>
-    <n-card title="Widgets">
+    <n-card title="Bricks">
       <n-grid :cols="1" x-gap="16" y-gap="16">
-        <n-gi v-for="widget in widgets" :key="widget.name">
-          <widget-card :widget="widget" @open-settings="openSettings" />
+        <n-gi v-for="brick in bricks" :key="brick.name">
+          <BrickCard :brick="brick" @open-settings="openSettings" />
         </n-gi>
       </n-grid>
     </n-card>
@@ -11,14 +11,15 @@
 </template>
 
 <script setup lang="ts">
-import { BaseDirectory, readDir } from '@tauri-apps/plugin-fs';
-import WidgetCard from '/components/WidgetCard.vue'
+import BrickCard from "../components/BrickCard.vue"
 import { onMounted, ref } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
+import { Brick } from 'interfaces/brick';
 
-const widgets = ref([]);
+const bricks = ref<Brick[]>([]);
 
 onMounted(async () => {
-  widgets.value = await readDir('bricks', { baseDir: BaseDirectory.AppData });
+  bricks.value = await invoke<Brick[]>("get_bricks", {});
 });
 
 function openSettings(widgetName: string) {
