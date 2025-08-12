@@ -136,6 +136,13 @@ pub enum Prop {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Generic property container.")]
 pub struct PropType<T> {
+    #[schemars(description = "The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization.")]
+    prop_name: String,
+
+    #[schemars(description = "A brief textual description providing additional details or context about the property. \nThis helps users understand the purpose or usage of the property.")]
+    #[serde(default)]
+    description: String,
+
     #[schemars(description = "Current value of the property. May be null if `nullable` is true.")]
     value: Option<T>,
 
@@ -164,6 +171,13 @@ pub struct NumericPropType<T> {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Array property container with typed values.")]
 pub struct ArrayPropType<T> {
+    #[schemars(description = "The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization.")]
+    prop_name: String,
+
+    #[schemars(description = "A brief textual description providing additional details or context about the property. \nThis helps users understand the purpose or usage of the property.")]
+    #[serde(default)]
+    description: String,
+
     #[serde(default)]
     #[schemars(description = "Indicates whether this array property can be null.")]
     pub nullable: bool,
@@ -184,6 +198,13 @@ pub struct ArrayPropType<T> {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Selectable property container with typed options.")]
 pub struct SelectablePropType<T> {
+    #[schemars(description = "The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization.")]
+    prop_name: String,
+
+    #[schemars(description = "A brief textual description providing additional details or context about the property. \nThis helps users understand the purpose or usage of the property.")]
+    #[serde(default)]
+    description: String,
+
     #[schemars(description = "List of selectable options.")]
     pub options: Vec<T>,
 
