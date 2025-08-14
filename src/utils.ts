@@ -33,21 +33,26 @@ export function colorStringToRGBA(input: string): [number, number, number, numbe
   }
 
   // RGB / RGBA
-  let rgbMatch = input.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+))?\)/i);
+  let rgbMatch = input.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/i);
   if (rgbMatch) {
     const r = parseInt(rgbMatch[1]);
     const g = parseInt(rgbMatch[2]);
     const b = parseInt(rgbMatch[3]);
-    const a = rgbMatch[4] !== undefined ? parseInt(rgbMatch[4]) : 255;
+    const a = rgbMatch[4] !== undefined
+      ? Math.round(parseFloat(rgbMatch[4]) * (rgbMatch[4].includes('.') ? 255 : 1))
+      : 255;
     return [r, g, b, a];
   }
 
-  // HSL
-  let hslMatch = input.match(/hsl\(\s*(\d+),\s*(\d+)%?,\s*(\d+)%?\)/i);
+  // HSL / HSLA
+  let hslMatch = input.match(/hsla?\(\s*(\d+),\s*(\d+)%?,\s*(\d+)%?(?:,\s*([\d.]+))?\s*\)/i);
   if (hslMatch) {
     let h = parseInt(hslMatch[1]);
     let s = parseInt(hslMatch[2]) / 100;
     let l = parseInt(hslMatch[3]) / 100;
+    let alpha = hslMatch[4] !== undefined
+      ? Math.round(parseFloat(hslMatch[4]) * (hslMatch[4].includes('.') ? 255 : 1))
+      : 255;
 
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
@@ -65,10 +70,9 @@ export function colorStringToRGBA(input: string): [number, number, number, numbe
       Math.round((r + m) * 255),
       Math.round((g + m) * 255),
       Math.round((b + m) * 255),
-      255
+      alpha
     ];
   }
 
   throw new Error('Formato colore non supportato');
 }
-
