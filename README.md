@@ -1,5 +1,11 @@
 
-- Aggiungere i proptype: date, datetime, color, 
+- Passare da usare solo `serde_yaml` a `yaml-rust` per la formattazione del file yaml, magari utilizzando un serializzatore custom
+
+- [x] Anche la descrizione del prop dovrebbe supportare markdown
+
+- Aggiungere i proptype: bool, date, time, datetime, color, shortcut
+
+- Aggiungere la possibilita' negli input di tipo stringa di essere validati attraverso un regex
 
 - Sistemare i permessi per l'api tauri magari con un token generato a runtime che deve essere scambiato per emettere o ascoltare eventi particolari che solo la finestra overlay puo' ascoltare
 
@@ -8,10 +14,10 @@
 
 - Gestire il caso in cui un'altra app e' a schermo intero, quindi tutti i brick (o quelli configurati per farlo) devono essere tolti
 
-- Creare un wrapper per l'api `listen` di tauri, (come e' stato gia' fatto in `src/overlay/apis.ts`)
+- [x] Creare un wrapper per l'api `listen` di tauri, (come e' stato gia' fatto in `src/overlay/apis.ts`)
   di modo da permettere all'utente di ascoltare solo alcuni eventi
 
-- Bisogna aggiungere nel backend rust in `src-tauri/src/state.rs` la creazione del file `settings.yml`
+- [x] Bisogna aggiungere nel backend rust in `src-tauri/src/state.rs` la creazione del file `settings.yml`
   dal template `settings-template.yml` in `src-tauri/assets/settings-template.yml`
 
 - Bisogna aggiungere la funzionalita' che quando viene modificato un brick vengono ricaricati tutti i brick nuovamente
@@ -21,11 +27,12 @@
 - Bisogna aggiungere la possibilita' di creare un nuovo brick in app (quindi copiare il template `/src-tauri/assets/brick-template` nella cartella bricks)
   e dare la possibilita di aprire la cartella per sviluppare il brick (successivamente anche per l'editor visuale)
 
-- Implementare i global bricks (cartella `/globals` nella directory in AppData)
+- (Questo non ha molto senso pensandoci di nuovo, potrebbe creare confusione e sarebbe difficile da gestire per l'utente)
+  Implementare i global bricks (cartella `/globals` nella directory in AppData)
   cioe' dei brick riutilizzabili all'interno di altri brick
   (quindi rendere impossibile l'utilizzo di brick nella cartella bricks all'interno di altri bricks)
 
-- Bisogna implementare la possibilita' di abilitare e disabilitare i brick a runtime (non dovrebbe essere difficile)
+- [x] Bisogna implementare la possibilita' di abilitare e disabilitare i brick a runtime (non dovrebbe essere difficile)
 
 - Bisogna creare la logica per il caricamento dei dati per ogni brick (da mostrare anche nella pagina apposita)
   quindi dal file `brick.yml` (guardare anche il template in `src-tauri/assets/brick-template`)

@@ -1,5 +1,4 @@
 mod overlay_window;
-
 use crate::overlay_window::utils::{
     hide_taskbar, 
     show_taskbar, 
@@ -14,6 +13,7 @@ use crate::winapi::taskbar::apps::get_taskbar_icons;
 
 mod bricks;
 use crate::bricks::brick::Brick;
+use crate::bricks::{save_brick, open_brick};
 
 mod config;
 use crate::config::settings::{Settings, TaskBarBehavior};
@@ -39,6 +39,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
+            save_brick,
+            open_brick,
             get_taskbar_icons,
             get_settings,
             get_bricks

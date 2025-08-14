@@ -37,3 +37,4 @@ rdev = { version = "0.5.3", features = [ "serialize"] }
 tauri-plugin-fs = "2.4.1"
 uuid = { version = "1.17.0", features = [ "v4"] }
 image = "0.25.6"
+chrono = "0.4.41"

@@ -36,15 +36,16 @@ export interface Brick {
 
 /** Enumeration of supported property types for a Brick (flatten respected). */
 export type Prop =
-  | ({ prop_type: 'string' } & PropType<string>)
-  | ({ prop_type: 'int' | 'float' } & NumericPropType<number>)
-  | ({ prop_type: 'string-array' } & ArrayPropType<string>)
-  | ({ prop_type: 'int-array' | 'float-array' } & ArrayPropType<number>)
-  | ({ prop_type: 'string-select' } & SelectablePropType<string>)
-  | ({ prop_type: 'int-select' | 'float-select' } & SelectablePropType<number>)
-  | ({ prop_type: 'array' } & ArrayPropType<any>)
-  | ({ prop_type: 'select' } & SelectablePropType<any>)
-  | ({ prop_type: 'any', prop_name: string, description: string } & Record<string, any>);
+  | ({ prop_type: 'String' } & PropType<string>)
+  | ({ prop_type: 'Int' | 'Float' } & NumericPropType<number>)
+  | ({ prop_type: 'StringArray' } & ArrayPropType<string>)
+  | ({ prop_type: 'IntArray' | 'FloatArray' } & ArrayPropType<number>)
+  | ({ prop_type: 'StringSelect' } & SelectablePropType<string>)
+  | ({ prop_type: 'IntSelect' | 'FloatSelect' } & SelectablePropType<number>)
+  | ({ prop_type: 'Array' } & ArrayPropType<any>)
+  | ({ prop_type: 'Select' } & SelectablePropType<any>)
+  | ({ prop_type: 'Any' } & PropType<any>)
+  | ({ prop_type: 'Color'} & ColorPropType);
 
 /** Generic property container. */
 export interface PropType<T> {
@@ -62,9 +63,6 @@ export interface PropType<T> {
 
   /** Default value of the property. */
   default?: T | null;
-
-  /** Indicates whether this property can be null. */
-  nullable?: boolean;
 }
 
 /** Property container for numeric types, including optional bounds. */
@@ -76,59 +74,32 @@ export interface NumericPropType<T> extends PropType<T> {
   max?: T;
 }
 
+/** Color property container. */
+export interface ColorPropType extends PropType<[number, number, number, number]> {
+  /** If true, the alpha channel is ignored. */
+  skip_alpha? : boolean;
+
+  /** Default swatches to show to the user (0-255 for each channel). */
+  swatches? : [number, number, number, number][]
+}
+
 /** Array property container with typed values. */
-export interface ArrayPropType<T> {
-  /** The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization. */
-  prop_name: string;
-
-  /**
-   * A brief textual description providing additional details or context about the property.
-   * This helps users understand the purpose or usage of the property.
-   */
-  description: string;
-
-  /** Indicates whether this array property can be null. */
-  nullable?: boolean;
-
-  /** Default value of the array property. */
-  default?: T[];
-
-  /** Current value of the array property. */
-  values?: T[];
-
+export interface ArrayPropType<T> extends PropType<T> {
   /** Minimum number of items allowed in the array. */
-  min_items?: number;
+  min?: number;
 
   /** Maximum number of items allowed in the array. */
-  max_items?: number;
+  max?: number;
 }
 
 /** Selectable property container with typed options. */
-export interface SelectablePropType<T> {
-  /** The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization. */
-  prop_name: string;
-
-  /**
-   * A brief textual description providing additional details or context about the property.
-   * This helps users understand the purpose or usage of the property.
-   */
-  description: string;
-
+export interface SelectablePropType<T> extends PropType<T> {
   /** List of selectable options. */
   options: T[];
 
-  /** Currently selected option. */
-  selected?: T;
-
-  /** Default selected option. */
-  default_selected?: T;
-
-  /** Indicates whether this property can be null. */
-  nullable?: boolean;
-
   /** Minimum number of selections allowed. */
-  min_selections?: number;
+  min?: number;
 
   /** Maximum number of selections allowed. */
-  max_selections?: number;
+  max?: number;
 }

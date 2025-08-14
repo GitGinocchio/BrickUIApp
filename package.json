@@ -14,6 +14,7 @@
     "@tauri-apps/plugin-fs": "^2.4.1",
     "@tauri-apps/plugin-opener": "^2",
     "lucide-vue-next": "^0.525.0",
+    "markdown-it": "^14.1.0",
     "naive-ui": "^2.42.0",
     "vue": "^3.5.18",
     "vue-i18n": "^11.1.11",

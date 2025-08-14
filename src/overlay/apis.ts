@@ -22,7 +22,8 @@ const allowedListenEvents = new Set<event.EventName>([
   "global_key_pressed",
   "global_key_released",
   "global_wheel",
-  "toggle_brick"
+  "toggle_brick",
+  "update_prop"
 ]);
 
 const allowedOnceEvents = new Set<event.EventName>([

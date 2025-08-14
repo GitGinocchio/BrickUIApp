@@ -4,10 +4,10 @@ use schemars::{schema_for, JsonSchema};
 use serde::Serialize;
 use tauri::Runtime;
 use crate::{
-    bricks::{brick::Brick, loader::load_bricks}, 
+    bricks::{brick::Brick, load_bricks}, 
     config::{
         externals::Externals, 
-        loader::load_from_yaml, 
+        load_from_yaml, 
         plugins::Plugins, 
         settings::Settings
     }, 
@@ -42,7 +42,7 @@ where
 
     let schema_filename = filename.replace(".yml", ".schema.json");
 
-    let schema_uri = format!("./.schemas/{schema_filename}");
+    let schema_uri = format!("../../.schemas/{schema_filename}");
 
     // Prepara il contenuto con $schema e commenti
     let content = format!(

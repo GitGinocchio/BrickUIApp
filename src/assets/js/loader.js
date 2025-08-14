@@ -3,46 +3,26 @@ const { invoke } = window.tauri.core;
 const { listen } = window.tauri.event;
 const { loadModule } = window['vue3-sfc-loader'];
 import { normalizePath } from "./path";
-import { toCustomElementName } from "./utils";
-
-const overlay = document.getElementById("overlay");
+import { normalizeProps } from './utils';
 
 const appDataDir = await getAppDataDir();
 
-let app = Vue.createApp();
-
+// Loader base
 const baseLoaderOptions = {
-  moduleCache: {
-    vue: Vue, 
-    tauri: window.tauri
-  },
+  moduleCache: { vue: Vue, tauri: window.tauri },
   getFile: async (url) => {
-    // Se è un URL assoluto (es. http:// o https://), fai fetch normalmente
     if (/^https?:\/\//.test(url)) {
       const res = await fetch(url);
-      if (!res.ok) {
-        throw Object.assign(new Error(`Failed to load ${url}: ${res.statusText}`), { res });
-      }
+      if (!res.ok) throw Object.assign(new Error(`Failed to load ${url}`), { res });
       return res.text();
     }
 
-    if (!url.endsWith(`${baseLoaderOptions.__brick_name}/brick.vue`)) {
-      console.log(`[loader]: Component "${baseLoaderOptions.__brick_name}" requesting ${url}`);
-    }
-
-    // relative imports
-    let resolvedPath = url;
-    if (url.startsWith("http:/asset.localhost/") || url.startsWith("/")) {
-      resolvedPath = normalizePath(await join(baseLoaderOptions.__brick_path, url.replace('http:/asset.localhost/','')));
-    }
-
-    console.log(`[loader]: Component ${url} requested by "${baseLoaderOptions.__brick_name}" resolved to ${resolvedPath}`)
+    let resolvedPath = url.startsWith("/") 
+      ? normalizePath(await join(baseLoaderOptions.__brick_path, url.slice(1)))
+      : url;
 
     const response = await fetch(resolvedPath);
-    if (!response.ok) {
-      throw Object.assign(new Error(`Failed to load ${resolvedPath}: ${response.statusText}`), { response });
-    }
-
+    if (!response.ok) throw Object.assign(new Error(`Failed to load ${resolvedPath}`), { response });
     return response.text();
   },
   addStyle: text => {
@@ -52,63 +32,72 @@ const baseLoaderOptions = {
   },
   log: console.log,
   timeout: 30000,
-}
+};
 
-// Mappa per tenere traccia degli elementi montati
-const mountedBricks = new Set();
+const bricksState = Vue.reactive(new Map()); // mappa globale dei brick montati
 
-async function loadBrick(name) {
+const app = Vue.createApp({
+  render() {
+    const nodes = [];
+    for (const [name, { component, props }] of bricksState) {
+      nodes.push(Vue.h(component, { key: name, ...props }));
+    }
+    return Vue.h('div', nodes);
+  }
+});
+
+app.mount('#overlay');
+
+// Funzioni sicure di load/unload
+async function loadBrickComponent(brick) {
+  if (bricksState.has(brick.name)) return;
+
   const widgetsDir = await join(appDataDir, 'bricks');
-  const widgetDir = await join(widgetsDir, name);
+  const widgetDir = await join(widgetsDir, brick.name);
   const vueFilePath = normalizePath(await join(widgetDir, 'brick.vue'));
-
-  console.log(vueFilePath);
 
   const loaderOptions = {
     ...baseLoaderOptions,
     __brick_path: widgetDir,
-    __brick_name: name
+    __brick_name: brick.name
   };
 
-  try {
-    const component = await loadModule(vueFilePath, loaderOptions);
-    app.component(name, component);
+  const component = await loadModule(vueFilePath, loaderOptions);
+  bricksState.set(brick.name, { component, props: Vue.reactive(normalizeProps(brick.props)) });
+}
 
-    const element = document.createElement(toCustomElementName(name));
-    overlay.appendChild(element);
+function unloadBrickComponent(name) {
+  bricksState.delete(name);
+}
 
-    console.log(`[loader]: ✅ Widget "${name}" loaded`);
-  } catch (err) {
-    console.error(`[loader]: ❌ Errore while loading widget "${name}":`, err);
+// Toggle brick
+async function toggleBrick(brick) {
+  if (bricksState.has(brick.name)) {
+    unloadBrickComponent(brick.name);
+  } else {
+    await loadBrickComponent(brick);
   }
 }
 
+async function updateBrick(brick_name, prop_name, prop_value) {
+  const brick = bricksState.get(brick_name);
+  if (brick) {
+    brick.props[prop_name] = prop_value;
+  }
+}
+
+// Event listener
 listen('toggle_brick', async (event) => {
-  const { name }  = event.payload;
-
-  if (mountedBricks.has(name)) {
-    mountedBricks.delete(name);
-  } else {
-    mountedBricks.add(name);
-  }
-
-  app.unmount(null, true);
-
-  app = Vue.createApp();
-
-  for (const name of mountedBricks) {
-    await loadBrick(name);
-  }
-
-  app.mount('#overlay');
+  await toggleBrick(event.payload.brick);
 });
 
-const bricks = await invoke('get_bricks');
+listen('update_prop', async (event) => {
+  await updateBrick(event.payload.brick_name, event.payload.prop_name, event.payload.prop_value)
+});
 
+// Carico i brick iniziali
+const bricks = await invoke('get_bricks');
 for (const brick of bricks) {
-  if (!brick.name) continue;
-  await loadBrick(brick.name);
-  mountedBricks.add(brick.name);
+  if (brick.enabled) await loadBrickComponent(brick);
 }
 
-app.mount('#overlay');

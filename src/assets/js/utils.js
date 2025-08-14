@@ -1,18 +1,3 @@
-
-export function toCustomElementName(name) {
-  // trasforma in kebab-case
-  const kebab = name
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .toLowerCase();
-
-  // se la prima lettera originale non era maiuscola, aggiungo "a-"
-  if (name[0] !== name[0].toUpperCase()) {
-    return `l-${kebab}`;
-  }
-  return kebab;
-}
-
-
 export function appendScript(src, type = null, async = false, defer = false, integrity, crossorigin) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) {
@@ -48,4 +33,10 @@ export function appendStyle(href, rel = "stylesheet", media = null, integrity = 
 
     document.head.appendChild(link);
   });
+}
+
+export function normalizeProps(propsArray) {
+  return Object.fromEntries(
+    propsArray.map(p => [p.prop_name, p.value ?? p.default])
+  );
 }
