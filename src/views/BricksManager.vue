@@ -26,7 +26,6 @@ const bricks = ref<Brick[]>([]);
 
 onMounted(async () => {
   bricks.value = await invoke<Brick[]>("get_bricks", {});
-  //await invoke("get_taskbar_icons")
 });
 
 

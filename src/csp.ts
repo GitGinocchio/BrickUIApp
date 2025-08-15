@@ -20,7 +20,7 @@ export async function buildCsp() {
   const styleSrcs = styleHashesAndUrls.map(item => `'${item.hash}' ${item.href}`).join(' ');
 
   return [
-    `default-src 'self'`,
+    `default-src 'self' asset: data: blob: http://asset.localhost ipc: http://ipc.localhost;`,
     `script-src 'self' 'unsafe-eval' ${scriptSrcs}`,
     `style-src 'self' 'unsafe-inline' ${styleSrcs}`,
     `img-src 'self' asset: data: blob: https: http://asset.localhost`,

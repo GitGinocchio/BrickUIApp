@@ -30,11 +30,23 @@ windows = { version = "0.61.3", features = [
     "Win32_Foundation", 
     "Win32_System_Threading",
     "Win32_System_Diagnostics_ToolHelp",
-    "Win32_Graphics_Gdi"
+    "Win32_System_Com",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Shell"
+] }
+windows-sys = { version = "0.60.2", features = [
+    "Win32_UI_Shell",
+    "Win32_Storage_FileSystem",
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Threading",
+    "Win32_Foundation"
 ] }
 winreg = "0.55.0"
 rdev = { version = "0.5.3", features = [ "serialize"] }
 tauri-plugin-fs = "2.4.1"
-uuid = { version = "1.17.0", features = [ "v4"] }
+uuid = { version = "1.18.0", features = [ "v4"] }
 image = "0.25.6"
 chrono = "0.4.41"
+base64 = "0.22.1"

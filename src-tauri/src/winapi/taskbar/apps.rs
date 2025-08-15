@@ -8,6 +8,7 @@ use windows::{
         }, UI::{Shell::ExtractIconExW, WindowsAndMessaging::*}
     },
 };
+use base64::{engine::general_purpose, Engine as _};
 use image::{ImageBuffer, Rgba};
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
@@ -29,7 +30,6 @@ fn get_window_text(hwnd: HWND) -> Option<String> {
 
     Some(String::from_utf16_lossy(&buffer[..copied_len as usize]))
 }
-
 
 fn get_exe_path(pid: u32) -> Option<PathBuf> {
     unsafe {
@@ -57,12 +57,12 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
     }
 }
 
-fn extract_icon(path: &PathBuf) -> Option<PathBuf> {
+fn extract_icon(exe_path: &PathBuf, output_path: &PathBuf) -> Option<String> {
     use std::ptr::null_mut;
 
     unsafe {
         // Converte il percorso in UTF-16
-        let path_utf16: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        let path_utf16: Vec<u16> = exe_path.as_os_str().encode_wide().chain(Some(0)).collect();
 
         // Estrae l'icona
         let mut hicon: HICON = HICON(null_mut());
@@ -121,67 +121,138 @@ fn extract_icon(path: &PathBuf) -> Option<PathBuf> {
         }
         ReleaseDC(None, hdc);
 
-        // Salva come PNG
         let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, buffer)?;
-        let temp_dir = std::env::temp_dir();
+
+        // Salva come PNG
+        /*
         let filename = format!("icon_{}.png", Uuid::new_v4());
-        let path = temp_dir.join(filename);
+        let path = output_path.join("cache").join("icons").join(filename);
 
         let file = File::create(&path).ok()?;
         let mut writer = BufWriter::new(file);
         image::DynamicImage::ImageRgba8(img_buf).write_to(&mut writer, image::ImageFormat::Png).ok()?;
+        */
+
+        let mut buffer = Vec::new();
+        image::DynamicImage::ImageRgba8(img_buf)
+            .write_to(&mut std::io::Cursor::new(&mut buffer), image::ImageFormat::Png)
+            .ok()?;
+
+        // Converte in base64
+        let base64_icon = general_purpose::STANDARD.encode(&buffer);
+
+        // A questo punto puoi restituire:
+        let data_url = format!("data:image/png;base64,{}", base64_icon);
 
         // Pulizia risorse GDI
         DeleteObject(icon_info.hbmColor.into());
         DeleteObject(icon_info.hbmMask.into());
         DestroyIcon(hicon);
 
-        Some(path)
+        Some(data_url)
     }
 }
-
 
 #[derive(serde::Serialize)]
 pub struct WindowIcon {
     title: String,
-    icon_path: String,
+    path: String,
 }
 
-pub fn get_taskbar_icons() -> Vec<WindowIcon> {
+pub fn get_taskbar_icons(path: &PathBuf) -> Vec<WindowIcon> {
     let mut results = Vec::new();
 
+    // Struct di contesto da passare alla callback
+    struct EnumContext<'a> {
+        results: &'a mut Vec<WindowIcon>,
+        icon_path: &'a PathBuf,
+    }
+
+    let mut context = EnumContext {
+        results: &mut results,
+        icon_path: path,
+    };
+
     unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
-        unsafe {
-            let results = &mut *(lparam.0 as *mut Vec<WindowIcon>);
+        let ctx = &mut *(lparam.0 as *mut EnumContext);
+        let results = &mut ctx.results;
+        let path = ctx.icon_path;
 
-            if !IsWindowVisible(hwnd).as_bool() || GetParent(hwnd).unwrap().0 != HWND(std::ptr::null_mut()).0 {
-                return BOOL(1);
-            }
+        if !IsWindowVisible(hwnd).as_bool() {
+            return BOOL(1);
+        }
 
-            let mut pid = 0;
-            GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        if (ex_style as u32) & WS_EX_TOOLWINDOW.0 != 0 {
+            return BOOL(1);
+        }
 
-            if let Some(title) = get_window_text(hwnd) {
-                if title.is_empty() || title == "Program Manager" {
-                    return BOOL(1);
-                }
+        let class_name = {
+            let mut buf = [0u16; 256];
+            let len = GetClassNameW(hwnd, &mut buf);
+            String::from_utf16_lossy(&buf[..len as usize])
+        };
 
-                if let Some(exe_path) = get_exe_path(pid) {
-                    if let Some(icon_path) = extract_icon(&exe_path) {
+        // Gestione UWP/ApplicationFrameWindow
+        if class_name == "ApplicationFrameWindow" || class_name == "CabinetWClass" {
+            unsafe extern "system" fn enum_child(hwnd: HWND, lparam: LPARAM) -> BOOL {
+                let ctx = &mut *(lparam.0 as *mut EnumContext);
+                let results = &mut ctx.results;
+                if let Some(title) = get_window_text(hwnd) {
+                    if !title.is_empty() {
+                        /*
                         results.push(WindowIcon {
                             title,
-                            icon_path: icon_path.to_string_lossy().to_string(),
+                            path: String::from("<uwp_placeholder>"),
                         });
+                        */
                     }
                 }
-            }    
+                BOOL(1)
+            }
+            EnumChildWindows(Some(hwnd), Some(enum_child), LPARAM(ctx as *mut _ as isize));
+            return BOOL(1);
+        }
+
+        // Titolo finestra
+        let title = match get_window_text(hwnd) {
+            Some(t) if !t.is_empty() && t != "Program Manager" => t,
+            _ => return BOOL(1),
+        };
+
+        // PID
+        let mut pid = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+
+        // Percorso eseguibile e icona
+        if let Some(exe_path) = get_exe_path(pid) {
+            if let Some(icon_path) = extract_icon(&exe_path, path) {
+                results.push(WindowIcon {
+                    title,
+                    path: icon_path //.to_string_lossy().to_string(),
+                });
+            } else {
+                /*
+                results.push(WindowIcon {
+                    title,
+                    path: String::from("<no_icon>"),
+                });
+                */
+            }
+        } else {
+            /*
+            results.push(WindowIcon {
+                title,
+                path: String::from("<no_exe>"),
+            });
+            */
         }
 
         BOOL(1)
     }
 
     unsafe {
-        let _ = EnumWindows(Some(enum_windows_proc), LPARAM(&mut results as *mut _ as isize));
+        let _ = EnumWindows(Some(enum_windows_proc), LPARAM(&mut context as *mut _ as isize));
     }
 
     results

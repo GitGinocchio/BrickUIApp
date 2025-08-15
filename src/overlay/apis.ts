@@ -5,7 +5,8 @@ import * as event from '@tauri-apps/api/event';
 //import type * as Tauri from '@tauri-apps/api/';
 
 const allowedCommands = new Set<string>([
-  "get_bricks"
+  "get_bricks",
+  "get_taskbar_icons"
 ]);
 
 const allowedEmitEvents = new Set<string>([

@@ -92,6 +92,7 @@ impl BrickUIState {
         fs::create_dir_all(&path.join("bricks")).expect("Errore nella creazione della directory per i widgets");
         fs::create_dir_all(&path.join("walls")).expect("Errore nella creazione della directory per i widgets");
         fs::create_dir_all(&path.join(".schemas")).expect("Errore nella creazione della directory per gli schemas");
+        fs::create_dir_all(&path.join("cache").join("icons")).expect("Errore nella creazione della directory per la cache");
 
         generate_schemas_if_missing(path).expect("Errore durante la creazione degli schemas");
         generate_templates_if_missing(path).expect("Errore durante la creazione dei template");

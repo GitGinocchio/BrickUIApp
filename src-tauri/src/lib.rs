@@ -25,7 +25,10 @@ use state::BrickUIState;
 
 #[tauri::command]
 fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<WindowIcon>, String> {
-    Ok(crate::winapi::taskbar::apps::get_taskbar_icons())
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    Ok(crate::winapi::taskbar::apps::get_taskbar_icons(&path))
 }
 
 #[tauri::command]
@@ -92,7 +95,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            //get_taskbar_icons,
+            get_taskbar_icons,
             get_settings,
             get_bricks,
             load_bricks,
@@ -105,7 +108,7 @@ pub fn run() {
             let state = BrickUIState::new(&path);
             app.manage(Arc::new(Mutex::new(state)));
 
-            let state = app.app_handle().state::<Arc<Mutex<BrickUIState>>>();
+            let state = app.state::<Arc<Mutex<BrickUIState>>>();
             let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
 
             let settings = state_guard.get_settings().clone();
@@ -133,8 +136,12 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { .. } = event && window.label() == "settings" {
                 let app_handle = window.app_handle();
-                let state = app_handle.state::<BrickUIState>();
-                let settings = state.get_settings();
+                let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+                let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
+                    Ok(guard) => guard,
+                    Err(e) => panic!("{e}")
+                };
+                let settings = state_guard.get_settings();
 
                 if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
                     match show_taskbar() {
