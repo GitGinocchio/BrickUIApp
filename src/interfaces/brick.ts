@@ -75,12 +75,15 @@ export interface NumericPropType<T> extends PropType<T> {
 }
 
 /** Color property container. */
-export interface ColorPropType extends PropType<[number, number, number, number]> {
+export interface ColorPropType extends PropType<string> {
   /** If true, the alpha channel is ignored. */
   skip_alpha? : boolean;
 
   /** Default swatches to show to the user (0-255 for each channel). */
-  swatches? : [number, number, number, number][]
+  swatches? : string[]
+
+  /** Color saved by the user */
+  saved? : string[]
 }
 
 /** Array property container with typed values. */

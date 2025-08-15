@@ -24,17 +24,17 @@
       <strong>Dependencies:</strong> {{ brick.dependencies.join(', ') }}
     </div>
     -->
-
-    <n-collapse>
-      <n-collapse-item :collapsed="false" title="Description">
+ 
+    <n-collapse default-expanded-names="1" accordion>
+      <n-collapse-item title="Description" name="1">
         <div v-html="renderedDescription" class="description"></div>
       </n-collapse-item>
-      <n-collapse-item title="Props" class="properties-container">
+      <n-collapse-item title="Props" name="2" class="properties-container">
         <div v-for="prop in brick.props" :key="prop.prop_name">
           <BrickProp :prop="prop" @update:prop="onPropUpdate" />
         </div>
       </n-collapse-item>
-      <n-collapse-item title="Emits" class="emits-container">
+      <n-collapse-item title="Emits" name="3" class="emits-container">
         <div v-for="prop in brick.props" :key="prop.prop_name">
 
         </div>
@@ -65,14 +65,20 @@ async function onToggle() {
 }
 
 async function onPropUpdate(prop: Prop) {
+  console.log(`Prop update: ${prop}`);
   const index = brick.props.findIndex(p => p.prop_name === prop.prop_name);
   if (index !== -1) brick.props[index] = prop;
   else brick.props.push(prop);
 
-  await invoke("save_brick", { brick: brick });
+  await emitTo("window", "update_prop", { 
+    brick_name: brick.name, 
+    prop_name: prop.prop_name, 
+    prop_value: prop.value 
+  });
 
-  await emitTo("window", "update_prop", { brick_name: brick.name, prop_name: prop.prop_name, prop_value: prop.value })
+  await invoke("save_brick", { brick: brick });
 }
+
 
 async function onOpenBrick() {
   await invoke("open_brick", { brickName: brick.name });

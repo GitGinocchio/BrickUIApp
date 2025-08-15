@@ -1,5 +1,25 @@
 <template>
-  <n-tooltip :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
+  <div class="brick-prop">
+    <n-tooltip :delay=800 :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
+      <template #trigger>
+        <label>{{ capitalize(prop.prop_name) }}</label>
+      </template>
+      <div v-html="renderedDescription" class="brick-prop-description"></div>
+    </n-tooltip>
+    <component
+      :is="currentComponent"
+      v-bind="componentProps"
+      v-model:value="modelValue"
+    >
+    <template v-if="currentComponent == NColorPicker && prop.prop_type == 'Color'" #action>
+      <n-button size="small" @click="onSaveColor">Save</n-button>
+      <n-button size="small" @click="onRemoveColor">Remove</n-button>
+      <n-button size="small" @click="onClearColor">Clear</n-button>
+    </template>
+    </component>
+  </div>
+  <!--
+  <n-tooltip :delay=800 :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
     <template #trigger>
       <div class="brick-prop">
         <label>{{ capitalize(prop.prop_name) }}</label>
@@ -12,15 +32,16 @@
     </template>
     <div v-html="renderedDescription" class="brick-prop-description"></div>
   </n-tooltip>
+  -->
 </template>
 
 <script setup lang="ts">
-import { NInput, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker } from 'naive-ui';
-import { computed, watch } from 'vue';
+import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker } from 'naive-ui';
+import { computed, onBeforeUnmount, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';
 import type { Prop as BrickPropType } from 'interfaces/brick';
-import { capitalize, colorStringToRGBA, RGBAToHex } from '../utils';
+import { capitalize, colorStringToRGBA } from '../utils';
 import MarkdownIt from 'markdown-it';
 
 const md = new MarkdownIt();
@@ -101,9 +122,9 @@ const componentProps = computed(() => {
     case 'Color':
       console.log('default:', prop.default)
       return {
-        swatches: prop.swatches ? prop.swatches.map((value) => RGBAToHex(value)) : null,
-        actions: ['clear'],
-        'show-alpha': !prop.skip_alpha
+        swatches: [...(prop.saved ? prop.saved : []), ...(prop.swatches ? prop.swatches : [])],
+        'show-alpha': !prop.skip_alpha,
+        'show-preview': true
       }
 
     default:
@@ -136,7 +157,7 @@ const modelValue = computed<any>({
         return (prop.value ?? prop.default ?? []).map(v => ({ label: String(v.toLocaleString()), value: v }));
 
       case 'Color':
-        return RGBAToHex(prop.value ?? prop.default ?? [0,0,0,0]);
+        return prop.value ?? prop.default ?? '#00000000';
 
       default:
         return [];
@@ -179,8 +200,39 @@ const modelValue = computed<any>({
   }
 });
 
+function onClearColor() {
+  modelValue.value = null;
+}
+
+function onSaveColor() {
+  if (prop.prop_type !== 'Color') return;
+
+  // Se il colore è già nei swatches, non fare nulla
+  if (prop.swatches && prop.swatches.includes(prop.value)) return;
+
+  // Aggiungi il colore a saved se non presente
+  if (prop.saved) {
+    if (!prop.saved.includes(prop.value)) {
+      prop.saved.unshift(prop.value);
+    }
+  } else {
+    prop.saved = [prop.value];
+  }
+  emit("update:prop", prop)
+}
+
+function onRemoveColor() {
+  if (prop.prop_type !== 'Color') return;
+
+  if (prop.saved && prop.saved.includes(prop.value)) {
+    prop.saved = prop.saved.filter((value) => value !== prop.value);
+  }
+  emit("update:prop", prop)
+}
+
 // Watch per salvare automaticamente
 watch(modelValue, () => {
+  console.log('update');
   emit("update:prop", prop)
 });
 </script>

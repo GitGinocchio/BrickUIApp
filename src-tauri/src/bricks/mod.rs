@@ -50,9 +50,8 @@ pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     Ok(bricks)
 }
 
-#[tauri::command]
-pub fn save_brick(state: State<BrickUIState>, brick: Brick) -> Result<(),String> {
-    let path = state.get_path().join("bricks").join(brick.name.clone()).join("brick.yml");
+pub fn save_brick(path: &PathBuf, brick: &Brick) -> Result<(),String> {
+    let path = path.join("bricks").join(brick.name.clone()).join("brick.yml");
 
     let brick_schema = brick.schema.clone();
 
@@ -72,9 +71,8 @@ pub fn save_brick(state: State<BrickUIState>, brick: Brick) -> Result<(),String>
     Ok(())
 }
 
-#[tauri::command]
-pub fn open_brick(state: State<BrickUIState>, brick_name: String) -> Result<(), String> {
-    let path = state.get_path().join("bricks").join(brick_name);
+pub fn open_brick(path: &PathBuf, brick_name: String) -> Result<(), String> {
+    let path = path.join("bricks").join(brick_name);
 
     #[cfg(target_os = "windows")]
     {

@@ -35,7 +35,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, h } from 'vue'
+import { ref, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { LayoutDashboardIcon, SettingsIcon, StoreIcon } from 'lucide-vue-next'
 import {
@@ -45,6 +45,8 @@ import {
   NLayoutContent,
   NMenu
 } from 'naive-ui'
+import { invoke } from '@tauri-apps/api/core'
+import { Brick } from 'interfaces/brick'
 
 const router = useRouter()
 const menu = ref('/widgets')
@@ -59,4 +61,11 @@ const menuOptions = [
 function onMenuSelect(key: string) {
   router.push(key)
 }
+
+onMounted(async () => {
+  // Inizialmente la lista dei brick e' vuota, in questo modo la carichiamo una volta sola all'interno dell'app
+  // in modo anche da poter prendere eventuali errori nel caricamento e mostrarli all'utente
+  // in caso di brick formattati male
+  await invoke<Brick[]>("load_bricks", {});
+});
 </script>

@@ -76,6 +76,7 @@ fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
 }
 
 //pub struct BrickUIState<R: Runtime> {
+#[derive(Clone)]
 pub struct BrickUIState {
     path: PathBuf,
     settings: Settings,
@@ -95,13 +96,13 @@ impl BrickUIState {
         generate_schemas_if_missing(path).expect("Errore durante la creazione degli schemas");
         generate_templates_if_missing(path).expect("Errore durante la creazione dei template");
 
-        let bricks = load_bricks(path).expect("Errore durante il caricamento dei bricks");
+        //let bricks = load_bricks(&path).expect("Errore durante il caricamento dei bricks");
         let settings = load_from_yaml::<Settings>(&path.join("settings.yml")).expect("Errore durante il caricamento dei settings");
 
         Self {
             path: path.clone(),
-            bricks: bricks,
-            settings: settings
+            settings: settings,
+            bricks: vec![]
             //overlay: overlay
         }
     }

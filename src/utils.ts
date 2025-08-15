@@ -5,12 +5,16 @@ export function capitalize(str: string): string {
 }
 
 export function RGBAToHex(color: [number, number, number, number]): string {
-  return '#' + color
-    .map(c => c.toString(16).padStart(2, '0'))
-    .join('');
+  return (
+    '#' +
+    color
+      .map(c => c.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+  );
 }
 
-export function colorStringToRGBA(input: string): [number, number, number, number] {
+export function colorStringToRGBA(input: string): string {
   input = input.trim();
 
   // HEX
@@ -29,7 +33,7 @@ export function colorStringToRGBA(input: string): [number, number, number, numbe
     } else {
       throw new Error('Formato esadecimale non valido');
     }
-    return [r, g, b, a];
+    return RGBAToHex([r, g, b, a]);
   }
 
   // RGB / RGBA
@@ -41,7 +45,7 @@ export function colorStringToRGBA(input: string): [number, number, number, numbe
     const a = rgbMatch[4] !== undefined
       ? Math.round(parseFloat(rgbMatch[4]) * (rgbMatch[4].includes('.') ? 255 : 1))
       : 255;
-    return [r, g, b, a];
+    return RGBAToHex([r, g, b, a]);
   }
 
   // HSL / HSLA
@@ -66,12 +70,12 @@ export function colorStringToRGBA(input: string): [number, number, number, numbe
     else if (h < 300){ r = x; g = 0; b = c; }
     else             { r = c; g = 0; b = x; }
 
-    return [
+    return RGBAToHex([
       Math.round((r + m) * 255),
       Math.round((g + m) * 255),
       Math.round((b + m) * 255),
       alpha
-    ];
+    ]);
   }
 
   throw new Error('Formato colore non supportato');

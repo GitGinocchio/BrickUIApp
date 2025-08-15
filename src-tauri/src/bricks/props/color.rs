@@ -1,25 +1,33 @@
-use schemars::JsonSchema;
+use schemars::{JsonSchema};
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::PropMeta;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[schemars(description = "Time property container.")]
+#[schemars(description = "Color property container.")]
 pub struct Color {
     #[serde(flatten)]
     pub base: PropMeta,
 
-    #[schemars(description = "Current color value as RGB (0-255 for each channel).")]
+    #[schemars(description = "Current color value as hex string (#RRGGBBAA).")]
+    #[schemars(regex(pattern = "^#[0-9A-Fa-f]{8}$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<[u8;4]>,
+    pub value: Option<String>,
 
-    #[schemars(description = "Default color value as RGB (0-255 for each channel).")]
+    #[schemars(description = "Default color value as hex string (#RRGGBBAA).")]
+    #[schemars(regex(pattern = "^#[0-9A-Fa-f]{8}$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<[u8;4]>,
+    pub default: Option<String>,
 
-    #[schemars(description = "Default swatches to show to the user (0-255 for each channel).")]
+    #[schemars(description = "Default swatches to show to the user as hex strings (#RRGGBBAA).")]
+    #[schemars(regex(pattern = "^#[0-9A-Fa-f]{8}$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub swatches: Option<Vec<[u8;4]>>,
+    pub swatches: Option<Vec<String>>,
+
+    #[schemars(description = "Color saved by the user as hex strings (#RRGGBBAA).")]
+    #[schemars(regex(pattern = "^#[0-9A-Fa-f]{8}$"))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saved: Option<Vec<String>>,
 
     #[schemars(description = "If true, the alpha channel is ignored.")]
     #[serde(default)]

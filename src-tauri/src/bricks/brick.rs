@@ -10,7 +10,7 @@ pub struct Brick {
     pub schema: String,
 
     #[schemars(description = "The unique name identifier for the Brick.")]
-    #[schemars(regex(pattern = "^[A-Za-z0-9_-]+$"))]
+    #[schemars(regex(pattern = "^[a-z]+([A-Z][a-z0-9]+)*(_[a-z0-9]+)*$"))]
     pub name: String,
 
     #[serde(default = "default_description")]

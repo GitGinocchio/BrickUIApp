@@ -9,28 +9,81 @@ mod global_events;
 use crate::global_events::start_global_input_listener;
 
 mod winapi;
-use crate::winapi::taskbar::apps::get_taskbar_icons;
+use crate::winapi::taskbar::apps::{WindowIcon};
 
 mod bricks;
 use crate::bricks::brick::Brick;
-use crate::bricks::{save_brick, open_brick};
 
 mod config;
 use crate::config::settings::{Settings, TaskBarBehavior};
 
 use tauri::{Manager, State, WindowEvent};
+use std::sync::{Arc, Mutex};
 
 mod state;
 use state::BrickUIState;
 
 #[tauri::command]
-fn get_bricks(state: State<BrickUIState>) -> Vec<Brick> {
-    state.get_bricks().to_vec()
+fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<WindowIcon>, String> {
+    Ok(crate::winapi::taskbar::apps::get_taskbar_icons())
 }
 
 #[tauri::command]
-fn get_settings(state: State<BrickUIState>) -> Settings {
-    state.get_settings().clone()
+fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    Ok(state_guard.get_settings().clone())
+}
+
+#[tauri::command]
+fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
+    Ok(state_guard.get_bricks().to_vec())
+}
+
+#[tauri::command]
+fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
+    let path = state_guard.get_path();
+    let bricks = bricks::load_bricks(&path)?;
+
+    let bricks_return = bricks.clone();
+    *state_guard.get_mut_bricks() = bricks;
+
+    Ok(bricks_return)
+}
+
+#[tauri::command]
+fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
+    let path = state_guard.get_path();
+
+    bricks::save_brick(&path, &brick)?;
+
+    // Aggiorna lo stato in memoria
+    if let Some(existing) = state_guard.get_mut_bricks()
+        .iter_mut()
+        .find(|b| b.name == brick.name)
+    {
+        *existing = brick;
+    } else {
+        state_guard.get_mut_bricks().push(brick);
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn open_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick_name: String) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
+    let path = state_guard.get_path();
+
+    crate::bricks::open_brick(&path, brick_name)?;
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -39,19 +92,23 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            save_brick,
-            open_brick,
-            get_taskbar_icons,
+            //get_taskbar_icons,
             get_settings,
-            get_bricks
+            get_bricks,
+            load_bricks,
+            save_brick,
+            open_brick
         ])
         .setup(|app| {
             let path = app.app_handle().path().app_data_dir()?;
 
             let state = BrickUIState::new(&path);
-            let settings = state.get_settings().clone();
+            app.manage(Arc::new(Mutex::new(state)));
 
-            app.manage(state);
+            let state = app.app_handle().state::<Arc<Mutex<BrickUIState>>>();
+            let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
+
+            let settings = state_guard.get_settings().clone();
 
             if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
                 match show_taskbar() {

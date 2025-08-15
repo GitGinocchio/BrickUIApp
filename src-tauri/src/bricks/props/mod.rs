@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize, Serializer};
 #[schemars(description = "Metadata property container.")]
 pub struct PropMeta {
     #[schemars(description = "The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization.")]
-    #[schemars(regex(pattern = "^[A-Za-z0-9_-]+$"))]
+    #[schemars(regex(pattern = "^[a-z]+([A-Z][a-z0-9]+)*(_[a-z0-9]+)*$"))]
     prop_name: String,
 
     #[schemars(description = "A brief textual description providing additional details or context about the property. \nThis helps users understand the purpose or usage of the property.")]
