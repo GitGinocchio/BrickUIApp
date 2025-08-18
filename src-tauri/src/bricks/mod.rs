@@ -1,12 +1,10 @@
 pub mod brick;
 pub mod props;
 
+use fs_extra::dir::{copy, CopyOptions};
 use std::{fs, path::PathBuf};
 
-use tauri::State;
-
 use crate::bricks::brick::Brick;
-use crate::state::BrickUIState;
 
 pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
     let content = fs::read_to_string(path)
@@ -50,8 +48,62 @@ pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     Ok(bricks)
 }
 
+pub fn create_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
+    save_brick(path, brick)?;
+
+    let brick_data_dir = path.join("bricks").join(brick.name.as_str()).join("data");
+    fs::create_dir_all(brick_data_dir).map_err(|e| format!("Failed to create brick data dir: {e}"))?;
+
+    Ok(())
+}
+
+pub fn delete_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
+    let brick_dir = path.join("bricks").join(brick.name.as_str());
+    fs::remove_dir_all(brick_dir).map_err(|e| format!("Error while deleting brick directory: {e}"))?;
+
+    Ok(())
+}
+
+pub fn rename_brick(path: &PathBuf, old_name: String, new_name: String) -> Result<(), String> {
+    let old_dir = path.join("bricks").join(old_name);
+    let new_dir = path.join("bricks").join(new_name.as_str());
+
+    fs::rename(old_dir, &new_dir).map_err(|e| format!("Failed to rename brick dir: {e}"))?;
+
+    let mut brick = load_brick(&new_dir.join("brick.yml"))?;
+    brick.name = new_name;
+
+    save_brick(&path, &brick)?;
+
+    Ok(())
+}
+
+pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<(), String> {
+    let brick_name = brick.name.as_str();
+    let src = path.join("bricks").join(brick_name);
+    let dst = path.join("bricks").join(format!("{brick_name}-copy"));
+
+    // Opzioni di copia
+    let mut options = CopyOptions::new();
+    options.overwrite = true; // sovrascrive i file se esistono
+    options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
+    options.content_only = false;
+
+    copy(src, &dst, &options).map_err(|e| format!("Errore durante la duplicazione del brick: {e}"))?;
+
+    let mut brick = load_brick(&dst.join("brick.yml"))?;
+    brick.name = format!("{brick_name}-copy");
+
+    save_brick(&path, &brick)?;
+
+    Ok(())
+}
+
 pub fn save_brick(path: &PathBuf, brick: &Brick) -> Result<(),String> {
-    let path = path.join("bricks").join(brick.name.clone()).join("brick.yml");
+    let brick_dir = path.join("bricks").join(brick.name.as_str());
+    fs::create_dir_all(brick_dir).map_err(|e| format!("Failed to create brick dir: {e}"))?;
+
+    let yaml_path = path.join("bricks").join(brick.name.clone()).join("brick.yml");
 
     let brick_schema = brick.schema.clone();
 
@@ -65,7 +117,7 @@ pub fn save_brick(path: &PathBuf, brick: &Brick) -> Result<(),String> {
         yaml_string
     );
 
-    fs::write(path, content)
+    fs::write(yaml_path, content)
         .map_err(|e| format!("Failed to save brick: {}", e))?;
 
     Ok(())

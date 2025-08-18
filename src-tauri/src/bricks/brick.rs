@@ -10,12 +10,12 @@ pub struct Brick {
     pub schema: String,
 
     #[schemars(description = "The unique name identifier for the Brick.")]
-    #[schemars(regex(pattern = "^[a-z]+([A-Z][a-z0-9]+)*(_[a-z0-9]+)*$"))]
+    #[schemars(regex(pattern = "^[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*$"))]
     pub name: String,
 
-    #[serde(default = "default_description")]
+    #[serde(default)]
     #[schemars(description = "A brief textual description of the Brick.")]
-    pub description: String,
+    pub description: Option<String>,
 
     #[serde(default = "default_tags", skip_serializing_if = "Vec::is_empty")]
     #[schemars(description = "A list of tags for categorizing or labeling the Brick.")]
@@ -33,9 +33,9 @@ pub struct Brick {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
 
-    #[serde(default = "default_author")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(description = "Author or creator of the Brick.")]
-    pub author: String,
+    pub author: Option<String>,
 
     #[serde(default = "default_version")]
     #[schemars(description = "Semantic version of the Brick as [major, minor, patch].")]
@@ -51,10 +51,8 @@ pub struct Brick {
 }
 
 fn default_schema() -> String { "../../.schemas/brick.schema.json".to_string() }
-fn default_author() -> String { "".to_string() }
 fn default_dependencies() -> Vec<String> { vec![] }
 fn default_props() -> Vec<Prop> { vec![] }
-fn default_description() -> String { "".to_string() }
 fn default_tags() -> Vec<String> { vec![] }
 fn default_enabled() -> bool { true }
-fn default_version() -> [u8; 3] { [1, 0, 0] }
+fn default_version() -> [u8; 3] { [0, 1, 0] }

@@ -2,16 +2,14 @@ use std::{fs, path::PathBuf};
 use schemars::{schema_for, JsonSchema};
 
 use serde::Serialize;
-use tauri::Runtime;
 use crate::{
-    bricks::{brick::Brick, load_bricks}, 
+    bricks::{brick::Brick}, 
     config::{
         externals::Externals, 
         load_from_yaml, 
         plugins::Plugins, 
         settings::Settings
-    }, 
-    overlay_window::window::Overlay
+    }
 };
 
 pub fn write_schema_if_missing<T>(dir: &PathBuf, filename: &str) -> std::io::Result<()>

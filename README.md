@@ -1,4 +1,60 @@
 
+
+- Usare questo esempio di chatgpt per suddividere BrickCard in diversi componenti:
+  ```
+  components/
+    BrickCard.vue
+    BrickHeader.vue
+    BrickDescription.vue
+    BrickProps.vue
+    BrickEmits.vue
+    modals/
+      DeleteBrickModal.vue
+      DeletePropModal.vue
+      PropModal.vue
+  composables/
+    useBrickProps.ts
+    useBrickPersistence.ts
+  ```
+
+
+- [x] La descrizione se modificata con l'icona della penna a destra alla fine della modifica non viene modificata veramente
+
+- Aggiungere il prop type regex
+
+- Al proptype color manca il parametro skip alpha e gli swatches (che possono essere fatti come avevo gia' fatto per la selezione dell'utente...)
+
+- Ai proptype di tipo collections manca un parametro per dire il valore minimo e massimo dei valori all'interno 
+  (per quanto riguarda le stringhe potrebbe diventare la lunghezza di esse)
+
+- Ai proptype di tipo select manca un vero limite per quanto riguarda la quantita' dei valori selezionati...
+
+- la tendina per la scelta dei proptype dovrebbe avere delle icone riconoscibili per ogni proptype...
+
+- Finire di coprire tutti i tipi di prop per quanto riguarda la modifica e la creazione
+
+- Il proptype Any sarebbe da rimuovere in quanto realmente inutilizzabile (forse)
+  per renderlo piu' utilizzabile si potrebbe utilizzare una textarea al posto di una input singleline...
+
+- [x] Aggiungere la funzionalita' di eliminare i prop
+
+- Sistemare la pagina dei settings
+
+- Inviare un avviso quando si duplica un prop in quanto attivando due prop uguali si potrebbero andare in contro a dei problemi di navigazione
+
+- Inviare un avviso quando si modifica un prop e si cambia il tipo di prop, in quanto cambiare il tipo di prop causa a tutti i dati presenti prima
+  di essere persi
+
+- Quando si sta modificando un prop select, e si toglie un opzione che e' attualmente selezionata come default questa rimane nel default
+  il default in quel caso dovrebbe tornare vuoto, senza un valore (solo in quel caso)
+
+- [x] Sostituire Edit nei tre puntini del brick con dei pulsanti edit sui campi come name, description, props, ecc.
+
+- Non esporre direttamente le api di tauri come invoke, ma creare un wrapper tipizzato con metodi specifici (per aiutare anche l'utente)
+
+- Errore durante l'ottenimento del percorso dell'eseguibile: Accesso negato. (0x80070005), questo avviene quando si cerca di ottenere l'icona
+  di un processo avviato come amministratore quando il nostro non lo e'
+
 - Passare da usare solo `serde_yaml` a `yaml-rust` per la formattazione del file yaml, magari utilizzando un serializzatore custom
 
 - [x] Anche la descrizione del prop dovrebbe supportare markdown

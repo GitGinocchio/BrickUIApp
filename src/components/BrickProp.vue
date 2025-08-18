@@ -1,60 +1,59 @@
 <template>
   <div class="brick-prop">
-    <n-tooltip :delay=800 :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
+    <n-tooltip :delay="600" :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
       <template #trigger>
-        <label>{{ capitalize(prop.prop_name) }}</label>
+        <label>{{ prop.prop_name }}</label>
       </template>
       <div v-html="renderedDescription" class="brick-prop-description"></div>
     </n-tooltip>
-    <component
-      :is="currentComponent"
-      v-bind="componentProps"
-      v-model:value="modelValue"
-    >
-    <template v-if="currentComponent == NColorPicker && prop.prop_type == 'Color'" #action>
-      <n-button size="small" @click="onSaveColor">Save</n-button>
-      <n-button size="small" @click="onRemoveColor">Remove</n-button>
-      <n-button size="small" @click="onClearColor">Clear</n-button>
-    </template>
-    </component>
+    <div class="prop-input-section">
+      <component
+        :is="currentComponent"
+        v-bind="componentProps"
+        v-model:value="modelValue"
+        class="prop-input-component"
+      >
+        <template v-if="currentComponent == NColorPicker && prop.prop_type == 'Color'" #action>
+          <n-button size="small" @click="onSaveColor">Save</n-button>
+          <n-button size="small" @click="onRemoveColor">Remove</n-button>
+          <n-button size="small" @click="onClearColor">Clear</n-button>
+        </template>
+      </component>
+      <template v-if="editMode">
+        <n-button circle text @click="emit('edit:prop', prop)"><Wrench :size="16" /></n-button>
+        <n-button circle text @click="emit('delete:prop', prop)"><Trash2 :size="16" /></n-button>
+      </template>
+    </div>
   </div>
-  <!--
-  <n-tooltip :delay=800 :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
-    <template #trigger>
-      <div class="brick-prop">
-        <label>{{ capitalize(prop.prop_name) }}</label>
-        <component
-          :is="currentComponent"
-          v-bind="componentProps"
-          v-model:value="modelValue"
-        /> 
-      </div>
-    </template>
-    <div v-html="renderedDescription" class="brick-prop-description"></div>
-  </n-tooltip>
-  -->
 </template>
 
 <script setup lang="ts">
-import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker } from 'naive-ui';
-import { computed, onBeforeUnmount, watch } from 'vue';
+import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch } from 'naive-ui';
+import { computed, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';
 import type { Prop as BrickPropType } from 'interfaces/brick';
-import { capitalize, colorStringToRGBA } from '../utils';
+import { colorStringToRGBA } from '../utils';
 import MarkdownIt from 'markdown-it';
+import { Trash2, Wrench } from 'lucide-vue-next';
 
 const md = new MarkdownIt();
 
-let { prop } = defineProps({
+let { prop, editMode } = defineProps({
   prop: { 
     type: Object as PropType<BrickPropType>, 
     required: true 
+  },
+  editMode: {
+    type: Boolean,
+    required: true
   }
 });
 
 const emit = defineEmits<{
   (e: 'update:prop', prop: BrickPropType): void
+  (e: 'edit:prop', prop: BrickPropType): void
+  (e: 'delete:prop', prop: BrickPropType): void
 }>();
 
 
@@ -66,6 +65,7 @@ const componentMap: Record<string, any> = {
   'Any': NInput,
   'Int': NInputNumber,
   'Float': NInputNumber,
+  'Bool' : NSwitch,
   'StringSelect': NSelect,
   'IntSelect': NSelect,
   'FloatSelect': NSelect,
@@ -81,6 +81,11 @@ const currentComponent = computed(() => componentMap[prop.prop_type] || NInput);
 
 const componentProps = computed(() => {
   switch (prop.prop_type) {
+    case 'Bool':
+      return {
+        round: true,
+        defaultValue: prop.default || false
+      };
     case 'String':
     case 'Any':
       return {
@@ -97,6 +102,7 @@ const componentProps = computed(() => {
         placeholder: prop.default ? `${prop.default}` : 'Type a number...',
         clearable: true
       };
+    
 
     case 'Select':
     case 'StringSelect':
@@ -104,7 +110,7 @@ const componentProps = computed(() => {
     case 'FloatSelect':
       return {
         options: prop.options.map(option => ({ label: option, value: option })),
-        placeholder: prop.default || 'Select a value...',
+        placeholder: String(prop.default) || 'Select a value...',
         multiple: prop.max > 1,
         clearable: true
       };
@@ -135,6 +141,8 @@ const componentProps = computed(() => {
 const modelValue = computed<any>({
   get() {
     switch (prop.prop_type) {
+      case 'Bool':
+        return prop.value ?? prop.default ?? false;
       case 'String':
         return prop.value ?? prop.default ?? '';
       case 'Any':
@@ -193,8 +201,12 @@ const modelValue = computed<any>({
         value = newValue ? colorStringToRGBA(newValue) : prop.default ?? "#00000000";
         break;
 
+      case 'Bool':
+        value = newValue;
+        break;
+
       default:
-        value =  newValue ? newValue : (prop.default ? prop.default : null);
+        value =  newValue !== null ? newValue : (prop.default ? prop.default : null);
     }
     prop.value = value;
   }
@@ -232,7 +244,6 @@ function onRemoveColor() {
 
 // Watch per salvare automaticamente
 watch(modelValue, () => {
-  console.log('update');
   emit("update:prop", prop)
 });
 </script>
@@ -240,12 +251,15 @@ watch(modelValue, () => {
 <style scoped>
 .brick-prop {
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .brick-prop label {
+  font-weight: normal;
   margin-left: 0rem;
 }
 </style>
@@ -253,6 +267,17 @@ watch(modelValue, () => {
 <style>
 ::deep(.n-popover__content) {
   display: flex;
+}
+
+.prop-input-section {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.prop-input-component {
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .brick-prop-description * {

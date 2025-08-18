@@ -1,4 +1,4 @@
-use std::{ffi::OsString, fs::File, io::BufWriter, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
+use std::{collections::HashMap, ffi::OsString, fs::File, io::BufWriter, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
 use uuid::Uuid;
 use windows::{
     core::{BOOL, PCWSTR, PWSTR},
@@ -57,48 +57,53 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
     }
 }
 
-fn extract_icon(exe_path: &PathBuf, output_path: &PathBuf) -> Option<String> {
-    use std::ptr::null_mut;
-
+pub fn extract_icon(exe_path: &PathBuf) -> Option<String> {
     unsafe {
-        // Converte il percorso in UTF-16
+        // Converte in UTF-16
         let path_utf16: Vec<u16> = exe_path.as_os_str().encode_wide().chain(Some(0)).collect();
 
-        // Estrae l'icona
-        let mut hicon: HICON = HICON(null_mut());
-        let icons_loaded = ExtractIconExW(PCWSTR(path_utf16.as_ptr()), 0, Some(&mut hicon), None, 1);
-        if icons_loaded == 0 || hicon.0.is_null() {
+        // Usa ExtractIconExW per estrarre la prima icona
+        let mut large_icon: HICON = HICON(std::ptr::null_mut());
+        let icons_loaded = ExtractIconExW(
+            PCWSTR(path_utf16.as_ptr()),
+            0,
+            Some(&mut large_icon),
+            None,
+            1,
+        );
+
+        if icons_loaded == 0 || large_icon.0.is_null() {
             return None;
         }
 
-        // Ottiene le informazioni sull'icona
         let mut icon_info = ICONINFO::default();
-        if GetIconInfo(hicon, &mut icon_info).is_err() {
-            DestroyIcon(hicon);
+        if GetIconInfo(large_icon, &mut icon_info).is_err() {
+            DestroyIcon(large_icon);
             return None;
         }
 
-        // Ottiene dimensioni del bitmap
         let mut bmp = BITMAP::default();
-        if GetObjectW(HGDIOBJ(icon_info.hbmColor.0), std::mem::size_of::<BITMAP>() as i32, Some(&mut bmp as *mut _ as *mut _)) == 0 {
+        if GetObjectW(
+            HGDIOBJ(icon_info.hbmColor.0),
+            std::mem::size_of::<BITMAP>() as i32,
+            Some(&mut bmp as *mut _ as *mut _),
+        ) == 0
+        {
             DeleteObject(icon_info.hbmColor.into());
             DeleteObject(icon_info.hbmMask.into());
-            DestroyIcon(hicon);
+            DestroyIcon(large_icon);
             return None;
         }
 
         let width = bmp.bmWidth as u32;
         let height = bmp.bmHeight as u32;
-
-        // Prepara il buffer dei pixel (RGBA)
         let mut buffer = vec![0u8; (width * height * 4) as usize];
 
-        // Imposta BITMAPINFO per GetDIBits
         let mut bmi = BITMAPINFO {
             bmiHeader: BITMAPINFOHEADER {
                 biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
                 biWidth: width as i32,
-                biHeight: -(height as i32), // negativo per top-down
+                biHeight: -(height as i32),
                 biPlanes: 1,
                 biBitCount: 32,
                 biCompression: BI_RGB.0 as u32,
@@ -112,140 +117,100 @@ fn extract_icon(exe_path: &PathBuf, output_path: &PathBuf) -> Option<String> {
         };
 
         let hdc = GetDC(None);
-        if GetDIBits(hdc, icon_info.hbmColor, 0, height as u32, Some(buffer.as_mut_ptr() as _), &mut bmi, DIB_RGB_COLORS) == 0 {
+        if GetDIBits(
+            hdc,
+            icon_info.hbmColor,
+            0,
+            height as u32,
+            Some(buffer.as_mut_ptr() as _),
+            &mut bmi,
+            DIB_RGB_COLORS,
+        ) == 0
+        {
             ReleaseDC(None, hdc);
             DeleteObject(icon_info.hbmColor.into());
             DeleteObject(icon_info.hbmMask.into());
-            DestroyIcon(hicon);
+            DestroyIcon(large_icon);
             return None;
         }
         ReleaseDC(None, hdc);
 
-        let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, buffer)?;
+        // BGRA → RGBA
+        for px in buffer.chunks_exact_mut(4) {
+            let b = px[0];
+            px[0] = px[2];
+            px[2] = b;
+        }
 
-        // Salva come PNG
-        /*
-        let filename = format!("icon_{}.png", Uuid::new_v4());
-        let path = output_path.join("cache").join("icons").join(filename);
+        let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> =
+            ImageBuffer::from_raw(width, height, buffer)?;
 
-        let file = File::create(&path).ok()?;
-        let mut writer = BufWriter::new(file);
-        image::DynamicImage::ImageRgba8(img_buf).write_to(&mut writer, image::ImageFormat::Png).ok()?;
-        */
-
-        let mut buffer = Vec::new();
+        let mut png_bytes = Vec::new();
         image::DynamicImage::ImageRgba8(img_buf)
-            .write_to(&mut std::io::Cursor::new(&mut buffer), image::ImageFormat::Png)
+            .write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
             .ok()?;
 
-        // Converte in base64
-        let base64_icon = general_purpose::STANDARD.encode(&buffer);
+        let base64_icon = general_purpose::STANDARD.encode(&png_bytes);
 
-        // A questo punto puoi restituire:
-        let data_url = format!("data:image/png;base64,{}", base64_icon);
-
-        // Pulizia risorse GDI
         DeleteObject(icon_info.hbmColor.into());
         DeleteObject(icon_info.hbmMask.into());
-        DestroyIcon(hicon);
+        DestroyIcon(large_icon);
 
-        Some(data_url)
+        Some(format!("data:image/png;base64,{}", base64_icon))
     }
 }
 
 #[derive(serde::Serialize)]
-pub struct WindowIcon {
-    title: String,
-    path: String,
+pub struct GroupedIcons {
+    exe_path: String,
+    icon: String,
+    titles: Vec<String>,
 }
 
-pub fn get_taskbar_icons(path: &PathBuf) -> Vec<WindowIcon> {
-    let mut results = Vec::new();
+pub fn get_taskbar_icons(path: &PathBuf) -> Vec<GroupedIcons> {
+    let mut results: HashMap<String, GroupedIcons> = HashMap::new();
 
-    // Struct di contesto da passare alla callback
     struct EnumContext<'a> {
-        results: &'a mut Vec<WindowIcon>,
-        icon_path: &'a PathBuf,
+        results: &'a mut HashMap<String, GroupedIcons>,
     }
 
     let mut context = EnumContext {
         results: &mut results,
-        icon_path: path,
     };
 
     unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
         let ctx = &mut *(lparam.0 as *mut EnumContext);
         let results = &mut ctx.results;
-        let path = ctx.icon_path;
 
         if !IsWindowVisible(hwnd).as_bool() {
             return BOOL(1);
         }
-
         let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
         if (ex_style as u32) & WS_EX_TOOLWINDOW.0 != 0 {
             return BOOL(1);
         }
 
-        let class_name = {
-            let mut buf = [0u16; 256];
-            let len = GetClassNameW(hwnd, &mut buf);
-            String::from_utf16_lossy(&buf[..len as usize])
-        };
-
-        // Gestione UWP/ApplicationFrameWindow
-        if class_name == "ApplicationFrameWindow" || class_name == "CabinetWClass" {
-            unsafe extern "system" fn enum_child(hwnd: HWND, lparam: LPARAM) -> BOOL {
-                let ctx = &mut *(lparam.0 as *mut EnumContext);
-                let results = &mut ctx.results;
-                if let Some(title) = get_window_text(hwnd) {
-                    if !title.is_empty() {
-                        /*
-                        results.push(WindowIcon {
-                            title,
-                            path: String::from("<uwp_placeholder>"),
-                        });
-                        */
-                    }
-                }
-                BOOL(1)
-            }
-            EnumChildWindows(Some(hwnd), Some(enum_child), LPARAM(ctx as *mut _ as isize));
-            return BOOL(1);
-        }
-
-        // Titolo finestra
         let title = match get_window_text(hwnd) {
             Some(t) if !t.is_empty() && t != "Program Manager" => t,
             _ => return BOOL(1),
         };
 
-        // PID
         let mut pid = 0;
         GetWindowThreadProcessId(hwnd, Some(&mut pid));
 
-        // Percorso eseguibile e icona
         if let Some(exe_path) = get_exe_path(pid) {
-            if let Some(icon_path) = extract_icon(&exe_path, path) {
-                results.push(WindowIcon {
-                    title,
-                    path: icon_path //.to_string_lossy().to_string(),
-                });
-            } else {
-                /*
-                results.push(WindowIcon {
-                    title,
-                    path: String::from("<no_icon>"),
-                });
-                */
+            let exe_str = exe_path.to_string_lossy().to_string();
+
+            if let Some(icon_data) = extract_icon(&exe_path) {
+                results
+                    .entry(exe_str.clone())
+                    .and_modify(|g| g.titles.push(title.clone()))
+                    .or_insert(GroupedIcons {
+                        exe_path: exe_str.clone(),
+                        icon: icon_data,
+                        titles: vec![title.clone()],
+                    });
             }
-        } else {
-            /*
-            results.push(WindowIcon {
-                title,
-                path: String::from("<no_exe>"),
-            });
-            */
         }
 
         BOOL(1)
@@ -255,5 +220,5 @@ pub fn get_taskbar_icons(path: &PathBuf) -> Vec<WindowIcon> {
         let _ = EnumWindows(Some(enum_windows_proc), LPARAM(&mut context as *mut _ as isize));
     }
 
-    results
+    results.into_values().collect()
 }

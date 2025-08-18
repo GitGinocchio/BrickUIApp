@@ -14,6 +14,25 @@ export function RGBAToHex(color: [number, number, number, number]): string {
   );
 }
 
+function normalizeAlpha(a: string | undefined): number {
+  if (a === undefined) return 255;
+
+  if (a.includes('%')) {
+    // percentuale
+    return Math.round((parseFloat(a) / 100) * 255);
+  }
+
+  const num = parseFloat(a);
+
+  if (num <= 1) {
+    // decimale tra 0 e 1
+    return Math.round(num * 255);
+  }
+
+  // altrimenti lo considero intero 0–255
+  return Math.round(num);
+}
+
 export function colorStringToRGBA(input: string): string {
   input = input.trim();
 
@@ -37,26 +56,22 @@ export function colorStringToRGBA(input: string): string {
   }
 
   // RGB / RGBA
-  let rgbMatch = input.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/i);
+  let rgbMatch = input.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.%]+))?\s*\)/i);
   if (rgbMatch) {
     const r = parseInt(rgbMatch[1]);
     const g = parseInt(rgbMatch[2]);
     const b = parseInt(rgbMatch[3]);
-    const a = rgbMatch[4] !== undefined
-      ? Math.round(parseFloat(rgbMatch[4]) * (rgbMatch[4].includes('.') ? 255 : 1))
-      : 255;
+    const a = normalizeAlpha(rgbMatch[4]);
     return RGBAToHex([r, g, b, a]);
   }
 
   // HSL / HSLA
-  let hslMatch = input.match(/hsla?\(\s*(\d+),\s*(\d+)%?,\s*(\d+)%?(?:,\s*([\d.]+))?\s*\)/i);
+  let hslMatch = input.match(/hsla?\(\s*(\d+),\s*(\d+)%?,\s*(\d+)%?(?:,\s*([\d.%]+))?\s*\)/i);
   if (hslMatch) {
     let h = parseInt(hslMatch[1]);
     let s = parseInt(hslMatch[2]) / 100;
     let l = parseInt(hslMatch[3]) / 100;
-    let alpha = hslMatch[4] !== undefined
-      ? Math.round(parseFloat(hslMatch[4]) * (hslMatch[4].includes('.') ? 255 : 1))
-      : 255;
+    const alpha = normalizeAlpha(hslMatch[4]);
 
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
@@ -79,4 +94,19 @@ export function colorStringToRGBA(input: string): string {
   }
 
   throw new Error('Formato colore non supportato');
+}
+
+export function deepEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+
+  if (typeof a !== "object" || typeof b !== "object" || a == null || b == null) {
+    return false;
+  }
+
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) return false;
+
+  return keysA.every(key => deepEqual(a[key], b[key]));
 }

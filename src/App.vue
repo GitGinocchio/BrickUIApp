@@ -5,13 +5,14 @@
         width="220"
         :collapsed-width="64"
         :collapsed="collapsed"
-        show-trigger
         collapse-mode="width"
         @collapse="collapsed = true"
         @expand="collapsed = false"
+        @mouseenter="collapsed = false"
+        @mouseleave="collapsed = true"
       >
         <n-menu
-          v-model:value="menu"
+          v-model:value="option"
           :collapsed="collapsed"
           :options="menuOptions"
           @update:value="onMenuSelect"
@@ -48,10 +49,10 @@ import {
 import { invoke } from '@tauri-apps/api/core'
 import { Brick } from 'interfaces/brick'
 
-const router = useRouter()
-const menu = ref('/widgets')
-const collapsed = ref(false)
+const router = useRouter();
+const collapsed = ref(true);
 
+const option = ref('/widgets')
 const menuOptions = [
   { label: 'Bricks Manager', key: '/widgets',      icon: () => h(LayoutDashboardIcon) },
   { label: 'Settings',       key: '/settings',     icon: () => h(SettingsIcon)},

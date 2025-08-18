@@ -9,7 +9,7 @@ mod global_events;
 use crate::global_events::start_global_input_listener;
 
 mod winapi;
-use crate::winapi::taskbar::apps::{WindowIcon};
+use crate::winapi::taskbar::apps::{GroupedIcons};
 
 mod bricks;
 use crate::bricks::brick::Brick;
@@ -24,7 +24,7 @@ mod state;
 use state::BrickUIState;
 
 #[tauri::command]
-fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<WindowIcon>, String> {
+fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<GroupedIcons>, String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
@@ -79,14 +79,43 @@ fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Resul
 }
 
 #[tauri::command]
-fn open_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick_name: String) -> Result<(), String> {
+fn rename_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, old_name: String, new_name: String) -> Result<(), String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-
     let path = state_guard.get_path();
 
-    crate::bricks::open_brick(&path, brick_name)?;
+    bricks::rename_brick(&path, old_name, new_name)
+}
 
-    Ok(())
+#[tauri::command]
+fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    bricks::duplicate_brick(&path, brick)
+}
+
+#[tauri::command]
+fn open_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick_name: String) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    bricks::open_brick(&path, brick_name)
+}
+
+#[tauri::command]
+fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    bricks::delete_brick(&path, &brick)
+}
+
+#[tauri::command]
+fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    bricks::create_brick(&path, &brick)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -99,8 +128,12 @@ pub fn run() {
             get_settings,
             get_bricks,
             load_bricks,
+            duplicate_brick,
+            delete_brick,
+            rename_brick,
             save_brick,
-            open_brick
+            open_brick,
+            new_brick
         ])
         .setup(|app| {
             let path = app.app_handle().path().app_data_dir()?;
