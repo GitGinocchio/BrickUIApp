@@ -36,6 +36,7 @@ import type { Prop as BrickPropType } from 'interfaces/brick';
 import { colorStringToRGBA } from '../utils';
 import MarkdownIt from 'markdown-it';
 import { Trash2, Wrench } from 'lucide-vue-next';
+import GradientPicker from './GradientPicker.vue';
 
 const md = new MarkdownIt();
 
@@ -74,7 +75,8 @@ const componentMap: Record<string, any> = {
   'StringArray': NDynamicTags,
   'IntArray': NDynamicTags,
   'FloatArray': NDynamicTags,
-  'Color' : NColorPicker
+  'Color' : NColorPicker,
+  'Gradient' : GradientPicker
 };
 
 const currentComponent = computed(() => componentMap[prop.prop_type] || NInput);
@@ -125,12 +127,19 @@ const componentProps = computed(() => {
         min: prop.min,
         max: prop.max
       };
+    
     case 'Color':
-      console.log('default:', prop.default)
       return {
+        placement: "top-start",
         swatches: [...(prop.saved ? prop.saved : []), ...(prop.swatches ? prop.swatches : [])],
         'show-alpha': !prop.skip_alpha,
         'show-preview': true
+      }
+
+    case 'Gradient':
+      return {
+        defaultValue: prop.value,
+        "onUpdate:value" : (stops) => (prop.value = stops)
       }
 
     default:
@@ -167,6 +176,9 @@ const modelValue = computed<any>({
       case 'Color':
         return prop.value ?? prop.default ?? '#00000000';
 
+      case 'Gradient':
+        return prop.value ?? prop.default ?? [];
+
       default:
         return [];
     }
@@ -198,7 +210,12 @@ const modelValue = computed<any>({
         break;
 
       case 'Color':
-        value = newValue ? colorStringToRGBA(newValue) : prop.default ?? "#00000000";
+        value = newValue ? colorStringToRGBA(newValue) : (prop.default ?? "#00000000");
+        break;
+
+      case 'Gradient':
+        console.log("Gradient value: ", newValue); 
+        value = newValue;
         break;
 
       case 'Bool':

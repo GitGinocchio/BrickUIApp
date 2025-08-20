@@ -1,5 +1,5 @@
 
-declare module "@assets/js/externals.js" {
+declare module "@public/js/externals.js" {
   export interface ScriptConfig {
     src: string;
     type?: string;

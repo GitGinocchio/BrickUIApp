@@ -9,12 +9,10 @@ expose();
 
 const settings = await invoke<Settings>("get_settings", {});
 
-console.log(settings);
-
 const app = Vue.createApp({
   setup() {
     return () => Vue.h(NNotificationProvider, {
-        placement : settings.notifications.position
+      placement : settings.notifications.position
     }, { default: () => Vue.h(App) });
   }
 });

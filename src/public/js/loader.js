@@ -2,8 +2,8 @@ const { BaseDirectory, join, appDataDir: getAppDataDir } = window.tauri.path;
 const { invoke } = window.tauri.core;
 const { listen } = window.tauri.event;
 const { loadModule } = window['vue3-sfc-loader'];
-import { normalizePath } from "./path";
-import { normalizeProps } from './utils';
+const { normalizePath } = await import('./path.js');
+const { normalizeProps } = await import('./utils.js');
 
 const appDataDir = await getAppDataDir();
 

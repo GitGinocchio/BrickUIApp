@@ -128,9 +128,12 @@ pub fn open_brick(path: &PathBuf, brick_name: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("cmd")
-            .args(&["/C", "start", "", &path.to_string_lossy()])
-            .spawn()
+        use std::os::windows::process::CommandExt;
+
+        std::process::Command::new("cmd") 
+            .creation_flags(0x08000000) 
+            .args(&["/C", "start", "/B", "", &path.to_string_lossy()]) 
+            .spawn() 
             .map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "macos")]

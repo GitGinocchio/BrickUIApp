@@ -2,7 +2,7 @@
 const { readTextFile, BaseDirectory } = window.tauri.fs;
 const { appDataDir : getAppDataDir, join } = window.tauri.path;
 import jsyaml from 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm';
-import { appendScript, appendStyle } from './utils';
+const { appendScript, appendStyle } = await import('./utils.js');
 
 const appDataDir = await getAppDataDir();
 

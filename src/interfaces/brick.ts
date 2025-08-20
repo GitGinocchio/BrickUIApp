@@ -54,6 +54,7 @@ export const propTypeValues = [
   "Bool",
 
   "Color",
+  "Gradient"
 ] as const;
 
 // Tipo unione inferito automaticamente
@@ -72,7 +73,8 @@ export type Prop =
   | ({ prop_type: 'Array' } & ArrayPropType<any>)
   | ({ prop_type: 'Select' } & SelectablePropType<any>)
   | ({ prop_type: 'Any' } & PropType<any>)
-  | ({ prop_type: 'Color'} & ColorPropType);
+  | ({ prop_type: 'Color'} & ColorPropType)
+  | ({ prop_type: 'Gradient'} & GradientPropType);
 
 /** Generic property container. */
 export interface PropType<T> {
@@ -106,11 +108,23 @@ export interface ColorPropType extends PropType<string> {
   /** If true, the alpha channel is ignored. */
   skip_alpha? : boolean;
 
-  /** Default swatches to show to the user (0-255 for each channel). */
+  /** Default swatches to show to the user. */
   swatches? : string[]
 
   /** Color saved by the user */
   saved? : string[]
+}
+
+export interface GradientStop {
+  /** The actual color of the stop color. */
+  color: string,
+  /** The actual position of the stop color from 0 to 100. */
+  position: number
+} 
+
+export interface GradientPropType extends PropType<Array<GradientStop>> {
+  /** If true, the alpha channel is ignored. */
+  skip_alpha? : boolean;
 }
 
 /** Array property container with typed values. */
@@ -199,6 +213,8 @@ export function createProp(type: PropTypeValue, name: string, description: strin
 
     case "Color":
       return { prop_type: "Color", ...createBaseProp<string>(name, description), skip_alpha: false, swatches: [], saved: [] }
+    case "Gradient":
+      return { prop_type: "Gradient", ...createBaseProp<Array<GradientStop>>(name, description), skip_alpha: false }
 
     default:
       return { prop_type: "Any", ...createBaseProp<any>(name, description) }

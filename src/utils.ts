@@ -36,6 +36,8 @@ function normalizeAlpha(a: string | undefined): number {
 export function colorStringToRGBA(input: string): string {
   input = input.trim();
 
+  console.log("colorStringToRGBA input", input);
+
   // HEX
   if (input.startsWith('#')) {
     input = input.slice(1);

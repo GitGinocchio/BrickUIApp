@@ -1,3 +1,3 @@
 
-declare module "@assets/js/loader.js" {
+declare module "@public/js/loader.js" {
 }

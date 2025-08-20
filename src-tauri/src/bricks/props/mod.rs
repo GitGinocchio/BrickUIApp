@@ -13,6 +13,9 @@ use super::props::date::{DatePropType, DateTimePropType, TimePropType};
 pub mod color;
 use super::props::color::Color;
 
+pub mod gradient;
+use super::props::gradient::Gradient;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -60,10 +63,13 @@ pub enum Prop {
     #[schemars(description = "Floating point property type.")]
     Float { #[serde(flatten)] data: NumericPropType<f64> },
 
-    // Color
+    // Color / Gradient
 
     #[schemars(description = "Color property type.")]
     Color { #[serde(flatten)] data: Color },
+
+    #[schemars(description = "Gradient property type.")]
+    Gradient { #[serde(flatten)] data: Gradient },
 
     // Dates and times
     

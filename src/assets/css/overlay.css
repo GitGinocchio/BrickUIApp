@@ -1,6 +1,6 @@
 
 * {
-    pointer-events: none;
+    pointer-events: auto;
     cursor: auto;
 }
 

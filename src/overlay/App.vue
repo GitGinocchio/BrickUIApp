@@ -7,8 +7,8 @@ import { onMounted, ref } from 'vue';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
-import { appendScript } from '@assets/js/utils.js';
-import { applyCsp, buildCsp } from '../csp';
+import { appendScript } from '@public/js/utils.js';
+//import { applyCsp, buildCsp } from '../csp';
 
 import { useNotification } from 'naive-ui';
 
@@ -49,14 +49,26 @@ onMounted(async () => {
       }
     });
 
-    await appendScript("../assets/js/externals.js", "module");
+    const externals_url = new URL("../public/js/externals.js", import.meta.url).href;
+    console.log('Loading script from URL:', externals_url);
+    await appendScript(externals_url, "module");
 
     //const csp = await buildCsp();
     //await applyCsp(csp);
 
+    /*
+      Error occurred while loading bricks:
+      Failed to load script: http://tauri.localhost/assets/externals-DgCDLygv.js
+
+      Error: Failed to load script: http://tauri.localhost/assets/externals-DgCDLygv.js
+          at w.onerror (http://tauri.localhost/assets/overlay/index-B6FlGL-Y.js:1:13041)
+    */
+
     await appendScript("https://unpkg.com/vue@3.5.18/dist/vue.global.prod.js");
     await appendScript("https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js");
-    await appendScript("../assets/js/loader.js", "module");
+
+    const loader_url = new URL("../public/js/loader.js", import.meta.url).href;
+    await appendScript(loader_url, "module");
 
     notification.success({
       title: "Bricks loaded successfully!",
@@ -68,11 +80,23 @@ onMounted(async () => {
 
     isVisible.value = true;
   } catch (error) {
+    let technicalMessage = "Unexpected error";
+
+    if (error instanceof Error) {
+      // mostra messaggio + stack
+      technicalMessage = `${error.message}\n\n${error.stack || ""}`;
+    } else if (typeof error === "string") {
+      technicalMessage = error;
+    } else {
+      technicalMessage = JSON.stringify(error, null, 2);
+    }
+
     console.error("Errore in onMounted:", error);
+
     notification.error({
       title: "Something went wrong while loading bricks",
-      description: `Error occurred while loading bricks: ${error}`,
-      closable : false
+      description: `Error occurred while loading bricks:\n${technicalMessage}`,
+      closable : true
     });
     isVisible.value = false;
   }
@@ -82,7 +106,7 @@ onMounted(async () => {
       title: "No bricks were found",
       description: "You should create a brick first!",
       keepAliveOnHover : true,
-      closable: false
+      closable: true
     });
   }
 });

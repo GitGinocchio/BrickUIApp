@@ -1,5 +1,5 @@
 
-declare module "@assets/js/utils.js" {
+declare module "@public/js/utils.js" {
   export function appendScript(
     src: string,
     type?: string,
