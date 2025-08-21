@@ -6,15 +6,15 @@ use serde::{Deserialize, Serialize};
 pub struct Externals {
     #[serde(default, rename = "$schema", skip)]
     #[schemars(description = "The JSON Schema version or URI for this External definition.")]
-    schema: String,
+    pub schema: String,
 
     #[schemars(description = "List of external JavaScript scripts to load.")]
     #[serde(default)]
-    scripts: Vec<ExternalScript>,
+    pub scripts: Vec<ExternalScript>,
 
     #[schemars(description = "List of external CSS stylesheets to load.")]
     #[serde(default)]
-    styles: Vec<ExternalStyle>,
+    pub styles: Vec<ExternalStyle>,
 }
 
 impl Default for Externals {

@@ -58,11 +58,18 @@
     </n-form>
     <template #action>
       <n-space justify="end">
+        <n-button
+          v-if="editMode"
+          type="secondary"
+          @click="onFinished(true)"
+        >
+        Duplicate
+        </n-button>
         <n-button @click="show = !show">Cancel</n-button>
         <n-button
           type="primary"
           :disabled="editMode ? deepEqual(initialProp, prop) || feedback != null : feedback || !prop.prop_name ? true : false"
-          @click="onFinished"
+          @click="onFinished(false)"
         >   
           {{ editMode ? 'Save' : 'Create' }}
         </n-button>
@@ -86,7 +93,7 @@ const prop = defineModel<Prop>("prop");
 const initialProp = defineModel<Prop>("initialProp");
 
 const emit = defineEmits<{
-  (e: "finished", before: Prop): void
+  (e: "finished", before: Prop, clone?: boolean): void
 }>();
 
 const props = defineProps({
@@ -158,9 +165,10 @@ function onPropNameInput(value: string) {
   prop.value.prop_name = value;
 }
 
-function onFinished() {
-  show.value = false;
-  emit('finished', initialProp.value)
+function onFinished(clone: boolean) {
+  show.value = false; 
+
+  emit('finished', initialProp.value, clone)
 }
 
 const defaultInputField = computed(() => {

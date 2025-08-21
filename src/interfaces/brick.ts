@@ -122,7 +122,16 @@ export interface GradientStop {
   position: number
 } 
 
+export enum GradientType {
+  LINEAR = 'Linear',
+  RADIAL = 'Radial',
+  CONIC = 'Conic'
+}
+
 export interface GradientPropType extends PropType<Array<GradientStop>> {
+  /** the gradient type */
+  type?: GradientType;
+
   /** If true, the alpha channel is ignored. */
   skip_alpha? : boolean;
 }
@@ -214,7 +223,7 @@ export function createProp(type: PropTypeValue, name: string, description: strin
     case "Color":
       return { prop_type: "Color", ...createBaseProp<string>(name, description), skip_alpha: false, swatches: [], saved: [] }
     case "Gradient":
-      return { prop_type: "Gradient", ...createBaseProp<Array<GradientStop>>(name, description), skip_alpha: false }
+      return { prop_type: "Gradient", ...createBaseProp<Array<GradientStop>>(name, description), skip_alpha: false, type: GradientType.LINEAR }
 
     default:
       return { prop_type: "Any", ...createBaseProp<any>(name, description) }

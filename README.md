@@ -1,6 +1,9 @@
 
 
-- Usare questo esempio di chatgpt per suddividere BrickCard in diversi componenti:
+- Implementare la seguente struttura
+  <img src="structure.jpg"></img>
+
+- [x] Usare questo esempio di chatgpt per suddividere BrickCard in diversi componenti:
   ```
   components/
     BrickCard.vue

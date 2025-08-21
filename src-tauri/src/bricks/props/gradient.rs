@@ -1,5 +1,5 @@
 use schemars::{JsonSchema};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use super::PropMeta;
 
@@ -16,6 +16,14 @@ pub struct Stop {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Gradient type enum.")]
+pub enum GradientType {
+    Linear,
+    Radial,
+    Conic
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Gradient property container.")]
 pub struct Gradient {
     #[serde(flatten)]
@@ -29,7 +37,13 @@ pub struct Gradient {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<Vec<Stop>>,
 
+    #[schemars(description = "Gradient type.")]
+    #[serde(rename = "type", default="default_gradient_type")]
+    pub gradient_type: Option<GradientType>,
+
     #[schemars(description = "If true, the alpha channel is ignored.")]
     #[serde(default)]
     pub skip_alpha: bool,
 }
+
+fn default_gradient_type() -> Option<GradientType> { Some(GradientType::Linear) }

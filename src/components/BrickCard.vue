@@ -2,17 +2,17 @@
   <n-card class="card" :segmented="true" hoverable>
     <template #header>
       <n-space justify="space-between" align="center" class="w-full">
-        <div v-if="props.brick.icon" class="brick-icon">
-          <img :src="props.brick.icon" alt="Brick Icon" />
+        <div v-if="brick.icon" class="brick-icon">
+          <img :src="brick.icon" alt="Brick Icon" />
         </div>
         <div class="brick-title">
-          <strong>{{ props.brick.name }}</strong><template v-if="props.brick.author"> - {{ props.brick.author }}</template>
+          <strong>{{ brick.name }}</strong><template v-if="brick.author"> - {{ brick.author }}</template>
           <n-button text circle @click="onOpenBrick"><ExternalLink :size="18" /></n-button>
-          <span class="brick-version">(v {{ props.brick.version.join('.') }})</span>
-          <span class="brick-version" v-if="props.brick.license">License: {{ props.brick.license }}</span>
+          <span class="brick-version">(v {{ brick.version.join('.') }})</span>
+          <span class="brick-version" v-if="brick.license">License: {{ brick.license }}</span>
         </div>
         <div class="brick-controls">
-          <n-switch v-model:value="props.brick.enabled" @update:value="onToggle" />
+          <n-switch v-model:value="brick.enabled" @update:value="onToggle" />
           <n-dropdown :options="brickOptions" :animated="true" @select="handleBrickAction">
             <n-button text circle><MoreVertical/></n-button>
           </n-dropdown>
@@ -65,7 +65,11 @@
             </n-button>
           </div>
         </template>
-        <div v-for="prop in brick.props" :key="prop.prop_name">
+        <div class="movable" v-for="prop in brick.props" :key="prop.prop_name">
+          <span v-if="propsEditMode" class="arrows cursor-move mr-2">
+            <ChevronUp @click="onMovePropUp(prop)" :size="16" />
+            <ChevronDown @click="onMovePropDown(prop)" :size="16" />
+          </span>
           <BrickProp 
             :prop="prop" 
             :edit-mode="propsEditMode" 
@@ -123,6 +127,7 @@ import {
 import { 
   Copy, MoreVertical, Pencil, PencilOff, Trash2, ExternalLink,
   Text, Cog, Wifi, CirclePlus,
+  ChevronDown, ChevronUp
 } from 'lucide-vue-next';
 import { Brick, Prop } from '../interfaces/brick'
 import ConfirmModal from './modals/ConfirmModal.vue';
@@ -213,11 +218,20 @@ async function onPropValueChanged(prop: Prop) {
   await invoke("save_brick", { brick: props.brick });
 }
 
-async function onPropEditFinished(before: Prop) {
+async function onPropEditFinished(before: Prop, clone?: boolean) {
   if (propModalEditMode.value) {
     const index = props.brick.props.findIndex(p => p.prop_name === before.prop_name);
-    if (index !== -1) props.brick.props[index] = targetProp.value;
-    else props.brick.props.push(targetProp.value);
+
+    if (index !== -1 && clone) {
+      targetProp.value.prop_name = `${before.prop_name}-copy`;
+      props.brick.props.splice(index + 1, 0, targetProp.value);
+    }
+    else if (index !== -1) {
+      props.brick.props[index] = targetProp.value;
+    }
+    else {
+      props.brick.props.push(targetProp.value);
+    }
   } 
   else {
     props.brick.props.push(targetProp.value);
@@ -265,6 +279,29 @@ async function onToggle() {
 
 async function onOpenBrick() {
   await invoke("open_brick", { brickName: props.brick.name });
+}
+
+async function onMovePropUp(prop: Prop) {
+  const index = props.brick.props.findIndex(p => p.prop_name === prop.prop_name)
+  if (index > 0) {
+    // scambia con l'elemento precedente
+    const tmp = props.brick.props[index - 1]
+    props.brick.props[index - 1] = props.brick.props[index]
+    props.brick.props[index] = tmp
+  }
+
+  await invoke("save_brick", { brick: props.brick });
+}
+
+async function onMovePropDown(prop: Prop) {
+  const index = props.brick.props.findIndex(p => p.prop_name === prop.prop_name)
+  if (index >= 0 && index < props.brick.props.length - 1) {
+    const tmp = props.brick.props[index + 1]
+    props.brick.props[index + 1] = props.brick.props[index]
+    props.brick.props[index] = tmp
+  }
+
+  await invoke("save_brick", { brick: props.brick });
 }
 
 async function deleteBrick() {
@@ -360,5 +397,19 @@ async function deleteBrick() {
 
 .props-section {
   padding-top: 0.0rem;
+}
+
+.movable {
+  display: flex;
+  flex-direction: row;
+}
+
+.arrows {
+  cursor: pointer;
+  margin-right: 8px;
+  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 </style>

@@ -17,7 +17,7 @@ pub mod gradient;
 use super::props::gradient::Gradient;
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Metadata property container.")]

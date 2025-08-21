@@ -9,7 +9,13 @@ const appDataDir = await getAppDataDir();
 
 // Loader base
 const baseLoaderOptions = {
-  moduleCache: { vue: Vue, tauri: window.tauri },
+  moduleCache: { 
+    vue: Vue, 
+    fs: window.tauri.fs,
+    path: window.tauri.path,
+    core: window.tauri.core,
+    event: window.tauri.event
+  },
   getFile: async (url) => {
     if (/^https?:\/\//.test(url)) {
       const res = await fetch(url);

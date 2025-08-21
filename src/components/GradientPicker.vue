@@ -2,7 +2,8 @@
   <div class="gradient-editor">
     <!-- Anteprima del gradiente -->
     <div 
-      class="gradient-preview" 
+      class="gradient-preview"
+      ref="previewRef"
       :style="{ background: gradientString }"
       @dblclick.prevent="addStopAt($event)"
     >
@@ -10,7 +11,7 @@
       <n-color-picker
         v-for="(stop, index) in value"
         :key="index"
-        size="small"
+        size="large"
         class="stop-handle"
         :style="{ left: stop.position + '%', background: stop.color }"
         :value="stop.color"
@@ -21,7 +22,27 @@
         <!-- Vuoto per togliere la label default -->
       </template>
       <template #action>
-        <n-button size="small" @click="removeStop(index)">Remove</n-button>
+        <div class="actions"> 
+          <!--
+          <n-select
+            size="small"
+            :options="gradientTypeOptions"
+          />
+          -->
+          <n-input-number 
+            size="small" 
+            :precision="2"
+            :step="0.5"
+            :max="100"
+            :min="0"
+            :value="parseFloat(stop.position.toFixed(2))"
+            @update:value="(position) => onSetPosition(index, position)"
+          />
+          <div class="bottom">
+            <n-button size="small" @click="duplicateStop(index)">Clone</n-button>
+            <n-button size="small" @click="removeStop(index)">Remove</n-button>
+          </div>   
+        </div>
       </template>
       </n-color-picker>
     </div>
@@ -30,7 +51,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { NColorPicker, NButton } from 'naive-ui'
+import { NColorPicker, NButton, NInputNumber } from 'naive-ui'
+import { colorStringToRGBA } from '../utils';
+import { GradientType } from '../interfaces/brick';
 
 interface Stop {
   color: string
@@ -42,13 +65,23 @@ const steps = defineModel<Stop[]>("value", {
   default: [{ color: '#ffffff00', position: 50 }] 
 })
 
+/*
+const gradientTypeOptions = [
+  { label: "Linear", value: GradientType.LINEAR },
+  { label: "Radial", value: GradientType.RADIAL },
+  { label: "Conic", value: GradientType.CONIC }
+];
+*/
+const gradientType = defineModel<GradientType>("type", { default: GradientType.LINEAR });
+//const showGradientTypeSelect = ref<boolean>(false);
+
+const previewRef = ref<HTMLElement | null>(null)
 const draggingStop = ref<number | null>(null)
-const wasDragging = ref(false)
 
 // Gradiente CSS
 const gradientString = computed(() => {
   const sorted = steps.value.slice().sort((a, b) => a.position - b.position)
-  return `linear-gradient(90deg, ${sorted.map(s => `${s.color} ${s.position}%`).join(', ')})`
+  return `${gradientType.value.toLowerCase()}-gradient(90deg, ${sorted.map(s => `${s.color} ${s.position}%`).join(', ')})`
 })
 
 // Aggiungi uno stop al doppio click
@@ -68,40 +101,33 @@ function removeStop(index: number) {
   steps.value = newStops
 }
 
-const dragOffset = ref(0) // nuova variabile globale per il drag
+function duplicateStop(index: number) {
+  const stopToDuplicate = steps.value[index]
+  if (!stopToDuplicate) return
 
-function startDrag(index: number, event: MouseEvent) {
-  draggingStop.value = index
-  wasDragging.value = false
+  const pos = stopToDuplicate.position + 3 > 100 ? stopToDuplicate.position - 3 : stopToDuplicate.position + 3;
 
-  const stopHandle = document.querySelectorAll(".stop-handle")[index] as HTMLElement
-  if (stopHandle) {
-    // salva l'offset tra il cursore e il centro dello stop
-    const rect = stopHandle.getBoundingClientRect()
-    dragOffset.value = event.clientX - (rect.left + rect.width / 2)
+  // Copia lo stop e sposta leggermente la posizione per renderlo visibile
+  const newStop = {
+    color: stopToDuplicate.color,
+    position: Math.min(pos, 100) // evita oltre 100%
   }
 
-  document.addEventListener("mousemove", onDrag)
-  document.addEventListener("mouseup", stopDrag)
+  // Inserisci subito dopo lo stop originale
+  const newStops = steps.value.slice()
+  newStops.splice(index + 1, 0, newStop)
+  steps.value = newStops
 }
 
 function onDrag(event: MouseEvent) {
-  if (draggingStop.value === null) return
-  wasDragging.value = true
+  if (draggingStop.value === null || !previewRef.value) return
 
-  const preview = document.querySelector(".gradient-preview") as HTMLElement
-  if (!preview) return
-
-  const width = preview.offsetWidth
-  const left = preview.getBoundingClientRect().left
-
-  // posizione X relativa al centro dello stop, correggendo con l'offset
-  let relativeX = event.clientX - left - dragOffset.value
-
-  // limita tra 0 e la larghezza del div
+  const width = previewRef.value.offsetWidth
+  const rect = previewRef.value.getBoundingClientRect()
+  
+  let relativeX = event.clientX - rect.left
   relativeX = Math.min(Math.max(0, relativeX), width)
 
-  // calcola la percentuale
   const pos = (relativeX / width) * 100
 
   const newStops = steps.value.slice()
@@ -111,14 +137,24 @@ function onDrag(event: MouseEvent) {
 
 function onSetColor(index: number, color: string) {
   const newStops = steps.value.slice()
-  newStops[index] = { ...newStops[index], color }
+  newStops[index] = { ...newStops[index], color: colorStringToRGBA(color) }
   steps.value = newStops
+}
+
+function onSetPosition(index: number, position: number) {
+  const newStops = steps.value.slice()
+  newStops[index] = { ...newStops[index], position }
+  steps.value = newStops
+}
+
+function startDrag(index: number, _event: MouseEvent) {
+  draggingStop.value = index
+  document.addEventListener("mousemove", onDrag)
+  document.addEventListener("mouseup", stopDrag)
 }
 
 function stopDrag() {
   draggingStop.value = null
-  dragOffset.value = 0
-  document.body.style.userSelect = '' // Riabilita selezione testo
   document.removeEventListener("mousemove", onDrag)
   document.removeEventListener("mouseup", stopDrag)
 }
@@ -127,6 +163,8 @@ function stopDrag() {
 
 
 <style scoped>
+
+
 .gradient-editor {
   width: 100%;
   height: 34px;
@@ -186,4 +224,26 @@ function stopDrag() {
   cursor: pointer;
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.actions .bottom {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.actions .bottom button {
+  margin: 0;
+}
+
+::v-deep(n-color-picker-action) {
+  justify-content: flex-start;
+}
+
 </style>

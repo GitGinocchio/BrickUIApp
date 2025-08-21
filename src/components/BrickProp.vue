@@ -214,7 +214,6 @@ const modelValue = computed<any>({
         break;
 
       case 'Gradient':
-        console.log("Gradient value: ", newValue); 
         value = newValue;
         break;
 

@@ -1,5 +1,5 @@
-mod overlay_window;
-use crate::overlay_window::utils::{
+mod overlay;
+use crate::overlay::utils::{
     hide_taskbar, 
     show_taskbar, 
     remove_titlebar

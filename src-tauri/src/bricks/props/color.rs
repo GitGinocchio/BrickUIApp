@@ -1,5 +1,5 @@
 use schemars::{JsonSchema};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use super::PropMeta;
 
