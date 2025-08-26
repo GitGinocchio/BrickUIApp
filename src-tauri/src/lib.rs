@@ -39,8 +39,11 @@ fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, 
 
 #[tauri::command]
 fn save_settings(state: State<'_, Arc<Mutex<BrickUIState>>>, settings: Settings) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
+
+    let current_settings = state_guard.get_mut_settings();
+    *current_settings = settings.clone();
 
     crate::config::save_settings(&path, settings)
 }
