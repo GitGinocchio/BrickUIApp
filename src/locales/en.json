@@ -1,0 +1,12 @@
+{
+    "bricks" : "Bricks",
+    "edit" : "Edit",
+    "delete" : "Delete",
+    "duplicate" : "Duplicate",
+    "description" : "Description",
+    "props" : "Props",
+    "emits" : "Emits",
+    "bricks-manager" : "Bricks Manager",
+    "settings" : "Settings",
+    "marketplace" : "Marketplace"
+}

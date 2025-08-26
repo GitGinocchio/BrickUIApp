@@ -8,6 +8,12 @@ pub struct Settings {
     #[schemars(description = "The JSON Schema version or URI for this Settings definition.")]
     pub schema: String,
 
+    #[serde(default = "default_theme")]
+    pub theme: Theme,
+
+    #[serde(default = "default_language")]
+    pub language: Language,
+
     #[serde(default)]
     #[schemars(description = "Notification settings.")]
     pub notifications: Notifications,
@@ -17,11 +23,29 @@ pub struct Settings {
     pub taskbar: TaskBar
 }
 
-fn default_schema() -> String { "../.schemas/settings.schema.json".to_string() }
+fn default_theme() -> Theme { Theme::Light }
+fn default_language() -> Language { Language::EN }
+fn default_schema() -> String { "./.schemas/settings.schema.json".to_string() }
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    EN, IT
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    Light,
+    Dark,
+    System
+}
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            language: default_language(),
+            theme: default_theme(),
             schema: default_schema(),
             notifications: Notifications::default(),
             taskbar: TaskBar::default()

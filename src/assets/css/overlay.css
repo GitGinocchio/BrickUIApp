@@ -1,15 +1,23 @@
 
 * {
-    pointer-events: auto;
-    cursor: auto;
+  pointer-events: auto;
+  cursor: auto;
 }
 
-html {
-    width: 100vw;
-    height: 100vh;
+html, body {
+  user-select: none;
+  width: min-content;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-body {
-    height: min-content;
-    width: min-content;
+#app {
+  user-select: none;
+  pointer-events: none;
+}
+
+iframe {
+  pointer-events: none;
+  user-select: none;
 }

@@ -38,6 +38,14 @@ fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, 
 }
 
 #[tauri::command]
+fn save_settings(state: State<'_, Arc<Mutex<BrickUIState>>>, settings: Settings) -> Result<(), String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+
+    crate::config::save_settings(&path, settings)
+}
+
+#[tauri::command]
 fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
 
@@ -126,6 +134,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_taskbar_icons,
             get_settings,
+            save_settings,
             get_bricks,
             load_bricks,
             duplicate_brick,

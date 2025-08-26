@@ -93,6 +93,7 @@ pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<(), String> {
 
     let mut brick = load_brick(&dst.join("brick.yml"))?;
     brick.name = format!("{brick_name}-copy");
+    brick.enabled = false;
 
     save_brick(&path, &brick)?;
 

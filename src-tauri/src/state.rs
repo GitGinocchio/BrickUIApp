@@ -5,7 +5,6 @@ use serde::Serialize;
 use crate::{
     bricks::{brick::Brick}, 
     config::{
-        externals::Externals, 
         load_from_yaml, 
         plugins::Plugins, 
         settings::Settings
@@ -58,7 +57,6 @@ where
 
 fn generate_schemas_if_missing(path: &PathBuf) -> std::io::Result<()> {
     write_schema_if_missing::<Settings>(path, "settings.schema.json")?;
-    write_schema_if_missing::<Externals>(path, "externals.schema.json")?;
     write_schema_if_missing::<Plugins>(path, "plugins.schema.json")?;
     write_schema_if_missing::<Brick>(path, "brick.schema.json")?;
 
@@ -68,7 +66,6 @@ fn generate_schemas_if_missing(path: &PathBuf) -> std::io::Result<()> {
 fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     write_template_if_missing::<Settings>(path, "settings.yml")?;
     write_template_if_missing::<Plugins>(path, "plugins.yml")?;
-    write_template_if_missing::<Externals>(path, "externals.yml")?;
 
     Ok(())
 }

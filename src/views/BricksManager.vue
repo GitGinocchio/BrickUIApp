@@ -1,81 +1,88 @@
 <template>
-  <n-space vertical>
-    <n-card>
-      <div class="header">
-        <div>
-          <Blocks />
-          <h2>Bricks</h2>
-        </div>
-        <n-button text circle @click="onNewBrick">
-          <CirclePlus />
-        </n-button>
+  <div class="container">
+    <div class="header">
+      <div>
+        <Blocks />
+        <h2>{{ t('bricks') }}</h2>
       </div>
-      <n-grid :cols="1" x-gap="16" y-gap="16">
-        <n-gi v-for="brick in bricks" :key="brick.name">
-          <BrickCard :brick="brick" @edit="onEditBrick" @changed="updateBricks" />
-        </n-gi>
-      </n-grid>
-    </n-card>
+      <n-button text circle @click="onNewBrick">
+        <CirclePlus />
+      </n-button>
+    </div>
+    <n-grid :cols="1" x-gap="16" y-gap="16" class="bricks-grid">
+      <n-gi v-for="brick in bricks" :key="brick.name">
+        <BrickCard :brick="brick" @edit="onEditBrick" @changed="updateBricks" />
+      </n-gi>
+    </n-grid>
+  </div>
 
-    <!-- Modal per nuovo brick -->
-    <n-modal v-model:show="showModal" :draggable="true" preset="dialog" :title="editMode ? 'Edit Brick' : 'New Brick'">
-      <n-form class="new-brick-form">
-        <n-form-item
-          label="Name"
-          :validation-status="feedback ? 'error' : undefined"
-          :show-feedback="feedback ? true : false"
-          :feedback="feedback"
-        >
-          <n-input
-            :v-model:value="currentBrick.name"
-            :default-value="editMode ? currentBrick.name : null"
-            placeholder="Type your brick's name"
-            @update:value="onNameInput"
-          />
-        </n-form-item>
+  <!-- Modal per nuovo brick -->
+  <n-modal 
+    v-model:show="showModal" 
+    :draggable="true" 
+    preset="dialog" 
+    :title="editMode ? 'Edit Brick' : 'New Brick'"
+    @keyup.enter="onEnterClicked"
+  >
+    <n-form class="new-brick-form">
+      <n-form-item
+        label="Name"
+        :validation-status="feedback ? 'error' : undefined"
+        :show-feedback="feedback ? true : false"
+        :feedback="feedback"
+      >
+        <n-input
+          :v-model:value="currentBrick.name"
+          :default-value="editMode ? currentBrick.name : null"
+          placeholder="Type your brick's name"
+          @update:value="onNameInput"
+        />
+      </n-form-item>
 
-        <n-form-item label="Tags">
-          <n-dynamic-tags
-            :round="true"
-            :default-value="currentBrick.tags"
-            :value="currentBrick.tags"
-            @update:value="onTagsInput"
-          />
-        </n-form-item>
+      <n-form-item label="Tags">
+        <n-dynamic-tags
+          :round="true"
+          :default-value="currentBrick.tags"
+          :value="currentBrick.tags"
+          @update:value="onTagsInput"
+        />
+      </n-form-item>
 
-        <n-form-item v-if="!editMode" label="Description">
-          <n-input
-            v-model:value="currentBrick.description"
-            type="textarea"
-            placeholder="Type your brick's description"
-          />
-        </n-form-item>
-      </n-form>
+      <n-form-item v-if="!editMode" label="Description">
+        <n-input
+          v-model:value="currentBrick.description"
+          type="textarea"
+          placeholder="Type your brick's description"
+        />
+      </n-form-item>
+    </n-form>
 
-      <template #action>
-        <n-space justify="end">
-          <n-button @click="showModal = false">Cancel</n-button>
-          <n-button
-            type="primary"
-            :disabled="editMode ? deepEqual(startBrick, currentBrick) || feedback != null : feedback || !currentBrick.name ? true : false"
-            @click="editMode ? updateBrick() : createBrick()"
-          >   
-          {{ editMode ? 'Save' : 'Create' }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-  </n-space>
+    <template #action>
+      <n-space justify="end">
+        <n-button @click="showModal = false">Cancel</n-button>
+        <n-button
+          type="primary"
+          :disabled="editMode ? deepEqual(startBrick, currentBrick) || feedback != null : feedback || !currentBrick.name ? true : false"
+          @click="editMode ? updateBrick() : createBrick()"
+        >   
+        {{ editMode ? 'Save' : 'Create' }}
+        </n-button>
+      </n-space>
+    </template>
+  </n-modal>
 </template>
 
 <script setup lang="ts">
 import { CirclePlus, Blocks } from "lucide-vue-next";
-import { NSpace, NButton, NGrid, NGi, NCard, NModal, NForm, NFormItem, NInput, NDynamicTags } from "naive-ui";
+import { NSpace, NButton, NGrid, NGi, NModal, NForm, NFormItem, NInput, NDynamicTags } from "naive-ui";
 import BrickCard from "../components/BrickCard.vue";
 import { onMounted, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick } from "interfaces/brick";
 import { deepEqual } from "../utils";
+import { useI18n } from "vue-i18n";
+
+const { t, locale } = useI18n()
 
 const bricks = ref<Brick[]>([]);
 const showModal = ref(false);
@@ -166,6 +173,20 @@ async function updateBrick() {
   }
 }
 
+async function onEnterClicked() {
+  if (editMode.value) {
+    if (deepEqual(startBrick.value, currentBrick.value) || feedback != null) {
+      return;
+    }
+    await updateBrick();
+  } else {
+    if (feedback || !currentBrick.value.name) {
+      return;
+    }
+    await createBrick();
+  }
+}
+
 async function updateBricks() {
   bricks.value = await invoke<Brick[]>("load_bricks", {});
 }
@@ -176,12 +197,41 @@ async function updateBricks() {
   padding-top: 0;
 }
 
+::deep(.n-layout-scroll-container) {
+  overflow-y: hidden;
+}
+
+.container {
+  overflow-y: hidden;
+  padding: 16px;
+}
+
+n-card.full-height {
+  flex: 1;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Se vuoi che la griglia si espanda e scrolli */
+.bricks-grid {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.bricks-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+
 .header { 
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   margin-left: 0.5rem;
   margin-right: 0.5rem;
+  flex: 0 0 auto;
 }
 
 .header div {

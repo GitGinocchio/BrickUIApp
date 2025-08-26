@@ -1,0 +1,12 @@
+{
+    "bricks" : "Blocchi",
+    "edit" : "Modifica",
+    "delete" : "Elimina",
+    "duplicate" : "Duplica",
+    "description" : "Descrizione",
+    "props" : "Oggetti",
+    "emits" : "Eventi",
+    "bricks-manager" : "Gestore mattoni",
+    "settings" : "Impostazioni",
+    "marketplace" : "Negozio"
+}

@@ -32,11 +32,13 @@
           <n-input-number 
             size="small" 
             :precision="2"
+            :default-value="0.0"
+            placeholder="Stop color position"
             :step="0.5"
             :max="100"
             :min="0"
             :value="parseFloat(stop.position.toFixed(2))"
-            @update:value="(position) => onSetPosition(index, position)"
+            @update:value="(position) => onSetPosition(index, position ?? 0)"
           />
           <div class="bottom">
             <n-button size="small" @click="duplicateStop(index)">Clone</n-button>
@@ -168,7 +170,8 @@ function stopDrag() {
 .gradient-editor {
   width: 100%;
   height: 34px;
-  border: 1px solid rgb(224, 224, 230);
+  
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 3px;
   box-sizing: border-box;
   padding: 3px;

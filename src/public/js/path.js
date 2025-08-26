@@ -1,5 +1,5 @@
-const { appDataDir : getAppDataDir } = window.tauri.path;
-const { convertFileSrc } = window.tauri.core; 
+//const { appDataDir : getAppDataDir } = window.tauri.path;
+//const { convertFileSrc } = window.tauri.core;
 
 const appDataDir = await getAppDataDir();
 

@@ -1,12 +1,46 @@
 
+/** Top-level application settings. */
+export interface Settings {
+  /** The JSON Schema version or URI for this Settings definition. */
+  $schema?: string; // optional because of #[serde(default), rename = "$schema"]
+
+  language: Language,
+
+  theme: Theme,
+
+  /** Notification settings. */
+  notifications: Notifications; // optional because of #[serde(default)]
+
+  taskbar: Taskbar;
+}
+
+export const languages = [
+  'it',
+  'en'
+] as const;
+
+export type Language = typeof languages[number];
+
+export const themes = [
+  'dark',
+  'light',
+  'system'
+] as const;
+
+export type Theme = typeof themes[number];
+
 /** Possible positions for notifications on screen. */
-export type NotificationPosition =
-  | "top"
-  | "top-left"
-  | "top-right"
-  | "bottom"
-  | "bottom-left"
-  | "bottom-right";
+export const notificationPositions = [
+  "top",
+  "top-left",
+  "top-right",
+  "bottom",
+  "bottom-left",
+  "bottom-right"
+] as const
+
+// 👉 il tipo si ricava automaticamente dall'array
+export type NotificationPosition = typeof notificationPositions[number]
 
 /** Configuration for notifications display. */
 export interface Notifications {
@@ -14,11 +48,14 @@ export interface Notifications {
   position: NotificationPosition; // optional because of #[serde(default)]
 }
 
-/** Top-level application settings. */
-export interface Settings {
-  /** The JSON Schema version or URI for this Settings definition. */
-  $schema?: string; // optional because of #[serde(default), rename = "$schema"]
+export const taskBarBehaviors = [
+  "hide",
+  "hide-and-fill",
+  "windows-default"
+] as const
 
-  /** Notification settings. */
-  notifications: Notifications; // optional because of #[serde(default)]
+export type TaskBarBehavior = typeof taskBarBehaviors[number]
+
+export interface Taskbar {
+  behavior: TaskBarBehavior
 }

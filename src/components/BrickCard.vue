@@ -30,8 +30,8 @@
     </div>
     -->
  
-    <n-collapse default-expanded-names="2" accordion>
-      <n-collapse-item title="Description" name="1">
+    <n-collapse accordion v-model:expanded-names="expanded">
+      <n-collapse-item title="Description" name="description">
         <template #arrow>
           <Text />
         </template>
@@ -50,16 +50,17 @@
           type="textarea"
           placeholder="Type your brick's description"
         />
-        <div v-else v-html="renderedDescription" class="description"></div>
+        <p v-else-if="renderedDescription.length > 0" v-html="renderedDescription" class="description"></p>
+        <p v-else>This brick has no description</p>
       </n-collapse-item>
-      <n-collapse-item title="Props" name="2" class="properties-container">
+      <n-collapse-item title="Props" name="props" class="properties-container">
         <template #arrow>
           <Cog #arrow />
         </template>
         <template #header>
           <div class="collapse-item-header">
             <div>Props</div>
-            <n-button @click.stop="propsEditMode = !propsEditMode" text circle size="medium">
+            <n-button @click.stop="onEditPropMode" text circle size="medium">
               <Pencil v-if="!propsEditMode" :size="16"/>
               <PencilOff v-else :size="16"/>
             </n-button>
@@ -71,16 +72,17 @@
             <ChevronDown @click="onMovePropDown(prop)" :size="16" />
           </span>
           <BrickProp 
-            :prop="prop" 
+            :prop="prop"
             :edit-mode="propsEditMode" 
             @update:prop="onPropValueChanged" 
             @edit:prop="onEditProp"
             @delete:prop="onDeleteProp"
           />
         </div>
+        <div v-if="brick.props.length == 0"><p>This brick has no props!</p></div>
         <n-button size="small" v-if="propsEditMode" class="add-prop" @click="onNewProp"><CirclePlus :size="16"/>Add</n-button>
       </n-collapse-item>
-      <n-collapse-item title="Emits" name="3" class="emits-container">
+      <n-collapse-item title="Emits" name="emits" class="emits-container">
         <template #arrow>
           <Wifi />
         </template>
@@ -150,6 +152,8 @@ const emit = defineEmits<{
   (e: "edit", brick: Brick): void
 }>();
 
+const expanded = ref<Array<string>>([]);
+
 // Delete Modal variables
 const deleteModalTitle = ref<string>('');
 const deleteModalMessage = ref<string>('');
@@ -209,8 +213,8 @@ async function onPropValueChanged(prop: Prop) {
   if (index !== -1) props.brick.props[index] = prop;
   else props.brick.props.push(prop);
 
-  await emitTo("window", "update_prop", { 
-    brick_name: props.brick.name, 
+  await emitTo("overlay", "update-brick", { 
+    name: props.brick.name, 
     prop_name: prop.prop_name, 
     prop_value: prop.value 
   });
@@ -246,9 +250,23 @@ async function onPropEditFinished(before: Prop, clone?: boolean) {
 async function onEditDescription(_event: Event) {
   descriptionEditMode.value = !descriptionEditMode.value;
 
+  if (descriptionEditMode.value && !expanded.value.includes("description")) {
+    expanded.value.length = 0;
+    expanded.value.push("description");
+  }
+
   if (!descriptionEditMode.value) {
     await invoke("save_brick", { brick: props.brick });
     emit("changed");
+  }
+}
+
+async function onEditPropMode(_event: Event) {
+  propsEditMode.value = !propsEditMode.value
+  
+  if (propsEditMode.value && !expanded.value.includes("props")) {
+    expanded.value.length = 0;
+    expanded.value.push("props");
   }
 }
 
@@ -273,7 +291,7 @@ async function handleBrickAction(action: string) {
 }
 
 async function onToggle() {
-  await emitTo("window", "toggle_brick", { brick: props.brick });
+  await emitTo("overlay", "toggle-brick", { brick: props.brick });
   await invoke("save_brick", { brick: props.brick });
 }
 
