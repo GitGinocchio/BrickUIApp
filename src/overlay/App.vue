@@ -29,30 +29,23 @@ const key = ref<string>(crypto.randomUUID());
 
 const appDataDir = ref<string|null>(null);
 
-async function waitForIframeLoaded(
-  iframeRef: Ref<HTMLIFrameElement | null | undefined>,
-  timeoutMs = 500
-): Promise<void> {
-  // Attendi finché la ref non è valorizzata
-  while (!iframeRef.value) {
-    await new Promise(resolve => requestAnimationFrame(resolve));
-  }
-
-  const iframe = iframeRef.value;
-
-  // Se l'iframe è già pronto
+async function waitForIframeLoaded(iframe: HTMLIFrameElement, timeoutMs = 50) {
   if (iframe.contentDocument?.readyState === "complete") {
-    return;
+    return Promise.resolve();
   }
 
-  // Altrimenti attendi l'evento load con timeout
-  await Promise.race([
+  return Promise.race([
     new Promise<void>((resolve) => {
       iframe.addEventListener("load", () => resolve(), { once: true });
     }),
-    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))
+    new Promise<void>((resolve) => setTimeout(() => {
+      console.warn(`Waited ${timeoutMs} ms, considering iframe loaded.`);
+      resolve();
+    }, 
+    timeoutMs))
   ]);
 }
+
 
 async function onSandboxLoaded() {
   channel.value = new MessageChannel();
@@ -91,6 +84,9 @@ onMounted(async () => {
   try {
     appDataDir.value = await getAppDataDir();
 
+    await waitForIframeLoaded(sandbox.value);
+    await onSandboxLoaded();
+
     const currentWindow = getCurrentWindow();
     await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
     await currentWindow.setIgnoreCursorEvents(true);
@@ -98,10 +94,6 @@ onMounted(async () => {
 
     await currentWindow.setPosition(new LogicalPosition(0, 0));
     await currentWindow.show();
-
-    await waitForIframeLoaded(sandbox);
-    await onSandboxLoaded();
-
 
     let isClickThroughEnabled = true;
 
