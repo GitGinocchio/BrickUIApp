@@ -29,7 +29,7 @@
       <n-form label-placement="left" label-width="100">
         <n-alert type="warning">This may make navigation harder. Use with caution.</n-alert>
         <n-alert type="warning">This setting will take effect only after restarting the app.</n-alert>
-        <n-alert type="info">In the settings page, the Start menu will still open using <code>Ctrl+Esc</code>.</n-alert>
+        <n-alert type="info">In the settings window, the Start menu will still open using <code>Ctrl+Esc</code> or <code>Win</code>.</n-alert>
         <n-form-item label="Behavior">
           <n-select :options="startMenuBehaviorOptions" v-model:value="settings.startmenu.behavior"></n-select>
         </n-form-item>
