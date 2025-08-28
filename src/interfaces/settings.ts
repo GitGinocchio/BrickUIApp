@@ -12,6 +12,8 @@ export interface Settings {
   notifications: Notifications; // optional because of #[serde(default)]
 
   taskbar: Taskbar;
+
+  startmenu: StartMenu;
 }
 
 export const languages = [
@@ -58,4 +60,17 @@ export type TaskBarBehavior = typeof taskBarBehaviors[number]
 
 export interface Taskbar {
   behavior: TaskBarBehavior
+}
+
+export const startMenuBehaviors = [
+  "disable-ctrl-esc",
+  "disable-win",
+  "disable-both",
+  "windows-default"
+] as const
+
+export type StartMenuBehavior = typeof startMenuBehaviors[number]
+
+export interface StartMenu {
+  behavior: StartMenuBehavior
 }

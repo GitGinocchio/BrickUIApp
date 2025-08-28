@@ -1,15 +1,8 @@
-mod overlay;
-use crate::overlay::utils::{
-    hide_taskbar, 
-    show_taskbar, 
-    remove_titlebar
-};
-
-mod global_events;
-use crate::global_events::start_global_input_listener;
-
 mod winapi;
+use crate::winapi::events::start_event_listeners;
+use crate::winapi::set_snap_flyout;
 use crate::winapi::taskbar::apps::{GroupedIcons};
+use crate::winapi::window::remove_titlebar;
 
 mod bricks;
 use crate::bricks::brick::Brick;
@@ -22,6 +15,17 @@ use std::sync::{Arc, Mutex};
 
 mod state;
 use state::BrickUIState;
+
+#[tauri::command]
+fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
+    winapi::taskbar::show_taskbar()?;
+    winapi::taskbar::hide_taskbar(keep_taskbar_space)
+}
+
+#[tauri::command]
+fn show_taskbar() -> Result<(), String> {
+    winapi::taskbar::show_taskbar()
+}
 
 #[tauri::command]
 fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<GroupedIcons>, String> {
@@ -135,6 +139,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
+            hide_taskbar,
+            show_taskbar,
             get_taskbar_icons,
             get_settings,
             save_settings,
@@ -159,22 +165,19 @@ pub fn run() {
             let settings = state_guard.get_settings().clone();
 
             if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                match show_taskbar() {
-                    Ok(_) => println!("Taskbar mostrata con successo"),
-                    Err(e) => eprintln!("Errore nel mostrare la taskbar: {e:?}"),
-                }
-
-                match hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill) {
-                    Ok(_) => println!("Taskbar nascosta con successo"),
-                    Err(e) => eprintln!("Errore nel nascondere la taskbar: {e:?}"),
-                }
+                show_taskbar()?;
+                hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill)?;
             }
 
             let webview = app.get_webview_window("overlay").unwrap();
             let window = &webview.get_window("overlay").unwrap();
             remove_titlebar(window);
+            
+            set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 
-            start_global_input_listener(app.handle().clone());
+            //start_global_input_listener(app.handle().clone());
+
+            start_event_listeners(app.handle().clone())?;
 
             Ok(())
         })
@@ -190,10 +193,12 @@ pub fn run() {
 
                 if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
                     match show_taskbar() {
-                        Ok(_) => println!("Taskbar mostrata con successo"),
                         Err(e) => eprintln!("Errore nel mostrare la taskbar: {e:?}"),
-                    }
+                        _ => ()
+                    };
                 }
+
+                set_snap_flyout(true).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
 
                 if let Some(app_handle) = app_handle.get_webview_window("overlay") {
                     let _ = app_handle.close();

@@ -19,8 +19,19 @@
     </n-card>
     <n-card title="Windows Taskbar">
       <n-form label-placement="left" label-width="100">
+        <n-alert type="warning">This may make navigation harder. Use with caution.</n-alert>
         <n-form-item label="Behavior">
           <n-select :options="taskBarBehaviorOptions" v-model:value="settings.taskbar.behavior"></n-select>
+        </n-form-item>
+      </n-form>
+    </n-card>
+    <n-card title="Windows Start Menu">
+      <n-form label-placement="left" label-width="100">
+        <n-alert type="warning">This may make navigation harder. Use with caution.</n-alert>
+        <n-alert type="warning">This setting will take effect only after restarting the app.</n-alert>
+        <n-alert type="info">In the settings page, the Start menu will still open using <code>Ctrl+Esc</code>.</n-alert>
+        <n-form-item label="Behavior">
+          <n-select :options="startMenuBehaviorOptions" v-model:value="settings.startmenu.behavior"></n-select>
         </n-form-item>
       </n-form>
     </n-card>
@@ -28,10 +39,10 @@
 </template>
 
 <script setup lang="ts">
-import { NSelect, NForm, NFormItem } from 'naive-ui'
+import { NSelect, NForm, NFormItem, NAlert } from 'naive-ui'
 import { inject, Ref } from 'vue'
 
-import { notificationPositions, Settings, taskBarBehaviors, themes } from '../interfaces/settings'
+import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
 
 const settings = inject("settings") as Ref<Settings>;
 
@@ -54,6 +65,11 @@ const taskBarBehaviorOptions = taskBarBehaviors.map(pos => ({
   label: pos.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),
   value: pos
 }))
+
+const startMenuBehaviorOptions = startMenuBehaviors.map(pos => ({
+  label: pos.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),
+  value: pos
+}))
 </script>
 
 
@@ -63,6 +79,16 @@ const taskBarBehaviorOptions = taskBarBehaviors.map(pos => ({
   flex-direction: column;
   padding: 16px;
   gap: 1rem;
+}
+
+:deep(.n-alert) {
+  margin-left: 100px;
+}
+
+:deep(.n-form) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>
 

@@ -1,5 +1,4 @@
-use std::{collections::HashMap, ffi::OsString, fs::File, io::BufWriter, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
-use uuid::Uuid;
+use std::{collections::HashMap, ffi::OsString, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
 use windows::{
     core::{BOOL, PCWSTR, PWSTR},
     Win32::{

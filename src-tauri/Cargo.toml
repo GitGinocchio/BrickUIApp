@@ -18,11 +18,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.4.0", features = [] }
 
 [dependencies]
-tauri = { version = "2.8.2", features = ["protocol-asset", "unstable"] }
+tauri = { version = "2.8.2", features = [ "protocol-asset", "unstable"] }
 tauri-plugin-opener = "2.5.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.0"
-serde_yaml = "0.9.33"
+serde_json = "1.0.143"
+serde_yaml = "0.9.34"
 schemars = "1.0.4"
 
 windows = { version = "0.61.3", features = [
@@ -44,10 +44,10 @@ windows-sys = { version = "0.60.2", features = [
     "Win32_Foundation"
 ] }
 winreg = "0.55.0"
-rdev = { version = "0.5.3", features = [ "serialize"] }
 tauri-plugin-fs = "2.4.1"
 uuid = { version = "1.18.0", features = [ "v4"] }
 image = "0.25.6"
 chrono = "0.4.41"
 base64 = "0.22.1"
 fs_extra = "1.3.0"
+crossbeam = "0.8.4"

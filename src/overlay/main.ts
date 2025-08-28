@@ -5,8 +5,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../interfaces/settings";
 import { listen } from "@tauri-apps/api/event";
 
-listen<Settings>("settings-update", (event) => {
-  settings.value = event.payload;
+listen<any>("changed-not-pos", (event) => {
+  settings.value.notifications.position = event.payload.position;
 });
 
 const settings = Vue.ref(await invoke<Settings>("get_settings", {}));

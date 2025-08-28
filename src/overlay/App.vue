@@ -14,7 +14,7 @@ import { BaseDirectory, appDataDir as getAppDataDir } from '@tauri-apps/api/path
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { listen } from '@tauri-apps/api/event';
-import { onMounted, ref } from 'vue';
+import { onMounted, Ref, ref } from 'vue';
 import { useNotification } from 'naive-ui';
 import { Brick } from 'interfaces/brick';
 import { sendResponseRequest } from './utils';
@@ -28,6 +28,31 @@ const port = ref<MessagePort|null>(null);
 const key = ref<string>(crypto.randomUUID());
 
 const appDataDir = ref<string|null>(null);
+
+async function waitForIframeLoaded(
+  iframeRef: Ref<HTMLIFrameElement | null | undefined>,
+  timeoutMs = 500
+): Promise<void> {
+  // Attendi finché la ref non è valorizzata
+  while (!iframeRef.value) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }
+
+  const iframe = iframeRef.value;
+
+  // Se l'iframe è già pronto
+  if (iframe.contentDocument?.readyState === "complete") {
+    return;
+  }
+
+  // Altrimenti attendi l'evento load con timeout
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      iframe.addEventListener("load", () => resolve(), { once: true });
+    }),
+    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))
+  ]);
+}
 
 async function onSandboxLoaded() {
   channel.value = new MessageChannel();
@@ -74,18 +99,28 @@ onMounted(async () => {
     await currentWindow.setPosition(new LogicalPosition(0, 0));
     await currentWindow.show();
 
-    if (sandbox.value) onSandboxLoaded();
-    else sandbox.value.addEventListener("load", onSandboxLoaded);
+    await waitForIframeLoaded(sandbox);
+    await onSandboxLoaded();
 
-    let isClickThroughEnabled = false;
+
+    let isClickThroughEnabled = true;
 
     const elementsToSkip = [
       "HTML",
       "BODY"
     ]
 
+    await listen('window_entered_fullscreen', (event) => { 
+      console.log(event);
+    });
+
+    await listen('window_exited_fullscreen', (event) => { 
+      console.log(event);
+    });
+
     listen<[number, number]>('global_mouse_moved', async (event) => {
       const [screenX, screenY] = event.payload;
+
       let elementTagName = document.elementFromPoint(screenX, screenY)?.tagName;
 
       if (elementsToSkip.includes(elementTagName)) {
@@ -147,6 +182,14 @@ onMounted(async () => {
       closable: true
     });
   }
+});
+
+listen<any>("changed-not-pos", () => {
+  notification.destroyAll();
+  notification.info({
+    title: "Test notification",
+    duration: 750
+  });
 });
 
 listen("toggle-brick", (event) => {

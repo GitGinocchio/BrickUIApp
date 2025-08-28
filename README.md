@@ -1,6 +1,21 @@
 
+- [ ] Forse si puo' utilizzare il contesto isolato:
+  
+  ```json
+  // tauri.conf.json
+  "security"
+    "pattern": {
+    "use":"isolation",
+    "options" : {
+      "dir": ""
+    }
+  },
+  ```
 
-- Implementare la seguente struttura
+- [ ] Forse dovrei creare un sistema che si autoriconnette per il MessageChannel (piu' per dev che altro)
+  perche' quando si fa il refresh della pagina si perde il collegamento con il canale
+
+- [x] Implementare la seguente struttura
   <img src="structure.jpg"></img>
 
 - [x] Usare questo esempio di chatgpt per suddividere BrickCard in diversi componenti:

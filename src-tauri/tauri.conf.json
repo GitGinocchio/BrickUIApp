@@ -47,7 +47,7 @@
     "withGlobalTauri": false,
     "security": {
       "headers" : {
-        "Access-Control-Allow-Headers" : "Access-Control-Allow-Origin: *"
+        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin: *"
       },
       "assetProtocol": {
         "enable": true,

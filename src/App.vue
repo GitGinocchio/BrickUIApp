@@ -103,6 +103,7 @@ const settings = ref<Settings>({
   theme: "light",
   notifications: { position: "top-right" },
   taskbar: { behavior: "windows-default" },
+  startmenu: { behavior: "windows-default" }
 });
 
 provide("settings", settings);
@@ -116,21 +117,25 @@ onMounted(async () => {
   // in caso di brick formattati male
   await invoke<Brick[]>("load_bricks", {});
   settings.value = await invoke<Settings>("get_settings");
+
+  watch(() => settings.value.notifications.position, async (value) => {
+    await emit("changed-not-pos", { position: value });
+  });
+
+  watch(() => settings.value.taskbar.behavior, async (value) => {
+    if (value === 'hide' || value === 'hide-and-fill') {
+      await invoke("hide_taskbar", { keepTaskbarSpace : value !== 'hide-and-fill'});
+    }
+    else {
+      await invoke("show_taskbar");
+    }
+  });
 });
 
-watch(settings,async (newSettings) => {
+watch(settings, async (newSettings) => {
   await invoke("save_settings", { settings: newSettings });
-  await emit("settings-update", { ...newSettings });
-  settings.value = newSettings;
+  locale.value = newSettings.language;
 }, { deep: true });
-
-watch(
-  () => settings.value.language,
-  (newLang) => {
-    locale.value = newLang 
-    localStorage.setItem('language', newLang)
-  }
-)
 </script>
 
 

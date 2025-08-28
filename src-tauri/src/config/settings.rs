@@ -20,7 +20,11 @@ pub struct Settings {
 
     #[serde(default)]
     #[schemars(description = "TaskBar settings.")]
-    pub taskbar: TaskBar
+    pub taskbar: TaskBar,
+
+    #[serde(default)]
+    #[schemars(description = "Start Menu settings.")]
+    pub startmenu: StartMenu
 }
 
 fn default_theme() -> Theme { Theme::Light }
@@ -48,7 +52,8 @@ impl Default for Settings {
             theme: default_theme(),
             schema: default_schema(),
             notifications: Notifications::default(),
-            taskbar: TaskBar::default()
+            taskbar: TaskBar::default(),
+            startmenu: StartMenu::default()
         }
     }
 }
@@ -115,7 +120,7 @@ pub struct TaskBar {
 
 impl Default for TaskBar {
     fn default() -> Self {
-        TaskBar {
+        Self {
             behavior: TaskBarBehavior::default()
         }
     }
@@ -143,3 +148,40 @@ impl Default for TaskBarBehavior {
     }
 }
 
+/* Start Menu */
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Configuration for windows start menu.")]
+pub struct StartMenu {
+    #[serde(default)]
+    pub behavior: StartMenuBehavior
+}
+
+impl Default for StartMenu {
+    fn default() -> Self {
+        Self {
+            behavior: StartMenuBehavior::default()
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum StartMenuBehavior {
+    #[schemars(description = "Disables Ctrl+Esc from opening the Start menu.")]
+    DisableCtrlEsc,
+
+    #[schemars(description = "Disables the Windows key.")]
+    DisableWin,
+
+    #[schemars(description = "Disables both Ctrl+Esc and the Windows key.")]
+    DisableBoth,
+
+    #[schemars(description = "Uses the default Windows behavior.")]
+    WindowsDefault,
+}
+
+impl Default for StartMenuBehavior {
+    fn default() -> Self {
+        StartMenuBehavior::WindowsDefault
+    }
+}
