@@ -29,7 +29,7 @@ const key = ref<string>(crypto.randomUUID());
 
 const appDataDir = ref<string|null>(null);
 
-async function waitForIframeLoaded(iframe: HTMLIFrameElement, timeoutMs = 50) {
+async function waitForIframeLoaded(iframe: HTMLIFrameElement, timeoutMs = 500) {
   if (iframe.contentDocument?.readyState === "complete") {
     return Promise.resolve();
   }
