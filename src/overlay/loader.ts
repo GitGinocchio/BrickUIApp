@@ -1,9 +1,13 @@
-//import { loadModule } from '../public/vendor/vue3-sfc-loader.esm.js';
-//import * as Vue from '../public/vendor/vue.esm-browser.prod.js';
+import { loadModule } from '../public/vendor/vue3-sfc-loader.esm.js';
+import * as Vue from '../public/vendor/vue.esm-browser.prod.js';
+
 // @ts-ignore
-const Vue = await import('https://unpkg.com/vue@3.5.18/dist/vue.esm-browser.prod.js');
+//const Vue = await import('https://unpkg.com/vue@3.5.18/dist/vue.esm-browser.prod.js');
 // @ts-ignore
-const { loadModule } = await import('https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.esm.js');
+//const { loadModule } = await import('https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.esm.js');
+
+import * as core from '@tauri-apps/api/core';
+import * as event from '@tauri-apps/api/event';
 
 import { Brick } from '../interfaces/brick.ts';
 import { appDataDir as getAppDataDir } from '@tauri-apps/api/path';
@@ -16,7 +20,11 @@ const bricksState = Vue.reactive(new Map());
 
 function createLoaderOptions({ brickName }) {
   return {
-    moduleCache: { vue: Vue },
+    moduleCache: { 
+      vue: Vue,
+      core: core,
+      event: event
+    },
     getFile: async (url) => {
       if (url.startsWith("/")) {
         //const path = `${appDataDir}/bricks/${brickName}${url}`;

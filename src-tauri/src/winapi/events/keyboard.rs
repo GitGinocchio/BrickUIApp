@@ -33,7 +33,7 @@ pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHan
                 match w_param.0 as u32 {
                     WM_KEYDOWN => { let _ = tx.send(GlobalEvent::KeyDown(key_name)); }
                     WM_KEYUP => { let _ = tx.send(GlobalEvent::KeyUp(key_name)); }
-                    _ => {}
+                    _ => ()
                 }
             }
 
@@ -41,15 +41,15 @@ pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHan
                 settings.startmenu.behavior.clone()
             }
             else {
-                return unsafe { CallNextHookEx(Some(HHOOK::default()), n_code, w_param, l_param) };
+                return unsafe { CallNextHookEx(None, n_code, w_param, l_param) };
             };
 
             // Blocca tasto Windows sinistro/destra
-            if (behavior == StartMenuBehavior::DisableWin || behavior == StartMenuBehavior::DisableBoth) 
-                && kb.vkCode == VK_LWIN.0 as u32 || kb.vkCode == VK_RWIN.0 as u32 {
+            if (behavior == StartMenuBehavior::DisableWin || behavior == StartMenuBehavior::DisableBoth)
+               && (kb.vkCode == VK_LWIN.0 as u32 || kb.vkCode == VK_RWIN.0 as u32) {
                 if w_param.0 as u32 == WM_KEYDOWN {
                     return LRESULT(1); // intercetta l'apertura
-                } 
+                }
                 else {
                     // per keyup lascia passare il messaggio
                     return unsafe { CallNextHookEx(None, n_code, w_param, l_param) };
@@ -57,8 +57,8 @@ pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHan
             }
 
             // Blocca Ctrl+Esc
-            if (behavior == StartMenuBehavior::DisableCtrlEsc || behavior == StartMenuBehavior::DisableBoth) 
-                && kb.vkCode == VK_ESCAPE.0 as u32 
+            if (behavior == StartMenuBehavior::DisableCtrlEsc || behavior == StartMenuBehavior::DisableBoth)
+                && (kb.vkCode == VK_ESCAPE.0 as u32)
                 && unsafe { (GetAsyncKeyState(VK_CONTROL.0 as i32) & 0x8000u16 as i16) != 0 } {
                 if w_param.0 as u32 == WM_KEYDOWN {
                     return LRESULT(1); // intercetta l'apertura

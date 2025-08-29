@@ -1,5 +1,11 @@
 
-- [ ] Forse si puo' utilizzare il contesto isolato:
+- [ ] Da usare il plugin Opener per aprire file e url in app.
+
+- [ ] Da utilizzare il plugin Single Instance per essere sicuri che ci sia solo un istanza dell'app avviata
+
+- [ ] Utilizzare anche i plugins Deep Linking e Autostart
+
+- [x] Forse si puo' utilizzare il contesto isolato:
   
   ```json
   // tauri.conf.json
@@ -11,12 +17,6 @@
     }
   },
   ```
-
-- [ ] Forse dovrei creare un sistema che si autoriconnette per il MessageChannel (piu' per dev che altro)
-  perche' quando si fa il refresh della pagina si perde il collegamento con il canale
-
-- [x] Implementare la seguente struttura
-  <img src="structure.jpg"></img>
 
 - [x] Usare questo esempio di chatgpt per suddividere BrickCard in diversi componenti:
   ```

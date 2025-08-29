@@ -18,10 +18,7 @@ const isVisible = ref(false);
 const overlay = ref<HTMLDivElement>(null);
 const bricks = ref<Array<Brick>>();
 
-listen<[number, number]>('global_mouse_moved', async (event) => {
-  handleClickThrough(event, currentWindow);
-});
-
+listen<[number, number]>('global_mouse_moved', async (event) => handleClickThrough(event, currentWindow));
 listen<{ brick: Brick }>('toggle-brick', async (event) => toggleBrick(event.payload.brick));
 listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', async (event) => {
   updateBrick(event.payload.name, event.payload.prop_name, event.payload.prop_value);
@@ -71,7 +68,7 @@ onMounted(async () => {
     isVisible.value = false;
   }
 
-  if (overlay.value.children.length) {
+  if (overlay.value.children.length === 0) {
     notification.warning({
       title: "No bricks were found",
       description: "You should create a brick first!",

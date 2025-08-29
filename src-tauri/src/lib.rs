@@ -135,6 +135,12 @@ fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+
+    if let tauri::Pattern::Isolation { schema, .. } = context.pattern() {
+        dbg!(schema);
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
@@ -205,7 +211,7 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 

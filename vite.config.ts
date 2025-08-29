@@ -16,7 +16,6 @@ export default defineConfig(async () => ({
     outDir: "dist",
     target: "esnext",
     rollupOptions: {
-      external: ['vue'],
       input: {
         settings: resolve(__dirname, 'src/index.html'),
         "overlay/index": resolve(__dirname, 'src/overlay/index.html')

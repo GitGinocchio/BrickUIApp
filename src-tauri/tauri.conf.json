@@ -46,6 +46,12 @@
     ],
     "withGlobalTauri": false,
     "security": {
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../src/isolation"
+        }
+      },
       "csp": {
         "default-src": [
           "'self'",
@@ -64,12 +70,8 @@
           "tauri:",
           "http://tauri.localhost",
           "http://asset.localhost",
-          "'sha256-WNFD/eU3iGIz3T1KnLd3VUue+lFDZrzi6u4I/U8GGds='",
-          "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/+esm",
-          "'sha256-WCjzMsGm4FrAjof1HjwoqId2CabTEy2JnJfUjaEscno='",
-          "https://unpkg.com/vue@3.5.18/dist/vue.global.prod.js",
-          "'sha256-ARV0Eah86yaV1qsmKVNH83FEpxlFUONZ5Nyas3jVdzs='",
-          "https://unpkg.com/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js"
+          "'sha256-ZskXiwVb6eFg98EBh2Y8oS7d0faFNFrpupvtCfmc+JE='",
+          "'sha256-/Tv0N/CR9ZPt68YXATQb2aV4UQcX/pD04ToiAKP+HMQ='"
         ],
         "connect-src": [
           "'self'",
@@ -104,21 +106,12 @@
           "tauri:",
           "http://tauri.localhost"
         ],
-        "frame-src": [
-          "'self'",
-          "http://asset.localhost",
-          "tauri:",
-          "http://tauri.localhost"
-        ],
         "object-src": [
           "'none'"
         ],
         "base-uri": [
           "'self'"
         ]
-      },
-      "headers" : {
-        "Access-Control-Allow-Headers": "Access-Control-Allow-Origin: *"
       },
       "assetProtocol": {
         "enable": true,

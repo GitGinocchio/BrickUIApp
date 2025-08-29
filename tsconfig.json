@@ -19,13 +19,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    /*"types": ["vue"], */
-    "typeRoots" : ["./src/types", "./node_modules/@types"],
-    "baseUrl": "./src",
-    "paths": {
-      "@assets/js/*": ["./assets/js/*"],
-      "@types/*": ["./types/*"]
-    }
+    "typeRoots" : ["./node_modules/@types"],
+    "baseUrl": "./src"
   },
   "include": [
     "src/**/*.js",
@@ -33,6 +28,6 @@
     "src/**/*.d.ts", 
     "src/**/*.tsx", 
     "src/**/*.vue", 
-    "src/**/*.brick"
+    "src/**/*.brick",
   ]
 }
