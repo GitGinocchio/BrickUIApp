@@ -11,18 +11,12 @@ export default defineConfig(async () => ({
     include: [/\.vue$/, /\.brick$/]
   })],
 
-  resolve: {
-    alias: {
-      vue: 'vue/dist/vue.esm-bundler.js',
-      '@assets/js': resolve(__dirname, 'src/assets/js'),
-      '@public/js': resolve(__dirname, 'src/public/js')
-    }
-  },
   build: {
     assetsInlineLimit: 0,
     outDir: "dist",
     target: "esnext",
     rollupOptions: {
+      external: ['vue'],
       input: {
         settings: resolve(__dirname, 'src/index.html'),
         "overlay/index": resolve(__dirname, 'src/overlay/index.html')
