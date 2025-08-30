@@ -24,17 +24,24 @@ pub struct Settings {
 
     #[serde(default)]
     #[schemars(description = "Start Menu settings.")]
-    pub startmenu: StartMenu
+    pub startmenu: StartMenu,
 }
 
-fn default_theme() -> Theme { Theme::Light }
-fn default_language() -> Language { Language::EN }
-fn default_schema() -> String { "./.schemas/settings.schema.json".to_string() }
+fn default_theme() -> Theme {
+    Theme::Light
+}
+fn default_language() -> Language {
+    Language::EN
+}
+fn default_schema() -> String {
+    "./.schemas/settings.schema.json".to_string()
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
-    EN, IT
+    EN,
+    IT,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -42,7 +49,7 @@ pub enum Language {
 pub enum Theme {
     Light,
     Dark,
-    System
+    System,
 }
 
 impl Default for Settings {
@@ -53,7 +60,7 @@ impl Default for Settings {
             schema: default_schema(),
             notifications: Notifications::default(),
             taskbar: TaskBar::default(),
-            startmenu: StartMenu::default()
+            startmenu: StartMenu::default(),
         }
     }
 }
@@ -83,7 +90,7 @@ pub enum NotificationPosition {
     #[serde(rename = "top")]
     Top,
 
-    #[schemars(description = "Notifications appear at the top left corner.") ]
+    #[schemars(description = "Notifications appear at the top left corner.")]
     #[serde(rename = "top-left")]
     TopLeft,
 
@@ -121,7 +128,7 @@ pub struct TaskBar {
 impl Default for TaskBar {
     fn default() -> Self {
         Self {
-            behavior: TaskBarBehavior::default()
+            behavior: TaskBarBehavior::default(),
         }
     }
 }
@@ -153,13 +160,13 @@ impl Default for TaskBarBehavior {
 #[schemars(description = "Configuration for windows start menu.")]
 pub struct StartMenu {
     #[serde(default)]
-    pub behavior: StartMenuBehavior
+    pub behavior: StartMenuBehavior,
 }
 
 impl Default for StartMenu {
     fn default() -> Self {
         Self {
-            behavior: StartMenuBehavior::default()
+            behavior: StartMenuBehavior::default(),
         }
     }
 }

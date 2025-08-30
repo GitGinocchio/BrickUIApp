@@ -1,14 +1,20 @@
-use std::{collections::HashMap, ffi::OsString, os::windows::ffi::{OsStrExt, OsStringExt}, path::PathBuf};
-use windows::{
-    core::{BOOL, PCWSTR, PWSTR},
-    Win32::{
-        Foundation::*, Graphics::Gdi::*, System::{
-            Threading::*,
-        }, UI::{Shell::ExtractIconExW, WindowsAndMessaging::*}
-    },
-};
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use image::{ImageBuffer, Rgba};
+use std::{
+    collections::HashMap,
+    ffi::OsString,
+    os::windows::ffi::{OsStrExt, OsStringExt},
+    path::PathBuf,
+};
+use windows::{
+    Win32::{
+        Foundation::*,
+        Graphics::Gdi::*,
+        System::Threading::*,
+        UI::{Shell::ExtractIconExW, WindowsAndMessaging::*},
+    },
+    core::{BOOL, PCWSTR, PWSTR},
+};
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
@@ -19,9 +25,7 @@ fn get_window_text(hwnd: HWND) -> Option<String> {
     let mut buffer = vec![0u16; (len + 1) as usize];
     let buffer = buffer.as_mut_slice();
 
-    let copied_len = unsafe {
-        GetWindowTextW(hwnd, buffer)
-    };
+    let copied_len = unsafe { GetWindowTextW(hwnd, buffer) };
 
     if copied_len == 0 {
         return None;
@@ -34,9 +38,9 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
     unsafe {
         let handle = match OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid) {
             Ok(handle) => handle,
-            Err(e) => { 
+            Err(e) => {
                 eprintln!("Errore durante l'ottenimento del percorso dell'eseguibile: {e}");
-                return None; 
+                return None;
             }
         };
 
@@ -46,7 +50,14 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
 
         let mut buffer = vec![0u16; 260];
         let mut size = buffer.len() as u32;
-        if QueryFullProcessImageNameW(handle, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut size).is_ok() {
+        if QueryFullProcessImageNameW(
+            handle,
+            PROCESS_NAME_WIN32,
+            PWSTR(buffer.as_mut_ptr()),
+            &mut size,
+        )
+        .is_ok()
+        {
             CloseHandle(handle);
             Some(PathBuf::from(OsString::from_wide(&buffer[..size as usize])))
         } else {
@@ -141,12 +152,14 @@ pub fn extract_icon(exe_path: &PathBuf) -> Option<String> {
             px[2] = b;
         }
 
-        let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> =
-            ImageBuffer::from_raw(width, height, buffer)?;
+        let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, buffer)?;
 
         let mut png_bytes = Vec::new();
         image::DynamicImage::ImageRgba8(img_buf)
-            .write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
+            .write_to(
+                &mut std::io::Cursor::new(&mut png_bytes),
+                image::ImageFormat::Png,
+            )
             .ok()?;
 
         let base64_icon = general_purpose::STANDARD.encode(&png_bytes);
@@ -216,7 +229,10 @@ pub fn get_taskbar_icons(path: &PathBuf) -> Vec<GroupedIcons> {
     }
 
     unsafe {
-        let _ = EnumWindows(Some(enum_windows_proc), LPARAM(&mut context as *mut _ as isize));
+        let _ = EnumWindows(
+            Some(enum_windows_proc),
+            LPARAM(&mut context as *mut _ as isize),
+        );
     }
 
     results.into_values().collect()

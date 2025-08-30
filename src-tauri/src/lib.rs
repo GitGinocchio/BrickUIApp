@@ -1,7 +1,7 @@
 mod winapi;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::set_snap_flyout;
-use crate::winapi::taskbar::apps::{GroupedIcons};
+use crate::winapi::taskbar::apps::GroupedIcons;
 use crate::winapi::window::remove_titlebar;
 
 mod bricks;
@@ -10,8 +10,8 @@ use crate::bricks::brick::Brick;
 mod config;
 use crate::config::settings::{Settings, TaskBarBehavior};
 
-use tauri::{Manager, State, WindowEvent};
 use std::sync::{Arc, Mutex};
+use tauri::{Manager, State, WindowEvent};
 
 mod state;
 use state::BrickUIState;
@@ -28,7 +28,9 @@ fn show_taskbar() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_taskbar_icons(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<GroupedIcons>, String> {
+fn get_taskbar_icons(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+) -> Result<Vec<GroupedIcons>, String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
@@ -42,7 +44,10 @@ fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, 
 }
 
 #[tauri::command]
-fn save_settings(state: State<'_, Arc<Mutex<BrickUIState>>>, settings: Settings) -> Result<(), String> {
+fn save_settings(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    settings: Settings,
+) -> Result<(), String> {
     let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
@@ -81,7 +86,8 @@ fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Resul
     bricks::save_brick(&path, &brick)?;
 
     // Aggiorna lo stato in memoria
-    if let Some(existing) = state_guard.get_mut_bricks()
+    if let Some(existing) = state_guard
+        .get_mut_bricks()
         .iter_mut()
         .find(|b| b.name == brick.name)
     {
@@ -94,7 +100,11 @@ fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Resul
 }
 
 #[tauri::command]
-fn rename_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, old_name: String, new_name: String) -> Result<(), String> {
+fn rename_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    old_name: String,
+    new_name: String,
+) -> Result<(), String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
@@ -110,7 +120,10 @@ fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> 
 }
 
 #[tauri::command]
-fn open_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick_name: String) -> Result<(), String> {
+fn open_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    brick_name: String,
+) -> Result<(), String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
@@ -144,6 +157,19 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(webview_window) = app.get_webview_window("settings") {
+                let _ = webview_window.unminimize();
+
+                if !webview_window.is_visible().unwrap_or(false) {
+                    let _ = webview_window.show();
+                }
+
+                let _ = webview_window.set_focus();
+            } else {
+                eprintln!("no settings window");
+            }
+        }))
         .invoke_handler(tauri::generate_handler![
             hide_taskbar,
             show_taskbar,
@@ -178,7 +204,7 @@ pub fn run() {
             let webview = app.get_webview_window("overlay").unwrap();
             let window = &webview.get_window("overlay").unwrap();
             remove_titlebar(window);
-            
+
             set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 
             //start_global_input_listener(app.handle().clone());
@@ -188,13 +214,22 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { .. } = event && window.label() == "settings" {
-                window.hide().map_err(|e| format!("Error while trying to hide the settings window: {e}")).expect("");
+            if let WindowEvent::CloseRequested { api , .. } = event && window.label() == "settings" {
+                window
+                    .hide()
+                    .map_err(|e| format!("Error while trying to hide the settings window: {e}"))
+                    .expect("");
 
                 let app_handle = window.app_handle();
-                if let Some(window) = app_handle.get_window("overlay") && window.is_closable().is_ok() {
-                    window.hide().map_err(|e| format!("Error while trying to hide the overlay window: {e}")).expect("");
-                    window.close()
+                if let Some(window) = app_handle.get_window("overlay")
+                    && window.is_closable().is_ok()
+                {
+                    window
+                        .hide()
+                        .map_err(|e| format!("Error while trying to hide the overlay window: {e}"))
+                        .expect("");
+                    window
+                        .close()
                         .map_err(|e| format!("Error while trying to close the overlay window: {e}"))
                         .unwrap();
                 }
@@ -202,21 +237,25 @@ pub fn run() {
                 let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
                 let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
                     Ok(guard) => guard,
-                    Err(e) => panic!("{e}")
+                    Err(e) => panic!("{e}"),
                 };
                 let settings = state_guard.get_settings();
 
                 if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
                     match show_taskbar() {
                         Err(e) => eprintln!("Errore nel mostrare la taskbar: {e:?}"),
-                        _ => ()
+                        _ => (),
                     };
                 }
 
-                set_snap_flyout(true).map_err(|e| format!("Errore set_snap_flyout: {e}")).expect("");
+                set_snap_flyout(true)
+                    .map_err(|e| format!("Errore set_snap_flyout: {e}"))
+                    .expect("");
+
+                app_handle.exit(0);
+                api.prevent_close();
             }
         })
         .run(context)
         .expect("error while running tauri application");
 }
-

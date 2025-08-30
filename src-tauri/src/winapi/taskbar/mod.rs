@@ -1,22 +1,24 @@
 pub mod apps;
 
 use windows::{
-    core::{Error as WinError, PCSTR},
     Win32::{
-        Foundation::{HWND, LPARAM, RECT}, UI::{
-            Shell::{SHAppBarMessage, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA},
+        Foundation::{HWND, LPARAM, RECT},
+        UI::{
+            Shell::{ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA, SHAppBarMessage},
             WindowsAndMessaging::{
-                FindWindowA,  GetWindowRect, SetWindowPos, ShowWindow, HWND_BOTTOM, HWND_TOPMOST, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE, SW_SHOW
+                FindWindowA, GetWindowRect, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW,
+                SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+                SetWindowPos, ShowWindow,
             },
-        }
+        },
     },
+    core::{Error as WinError, PCSTR},
 };
 
 pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
     unsafe {
         let class_name = b"Shell_TrayWnd\0".as_ptr();
-        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null())
-            .map_err(|e| e.to_string())?;
+        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())?;
 
         if taskbar.0.is_null() {
             return Err(WinError::from_win32().to_string());
@@ -57,8 +59,7 @@ pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
 pub fn show_taskbar() -> Result<(), String> {
     unsafe {
         let class_name = b"Shell_TrayWnd\0".as_ptr();
-        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null())
-            .map_err(|e| e.to_string())?;
+        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())?;
 
         if taskbar.0.is_null() {
             return Err(WinError::from_win32().to_string());

@@ -1,11 +1,18 @@
-mod window;
-mod mouse;
 mod keyboard;
+mod mouse;
+mod window;
 
-use crate::{config::settings::TaskBarBehavior, state::BrickUIState, winapi::{set_snap_flyout, taskbar::hide_taskbar}};
+use crate::{
+    config::settings::TaskBarBehavior,
+    state::BrickUIState,
+    winapi::{set_snap_flyout, taskbar::hide_taskbar},
+};
 
 use crossbeam::channel;
-use std::{sync::{Arc, Mutex}, thread};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 use tauri::{AppHandle, Emitter, Manager};
 
 #[derive(Debug, Clone)]
@@ -14,14 +21,13 @@ pub enum GlobalEvent {
     MouseButtonDown(String),
     MouseButtonUp(String),
     MouseWheel(i16),
-    
+
     KeyDown(String),
     KeyUp(String),
-    
-    WindowEnteredFullscreen{ hwnd: usize },
-    WindowExitedFullscreen{ hwnd: usize }
-}
 
+    WindowEnteredFullscreen { hwnd: usize },
+    WindowExitedFullscreen { hwnd: usize },
+}
 
 pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
     let (tx, rx) = channel::unbounded();
@@ -33,7 +39,7 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
         if let Err(e) = mouse::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook mouse: {:?}", e)
         }
-        
+
         if let Err(e) = keyboard::init_hook(tx.clone(), &app_handle_copy) {
             eprintln!("Errore nell'hook keyboard: {:?}", e);
         }
@@ -46,8 +52,16 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
         // Message loop Windows necessario per mantenere hook vivi
         unsafe {
             let mut msg = windows::Win32::UI::WindowsAndMessaging::MSG::default();
-            while windows::Win32::UI::WindowsAndMessaging::GetMessageW(&mut msg, Default::default(), 0, 0).into() {
-                if let Err(e) = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg).ok() {
+            while windows::Win32::UI::WindowsAndMessaging::GetMessageW(
+                &mut msg,
+                Default::default(),
+                0,
+                0,
+            )
+            .into()
+            {
+                if let Err(e) = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg).ok()
+                {
                     eprintln!("Errore durante TranslateMessage: {:?}", e);
                 }
                 windows::Win32::UI::WindowsAndMessaging::DispatchMessageW(&msg);
@@ -93,16 +107,18 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
                     //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
 
                     let _ = app_handle.emit_to("overlay", "window_entered_fullscreen", hwnd);
-                },
+                }
                 GlobalEvent::WindowExitedFullscreen { hwnd } => {
                     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
-                    let state_guard = state.lock()
+                    let state_guard = state
+                        .lock()
                         .map_err(|e| format!("Mutex poisoned: {e}"))
                         .unwrap();
                     let settings = state_guard.get_settings();
 
                     if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                        hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill).unwrap();
+                        hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill)
+                            .unwrap();
                     }
 
                     //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();

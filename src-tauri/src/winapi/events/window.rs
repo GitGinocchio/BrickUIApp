@@ -1,18 +1,20 @@
-use std::{
-    collections::HashMap, sync::{atomic::{AtomicPtr, Ordering}, Mutex, OnceLock}, time::{Duration, Instant}
-};
 use crossbeam::channel::Sender;
-use windows::Win32::{
-    Foundation::*,
-    UI::{
-        WindowsAndMessaging::*,
-        Accessibility::*,
-    }
-};
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrW, GWL_STYLE, WS_CAPTION, WS_THICKFRAME,
+use std::{
+    collections::HashMap,
+    sync::{
+        Mutex, OnceLock,
+        atomic::{AtomicPtr, Ordering},
+    },
+    time::{Duration, Instant},
 };
 use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging::{
+    GWL_STYLE, GetWindowLongPtrW, WS_CAPTION, WS_THICKFRAME,
+};
+use windows::Win32::{
+    Foundation::*,
+    UI::{Accessibility::*, WindowsAndMessaging::*},
+};
 
 use super::GlobalEvent;
 
@@ -34,7 +36,9 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
         _id_event_thread: u32,
         _time: u32,
     ) {
-        if hwnd.0 == std::ptr::null_mut() { return; }
+        if hwnd.0 == std::ptr::null_mut() {
+            return;
+        }
 
         if let (Some(tx), Some(states)) = (TX.get(), WINDOW_STATES.get()) {
             let mut rect = RECT::default();
@@ -52,13 +56,19 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
                 let style = unsafe { GetWindowLongPtrW(hwnd, GWL_STYLE) } as u32;
                 let is_borderless = (style & WS_CAPTION.0 == 0) && (style & WS_THICKFRAME.0 == 0);
 
-                let is_fullscreen = is_borderless && rect.left <= 0 && rect.top <= 0 &&
-                                    width >= screen_w && height >= screen_h;
+                let is_fullscreen = is_borderless
+                    && rect.left <= 0
+                    && rect.top <= 0
+                    && width >= screen_w
+                    && height >= screen_h;
 
                 let hwnd_key = hwnd.0 as usize;
 
                 let mut states = states.lock().unwrap();
-                let (prev_state, last_emit) = states.get(&hwnd_key).copied().unwrap_or((false, Instant::now() - Duration::from_secs(10)));
+                let (prev_state, last_emit) = states
+                    .get(&hwnd_key)
+                    .copied()
+                    .unwrap_or((false, Instant::now() - Duration::from_secs(10)));
 
                 // invia evento solo se cambia stato e non è troppo vicino al precedente
                 if is_fullscreen != prev_state && last_emit.elapsed() > Duration::from_millis(50) {
@@ -74,7 +84,7 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     }
 
     // Hook combinato: foreground + location changes
-    let hook = unsafe { 
+    let hook = unsafe {
         SetWinEventHook(
             EVENT_SYSTEM_FOREGROUND,
             EVENT_OBJECT_LOCATIONCHANGE,
@@ -82,11 +92,12 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
             Some(win_event_proc),
             0,
             0,
-            WINEVENT_OUTOFCONTEXT 
-    ) };
+            WINEVENT_OUTOFCONTEXT,
+        )
+    };
 
     let hook_box = Box::into_raw(Box::new(hook));
- 
+
     WINDOW_HOOK.store(hook_box, Ordering::SeqCst);
 
     // Nota: il message loop deve partire nel thread che chiama init_hooks

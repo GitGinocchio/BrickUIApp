@@ -9,7 +9,9 @@ pub struct DatePropType {
     #[serde(flatten)]
     pub base: PropMeta,
 
-    #[schemars(description = "Current date value of the property in the format `DD-MM` or `DD-MM-YYYY`. May be null if `default` is null.")]
+    #[schemars(
+        description = "Current date value of the property in the format `DD-MM` or `DD-MM-YYYY`. May be null if `default` is null."
+    )]
     #[schemars(regex(pattern = r"^[0-9]{2}-[0-9]{2}(-[0-9]{4})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
@@ -67,5 +69,9 @@ pub struct TimePropType {
     pub allow_future: bool,
 }
 
-fn default_allow_past() -> bool { true }
-fn default_allow_future() -> bool { true }
+fn default_allow_past() -> bool {
+    true
+}
+fn default_allow_future() -> bool {
+    true
+}

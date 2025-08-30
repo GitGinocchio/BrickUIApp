@@ -1,4 +1,4 @@
-use schemars::{JsonSchema};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::PropMeta;
@@ -12,7 +12,7 @@ pub struct Stop {
 
     #[schemars(description = "The actual position of the stop color from 0 to 100.")]
     #[serde(default)]
-    pub position: f32
+    pub position: f32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -20,7 +20,7 @@ pub struct Stop {
 pub enum GradientType {
     Linear,
     Radial,
-    Conic
+    Conic,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -38,7 +38,7 @@ pub struct Gradient {
     pub value: Option<Vec<Stop>>,
 
     #[schemars(description = "Gradient type.")]
-    #[serde(rename = "type", default="default_gradient_type")]
+    #[serde(rename = "type", default = "default_gradient_type")]
     pub gradient_type: Option<GradientType>,
 
     #[schemars(description = "If true, the alpha channel is ignored.")]
@@ -46,4 +46,6 @@ pub struct Gradient {
     pub skip_alpha: bool,
 }
 
-fn default_gradient_type() -> Option<GradientType> { Some(GradientType::Linear) }
+fn default_gradient_type() -> Option<GradientType> {
+    Some(GradientType::Linear)
+}

@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::bricks::props::PropType;
 
-
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Selectable property container with typed options.")]
 pub struct SelectablePropType<T: Default> {

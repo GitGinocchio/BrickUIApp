@@ -1,69 +1,89 @@
-use std::sync::{atomic::{AtomicPtr, Ordering}, Arc, Mutex, OnceLock};
+use std::sync::{
+    Arc, Mutex, OnceLock,
+    atomic::{AtomicPtr, Ordering},
+};
 
 use crossbeam::channel::Sender;
 use tauri::{AppHandle, Manager};
 use windows::Win32::{
     Foundation::*,
-    UI::{Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_ESCAPE, VK_LWIN, VK_RWIN}, WindowsAndMessaging::*},
+    UI::{
+        Input::KeyboardAndMouse::{GetAsyncKeyState, VK_CONTROL, VK_ESCAPE, VK_LWIN, VK_RWIN},
+        WindowsAndMessaging::*,
+    },
 };
 
-use crate::{config::settings::{Settings, StartMenuBehavior}, state::BrickUIState};
+use crate::{
+    config::settings::{Settings, StartMenuBehavior},
+    state::BrickUIState,
+};
 
 use super::GlobalEvent;
 
 static KEYBOARD_HOOK: AtomicPtr<HHOOK> = AtomicPtr::new(std::ptr::null_mut());
 
-pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHandle<R>) -> Result<(), String> {
+pub fn init_hook<R: tauri::Runtime>(
+    tx: Sender<GlobalEvent>,
+    app_handle: &AppHandle<R>,
+) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
-    let state_guard = state.lock()
+    let state_guard = state
+        .lock()
         .map_err(|e| format!("Mutex poisoned: {e}"))
         .unwrap();
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
-    SETTINGS.set(state_guard.get_settings().clone()).map_err(|e| format!("Errore durante oncelock su settings: {e:?}"))?;
+    SETTINGS
+        .set(state_guard.get_settings().clone())
+        .map_err(|e| format!("Errore durante oncelock su settings: {e:?}"))?;
 
     extern "system" fn keyboard_proc(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         if n_code >= 0 {
-            let kb = unsafe { &* (l_param.0 as *const KBDLLHOOKSTRUCT) };
+            let kb = unsafe { &*(l_param.0 as *const KBDLLHOOKSTRUCT) };
 
             if let Some(tx) = TX.get() {
                 let key_name = vk_to_string(kb.vkCode);
 
                 match w_param.0 as u32 {
-                    WM_KEYDOWN => { let _ = tx.send(GlobalEvent::KeyDown(key_name)); }
-                    WM_KEYUP => { let _ = tx.send(GlobalEvent::KeyUp(key_name)); }
-                    _ => ()
+                    WM_KEYDOWN => {
+                        let _ = tx.send(GlobalEvent::KeyDown(key_name));
+                    }
+                    WM_KEYUP => {
+                        let _ = tx.send(GlobalEvent::KeyUp(key_name));
+                    }
+                    _ => (),
                 }
             }
 
             let behavior = if let Some(settings) = SETTINGS.get() {
                 settings.startmenu.behavior.clone()
-            }
-            else {
+            } else {
                 return unsafe { CallNextHookEx(None, n_code, w_param, l_param) };
             };
 
             // Blocca tasto Windows sinistro/destra
-            if (behavior == StartMenuBehavior::DisableWin || behavior == StartMenuBehavior::DisableBoth)
-               && (kb.vkCode == VK_LWIN.0 as u32 || kb.vkCode == VK_RWIN.0 as u32) {
+            if (behavior == StartMenuBehavior::DisableWin
+                || behavior == StartMenuBehavior::DisableBoth)
+                && (kb.vkCode == VK_LWIN.0 as u32 || kb.vkCode == VK_RWIN.0 as u32)
+            {
                 if w_param.0 as u32 == WM_KEYDOWN {
                     return LRESULT(1); // intercetta l'apertura
-                }
-                else {
+                } else {
                     // per keyup lascia passare il messaggio
                     return unsafe { CallNextHookEx(None, n_code, w_param, l_param) };
                 }
             }
 
             // Blocca Ctrl+Esc
-            if (behavior == StartMenuBehavior::DisableCtrlEsc || behavior == StartMenuBehavior::DisableBoth)
+            if (behavior == StartMenuBehavior::DisableCtrlEsc
+                || behavior == StartMenuBehavior::DisableBoth)
                 && (kb.vkCode == VK_ESCAPE.0 as u32)
-                && unsafe { (GetAsyncKeyState(VK_CONTROL.0 as i32) & 0x8000u16 as i16) != 0 } {
+                && unsafe { (GetAsyncKeyState(VK_CONTROL.0 as i32) & 0x8000u16 as i16) != 0 }
+            {
                 if w_param.0 as u32 == WM_KEYDOWN {
                     return LRESULT(1); // intercetta l'apertura
-                }
-                else {
+                } else {
                     // per keyup lascia passare il messaggio
                     return unsafe { CallNextHookEx(None, n_code, w_param, l_param) };
                 }
@@ -74,15 +94,18 @@ pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHan
 
     TX.set(tx.clone()).unwrap();
 
-    let hook = unsafe { SetWindowsHookExW(
-        WH_KEYBOARD_LL, 
-        Some(keyboard_proc), 
-        Some(HINSTANCE::default()), 
-        0
-    ) }.map_err(|e| format!("Errore durante la creazione dell'hook: {e}"))?;
+    let hook = unsafe {
+        SetWindowsHookExW(
+            WH_KEYBOARD_LL,
+            Some(keyboard_proc),
+            Some(HINSTANCE::default()),
+            0,
+        )
+    }
+    .map_err(|e| format!("Errore durante la creazione dell'hook: {e}"))?;
 
     let hook_box = Box::into_raw(Box::new(hook));
- 
+
     KEYBOARD_HOOK.store(hook_box, Ordering::SeqCst);
 
     // Nota: il message loop deve partire nel thread che chiama init_hooks
@@ -93,8 +116,9 @@ pub fn init_hook<R: tauri::Runtime>(tx: Sender<GlobalEvent>, app_handle: &AppHan
 pub fn unmount_hook() -> Result<(), String> {
     let hook = KEYBOARD_HOOK.swap(std::ptr::null_mut(), Ordering::SeqCst);
     if !hook.is_null() {
-        unsafe { UnhookWindowsHookEx(*Box::from_raw(hook))
-            .map_err(|e| format!("Errore durenate l'unmount dell'hook: {e}"))?
+        unsafe {
+            UnhookWindowsHookEx(*Box::from_raw(hook))
+                .map_err(|e| format!("Errore durenate l'unmount dell'hook: {e}"))?
         };
     }
 
@@ -199,4 +223,3 @@ pub fn vk_to_string(vk: u32) -> String {
         _ => format!("VK_{vk}"),
     }
 }
-

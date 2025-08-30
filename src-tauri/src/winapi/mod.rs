@@ -1,21 +1,26 @@
+pub mod events;
 pub mod taskbar;
 pub mod window;
-pub mod events;
 
 use std::ffi::CString;
-use windows::core::{Result, PCSTR};
-use windows::Win32::{
-    Foundation::*,
-    System::Registry::*,
-    UI::WindowsAndMessaging::*,
-};
+use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
+use windows::core::{PCSTR, Result};
 
 pub fn set_snap_flyout(enabled: bool) -> Result<()> {
     unsafe {
         let mut hkey = HKEY::default();
 
-        let subkey = CString::new("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced").unwrap();
-        RegOpenKeyExA(HKEY_CURRENT_USER, PCSTR(subkey.as_ptr() as *const u8), None, KEY_SET_VALUE, &mut hkey).ok()?;
+        let subkey =
+            CString::new("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced")
+                .unwrap();
+        RegOpenKeyExA(
+            HKEY_CURRENT_USER,
+            PCSTR(subkey.as_ptr() as *const u8),
+            None,
+            KEY_SET_VALUE,
+            &mut hkey,
+        )
+        .ok()?;
 
         let value: u32 = if enabled { 1 } else { 0 };
         let value_bytes = value.to_ne_bytes();
@@ -27,7 +32,8 @@ pub fn set_snap_flyout(enabled: bool) -> Result<()> {
             None,
             REG_DWORD,
             Some(&value_bytes),
-        ).ok()?;
+        )
+        .ok()?;
 
         RegCloseKey(hkey).ok()?;
 

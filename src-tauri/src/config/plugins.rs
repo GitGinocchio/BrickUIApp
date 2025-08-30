@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "A collection of plugins with their configurations.")]
@@ -31,7 +31,6 @@ pub enum PluginConfig {
     // PluginA { field1: String, field2: i32 },
     // #[schemars(description = "Configuration for PluginB with enable flag and level.")]
     // PluginB { enabled: bool, level: u8 },
-    
     #[schemars(description = "Generic plugin configuration with arbitrary key-value pairs.")]
     Generic(HashMap<String, serde_json::Value>),
 }

@@ -1,10 +1,10 @@
-use std::sync::{atomic::{AtomicPtr, Ordering}, OnceLock};
-use crossbeam::channel::Sender;
-use windows::Win32::{
-    Foundation::*,
-    UI::WindowsAndMessaging::*,
-};
 use super::GlobalEvent;
+use crossbeam::channel::Sender;
+use std::sync::{
+    OnceLock,
+    atomic::{AtomicPtr, Ordering},
+};
+use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 
 static MOUSE_HOOK: AtomicPtr<HHOOK> = AtomicPtr::new(std::ptr::null_mut());
 
@@ -21,7 +21,10 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
             if let Some(tx) = TX.get() {
                 match w_param.0 as u32 {
                     WM_MOUSEMOVE => {
-                        let _ = tx.send(GlobalEvent::MouseMove { x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseMove {
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_LBUTTONDOWN => {
                         let _ = tx.send(GlobalEvent::MouseButtonDown("Left".into()));
@@ -42,11 +45,19 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
                         let _ = tx.send(GlobalEvent::MouseButtonUp("Middle".into()));
                     }
                     WM_XBUTTONDOWN => {
-                        let button = if hiword(ms.mouseData) == 1 { "XButton1" } else { "XButton2" };
+                        let button = if hiword(ms.mouseData) == 1 {
+                            "XButton1"
+                        } else {
+                            "XButton2"
+                        };
                         let _ = tx.send(GlobalEvent::MouseButtonDown(button.into()));
                     }
                     WM_XBUTTONUP => {
-                        let button = if hiword(ms.mouseData) == 1 { "XButton1" } else { "XButton2" };
+                        let button = if hiword(ms.mouseData) == 1 {
+                            "XButton1"
+                        } else {
+                            "XButton2"
+                        };
                         let _ = tx.send(GlobalEvent::MouseButtonUp(button.into()));
                     }
                     WM_MOUSEWHEEL => {
@@ -63,15 +74,12 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
 
     TX.set(tx.clone()).unwrap();
 
-    let hook = unsafe { SetWindowsHookExW(
-        WH_MOUSE_LL, 
-        Some(mouse_proc), 
-        Some(HINSTANCE::default()), 
-        0
-    ) }.map_err(|e| format!("Errore durante la creazione dell'hook: {e}"))?;
+    let hook =
+        unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), Some(HINSTANCE::default()), 0) }
+            .map_err(|e| format!("Errore durante la creazione dell'hook: {e}"))?;
 
     let hook_box = Box::into_raw(Box::new(hook));
- 
+
     MOUSE_HOOK.store(hook_box, Ordering::SeqCst);
 
     Ok(())
@@ -80,8 +88,9 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
 pub fn unmount_hook() -> Result<(), String> {
     let hook = MOUSE_HOOK.swap(std::ptr::null_mut(), Ordering::SeqCst);
     if !hook.is_null() {
-        unsafe { UnhookWindowsHookEx(*Box::from_raw(hook))
-            .map_err(|e| format!("Errore durenate l'unmount dell'hook: {e}"))?
+        unsafe {
+            UnhookWindowsHookEx(*Box::from_raw(hook))
+                .map_err(|e| format!("Errore durenate l'unmount dell'hook: {e}"))?
         };
     }
 

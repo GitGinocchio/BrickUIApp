@@ -1,15 +1,11 @@
+use schemars::{JsonSchema, schema_for};
 use std::{fs, path::PathBuf};
-use schemars::{schema_for, JsonSchema};
 
-use serde::Serialize;
 use crate::{
-    bricks::{brick::Brick}, 
-    config::{
-        load_from_yaml, 
-        plugins::Plugins, 
-        settings::Settings
-    }
+    bricks::brick::Brick,
+    config::{load_from_yaml, plugins::Plugins, settings::Settings},
 };
+use serde::Serialize;
 
 pub fn write_schema_if_missing<T>(dir: &PathBuf, filename: &str) -> std::io::Result<()>
 where
@@ -29,7 +25,9 @@ where
     T: Serialize + Default,
 {
     let file_path = path.join(filename);
-    if file_path.exists() { return Ok(()); }
+    if file_path.exists() {
+        return Ok(());
+    }
 
     // Crea l’istanza di default
     let default_value = T::default();
@@ -44,9 +42,7 @@ where
     // Prepara il contenuto con $schema e commenti
     let content = format!(
         "# yaml-language-server: $schema={}\n$schema: {}\n\n{}",
-        schema_uri,
-        schema_uri,
-        yaml_string
+        schema_uri, schema_uri, yaml_string
     );
 
     // Scrivi il file
@@ -75,8 +71,7 @@ fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
 pub struct BrickUIState {
     path: PathBuf,
     settings: Settings,
-    bricks: Vec<Brick>
-    //overlay: Overlay<R>
+    bricks: Vec<Brick>, //overlay: Overlay<R>
 }
 
 //impl<R: Runtime> BrickUIState<R> {
@@ -84,22 +79,26 @@ impl BrickUIState {
     //pub fn new(path: &PathBuf, overlay: Overlay<R>) -> Self {
     pub fn new(path: &PathBuf) -> Self {
         fs::create_dir_all(&path).expect("Errore nella creazione della directory di dati");
-        fs::create_dir_all(&path.join("bricks")).expect("Errore nella creazione della directory per i widgets");
-        fs::create_dir_all(&path.join("walls")).expect("Errore nella creazione della directory per i widgets");
-        fs::create_dir_all(&path.join(".schemas")).expect("Errore nella creazione della directory per gli schemas");
-        fs::create_dir_all(&path.join("cache").join("icons")).expect("Errore nella creazione della directory per la cache");
+        fs::create_dir_all(&path.join("bricks"))
+            .expect("Errore nella creazione della directory per i widgets");
+        fs::create_dir_all(&path.join("walls"))
+            .expect("Errore nella creazione della directory per i widgets");
+        fs::create_dir_all(&path.join(".schemas"))
+            .expect("Errore nella creazione della directory per gli schemas");
+        fs::create_dir_all(&path.join("cache").join("icons"))
+            .expect("Errore nella creazione della directory per la cache");
 
         generate_schemas_if_missing(path).expect("Errore durante la creazione degli schemas");
         generate_templates_if_missing(path).expect("Errore durante la creazione dei template");
 
         //let bricks = load_bricks(&path).expect("Errore durante il caricamento dei bricks");
-        let settings = load_from_yaml::<Settings>(&path.join("settings.yml")).expect("Errore durante il caricamento dei settings");
+        let settings = load_from_yaml::<Settings>(&path.join("settings.yml"))
+            .expect("Errore durante il caricamento dei settings");
 
         Self {
             path: path.clone(),
             settings: settings,
-            bricks: vec![]
-            //overlay: overlay
+            bricks: vec![], //overlay: overlay
         }
     }
 
@@ -129,4 +128,3 @@ impl BrickUIState {
     }
     */
 }
-
