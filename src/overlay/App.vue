@@ -1,20 +1,25 @@
 <template>
-  <div id="overlay" ref="overlay"></div>
+  <div id="overlay" ref="overlay" :class="{ ready: isReady }"></div>
 </template>
 
 <script setup lang="ts">
 import { LogicalPosition, LogicalSize, getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
-import { onMounted, ref } from 'vue';
+import { inject, onMounted, Ref, ref } from 'vue';
 import { useNotification } from 'naive-ui';
 import { handleClickThrough } from './utils/mouseClickThrough';
 import { init, toggleBrick, updateBrick } from './loader';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from 'interfaces/brick';
+import { Settings } from 'interfaces/settings';
+
+const settings = inject("settings") as Ref<Settings>;
 
 const currentWindow = getCurrentWindow();
 const notification = useNotification();
-const isVisible = ref(false);
+const lastNotificationPosition = ref<string>(settings.value.notifications.position);
+const lastTaskBarBehavior = ref<string>(settings.value.taskbar.behavior);
+const isReady = ref(false);
 const overlay = ref<HTMLDivElement>(null);
 const bricks = ref<Array<Brick>>();
 
@@ -26,12 +31,10 @@ listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', 
 
 onMounted(async () => {
   try {
-    await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
     await currentWindow.setIgnoreCursorEvents(true);
     await currentWindow.maximize();
-
+    await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
     await currentWindow.setPosition(new LogicalPosition(0, 0));
-    await currentWindow.show();
 
     bricks.value = await invoke("get_bricks");
 
@@ -45,7 +48,10 @@ onMounted(async () => {
       closable : true
     });
 
-    isVisible.value = true;
+    isReady.value = true;
+
+    await currentWindow.hide();
+    await currentWindow.show();
   } 
   catch (error) {
     let technicalMessage = "Unexpected error";
@@ -65,7 +71,7 @@ onMounted(async () => {
       description: `Error occurred while loading bricks:\n${technicalMessage}`,
       closable : true
     });
-    isVisible.value = false;
+    isReady.value = false;
   }
 
   if (overlay.value.children.length === 0) {
@@ -78,17 +84,27 @@ onMounted(async () => {
   }
 });
 
-listen<any>("changed-not-pos", () => {
-  notification.destroyAll();
-  notification.info({
-    title: "Test notification",
-    duration: 750
-  });
+listen<Settings>("changed-settings",async (event) => {
+  if (event.payload.notifications.position !== lastNotificationPosition.value) {
+    notification.destroyAll();
+    notification.info({
+      title: "Test notification",
+      duration: 750
+    });
+    lastNotificationPosition.value = event.payload.notifications.position;
+  };
+
+  if (event.payload.taskbar.behavior !== lastTaskBarBehavior.value) {
+    lastTaskBarBehavior.value = event.payload.taskbar.behavior;
+    await currentWindow.maximize();
+    await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
+    await currentWindow.setPosition(new LogicalPosition(0, 0));
+  }
 });
 </script>
 
 <style scoped>
-#root {
+#overlay {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -102,7 +118,7 @@ listen<any>("changed-not-pos", () => {
   pointer-events: none;
 }
 
-#root.show {
+#overlay.ready {
   opacity: 1;
 }
 

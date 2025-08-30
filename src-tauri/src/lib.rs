@@ -189,7 +189,16 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { .. } = event && window.label() == "settings" {
+                window.hide().map_err(|e| format!("Error while trying to hide the settings window: {e}")).expect("");
+
                 let app_handle = window.app_handle();
+                if let Some(window) = app_handle.get_window("overlay") && window.is_closable().is_ok() {
+                    window.hide().map_err(|e| format!("Error while trying to hide the overlay window: {e}")).expect("");
+                    window.close()
+                        .map_err(|e| format!("Error while trying to close the overlay window: {e}"))
+                        .unwrap();
+                }
+
                 let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
                 let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
                     Ok(guard) => guard,
@@ -204,11 +213,7 @@ pub fn run() {
                     };
                 }
 
-                set_snap_flyout(true).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
-
-                if let Some(app_handle) = app_handle.get_webview_window("overlay") {
-                    let _ = app_handle.close();
-                }
+                set_snap_flyout(true).map_err(|e| format!("Errore set_snap_flyout: {e}")).expect("");
             }
         })
         .run(context)
