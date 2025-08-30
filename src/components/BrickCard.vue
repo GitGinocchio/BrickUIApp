@@ -293,6 +293,7 @@ async function handleBrickAction(action: string) {
 async function onToggle() {
   await emitTo("overlay", "toggle-brick", { brick: props.brick });
   await invoke("save_brick", { brick: props.brick });
+  emit("changed");
 }
 
 async function onOpenBrick() {

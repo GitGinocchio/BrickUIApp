@@ -71,7 +71,7 @@ export async function updateBrick(name : string, prop_name : string, prop_value 
   if (brick) brick.props[prop_name] = prop_value;
 }
 
-export async function init(bricks: Array<Brick>) {
+export async function initLoader(bricks: Array<Brick>) {
     const app = Vue.createApp({
         render() {
         const nodes = [];

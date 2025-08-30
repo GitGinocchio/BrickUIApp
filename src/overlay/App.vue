@@ -8,7 +8,8 @@ import { listen } from '@tauri-apps/api/event';
 import { inject, onMounted, Ref, ref } from 'vue';
 import { useNotification } from 'naive-ui';
 import { handleClickThrough } from './utils/mouseClickThrough';
-import { init, toggleBrick, updateBrick } from './loader';
+import { initLoader, toggleBrick, updateBrick } from './loader';
+import { initTrayIcon } from './tray';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from 'interfaces/brick';
 import { Settings } from 'interfaces/settings';
@@ -38,7 +39,8 @@ onMounted(async () => {
 
     bricks.value = await invoke("get_bricks");
 
-    await init(bricks.value);
+    await initLoader(bricks.value);
+    await initTrayIcon(bricks.value);
 
     notification.success({
       title: "Bricks loaded successfully!",

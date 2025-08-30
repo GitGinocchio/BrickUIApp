@@ -81,6 +81,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Brick } from "interfaces/brick";
 import { deepEqual } from "../utils";
 import { useI18n } from "vue-i18n";
+import { emitTo } from "@tauri-apps/api/event";
 
 const { t, locale } = useI18n()
 
