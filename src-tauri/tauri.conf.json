@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "settings",
-        "title": "Brick UI [Settings]",
+        "title": "Brick UI",
         "url" : "index.html",
         "width": 1000,
         "height": 800,
