@@ -1,4 +1,4 @@
-import { computed, createApp, ref } from "vue";
+import { computed, createApp, Ref, ref } from "vue";
 import { createNaiveUi } from "./naive";
 import { router } from './router'
 
@@ -7,6 +7,7 @@ import i18n from "./i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "interfaces/settings";
 import { darkTheme, lightTheme } from "naive-ui";
+import { Brick } from "interfaces/brick";
 
 const media = window.matchMedia('(prefers-color-scheme: dark)')
 media.addEventListener('change', updateSystemTheme)
@@ -15,7 +16,8 @@ function updateSystemTheme() {
   systemIsDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-const settings = ref(await invoke<Settings>("get_settings", {}));
+const settings = ref(await invoke<Settings>("get_settings"));
+const bricks = ref<Brick[]>([]);
 
 const systemIsDark = ref(false)
 
@@ -34,6 +36,7 @@ const theme = computed(() => {
 const app = createApp(App);
 app.provide("settings", settings);
 app.provide("theme", theme);
+app.provide<Ref<Brick[]>>("bricks", bricks);
 
 app.use(router)
 app.use(createNaiveUi());

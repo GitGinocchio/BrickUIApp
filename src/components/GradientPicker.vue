@@ -14,6 +14,7 @@
         size="large"
         class="stop-handle"
         :style="{ left: stop.position + '%', background: stop.color }"
+        :show-alpha="!skip_alpha"
         :value="stop.color"
         @update:value="(color) => onSetColor(index, color)"
         @mousedown.prevent="startDrag(index, $event)"
@@ -62,9 +63,16 @@ interface Stop {
   position: number
 }
 
+const props = defineProps({
+  skip_alpha: {
+    type: Boolean,
+    value: false
+  }
+});
+
 // Model reattivo, usa sempre v-model:value nel parent
 const steps = defineModel<Stop[]>("value", { 
-  default: [{ color: '#ffffff00', position: 50 }] 
+  default: [{ color: '#00000000', position: 50 }] 
 })
 
 /*
@@ -90,7 +98,7 @@ const gradientString = computed(() => {
 function addStopAt(event: MouseEvent) {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const pos = ((event.clientX - rect.left) / rect.width) * 100
-  steps.value = [...steps.value, { color: '#ffffff00', position: Math.round(pos) }]
+  steps.value = [...steps.value, { color: props.skip_alpha ? '#000000FF' : '#00000000', position: Math.round(pos) }]
 }
 
 // Rimuovi uno stop
@@ -98,7 +106,7 @@ function removeStop(index: number) {
   let newStops = steps.value.slice()
   newStops.splice(index, 1)
   if (newStops.length === 0) {
-    newStops = [{ color: '#ffffff', position: 50 }]
+    newStops = [{ color: props.skip_alpha ? '#000000FF' : '#00000000', position: 50 }]
   }
   steps.value = newStops
 }

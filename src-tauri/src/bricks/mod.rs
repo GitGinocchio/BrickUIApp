@@ -65,21 +65,21 @@ pub fn delete_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
     Ok(())
 }
 
-pub fn rename_brick(path: &PathBuf, old_name: String, new_name: String) -> Result<(), String> {
+pub fn rename_brick(path: &PathBuf, old_name: &String, new_name: &String) -> Result<(), String> {
     let old_dir = path.join("bricks").join(old_name);
     let new_dir = path.join("bricks").join(new_name.as_str());
 
     fs::rename(old_dir, &new_dir).map_err(|e| format!("Failed to rename brick dir: {e}"))?;
 
     let mut brick = load_brick(&new_dir.join("brick.yml"))?;
-    brick.name = new_name;
+    brick.name = new_name.to_string();
 
     save_brick(&path, &brick)?;
 
     Ok(())
 }
 
-pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<(), String> {
+pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<Brick, String> {
     let brick_name = brick.name.as_str();
     let src = path.join("bricks").join(brick_name);
     let dst = path.join("bricks").join(format!("{brick_name}-copy"));
@@ -99,7 +99,7 @@ pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<(), String> {
 
     save_brick(&path, &brick)?;
 
-    Ok(())
+    Ok(brick)
 }
 
 pub fn save_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {

@@ -46,6 +46,9 @@
       <n-form-item v-if="optionsInputField" label="Options">
         <component :is="optionsInputField" />
       </n-form-item>
+      <n-form-item v-if="prop.prop_type === 'Gradient' || prop.prop_type === 'Color'" label="Skip Alpha">
+        <n-switch v-model:value="prop.skip_alpha" :default-value="false" @update:value="onSkipAlphaChanged"></n-switch>
+      </n-form-item>
       <n-form-item v-if="defaultInputField" label="Default value">
         <component :is="defaultInputField" />
       </n-form-item>
@@ -171,6 +174,37 @@ function onFinished(clone: boolean) {
   emit('finished', initialProp.value, clone)
 }
 
+//let valueBeforeSkipAlpha = null;
+
+function onSkipAlphaChanged(skip_alpha: boolean) {
+  /*
+  if (skip_alpha) {
+    valueBeforeSkipAlpha = prop.value.default;
+  }
+  */
+
+  if (prop.value.prop_type === 'Color') {
+    //prop.value.default = skip_alpha ? prop.value.default.slice(0, 7) + "FF" : valueBeforeSkipAlpha;
+    prop.value.default = prop.value.default.slice(0, 7) + (skip_alpha ? "FF" : "CC");
+  }
+  else if (prop.value.prop_type === 'Gradient') {
+    /*
+    prop.value.default = skip_alpha ? prop.value.default.map((gradient_stop) => {
+      return {
+        'color': gradient_stop.color.slice(0, 7) + (skip_alpha ? "FF" : "CC"),
+        'position': gradient_stop.position
+      }
+    }) : valueBeforeSkipAlpha;
+    */
+    prop.value.default = prop.value.default.map((gradient_stop) => {
+      return {
+        'color': gradient_stop.color.slice(0, 7) + (skip_alpha ? "FF" : "CC"),
+        'position': gradient_stop.position
+      }
+    });
+  }
+}
+
 const defaultInputField = computed(() => {
   switch (prop.value.prop_type) {
     case "Any":
@@ -274,7 +308,8 @@ const defaultInputField = computed(() => {
       return h(
         NColorPicker, 
         {
-          value: prop.value.default,
+          value: prop.value.default ?? (prop.value.skip_alpha ? "#000000FF" : "#00000000"),
+          'showAlpha' : !prop.value.skip_alpha,
           clearable: true,
           actions: ['clear'],
           "onUpdate:value": (val: string) => (prop.value.default = val !== null ? colorStringToRGBA(val) : val)
@@ -285,7 +320,8 @@ const defaultInputField = computed(() => {
       return h(
         GradientPicker,
         {
-          "value": prop.value.default ?? [{ color: "#FFFFFF00", position: 50 }],
+          "skip_alpha" : prop.value.skip_alpha,
+          "value": prop.value.default ?? [{ color: prop.value.skip_alpha ? "#000000FF" : "#00000000", position: 50 }],
           "onUpdate:value" : (stops) => (prop.value.default = stops)
         }
       )

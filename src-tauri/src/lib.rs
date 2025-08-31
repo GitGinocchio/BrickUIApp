@@ -15,6 +15,7 @@ use tauri::{Manager, State, WindowEvent};
 
 mod state;
 use state::BrickUIState;
+use tauri_plugin_autostart::MacosLauncher;
 
 #[tauri::command]
 fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
@@ -105,20 +106,31 @@ fn rename_brick(
     old_name: String,
     new_name: String,
 ) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
-    bricks::rename_brick(&path, old_name, new_name)
+    bricks::rename_brick(&path, &old_name, &new_name)?;
+
+    if let Some(brick) = state_guard.bricks.iter_mut().find(|b| b.name == old_name) {
+        brick.name = new_name;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
 fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
-    bricks::duplicate_brick(&path, brick)
+    let new_brick = bricks::duplicate_brick(&path, brick)?;
+
+    state_guard.bricks.push(new_brick);
+
+    Ok(())
 }
 
+// Questo non serve a molto potrebbe essere sostituito con il plugin opener e basta
 #[tauri::command]
 fn open_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
@@ -132,18 +144,23 @@ fn open_brick(
 
 #[tauri::command]
 fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
+
+    state_guard.bricks.retain(|b| b.name != brick.name);
 
     bricks::delete_brick(&path, &brick)
 }
 
 #[tauri::command]
 fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
 
-    bricks::create_brick(&path, &brick)
+    bricks::create_brick(&path, &brick)?;
+    state_guard.bricks.push(brick);
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -155,10 +172,11 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(webview_window) = app.get_webview_window("settings") {
+            if let Some(webview_window) = app.get_webview_window("main") {
                 let _ = webview_window.unminimize();
 
                 if !webview_window.is_visible().unwrap_or(false) {
@@ -167,7 +185,7 @@ pub fn run() {
 
                 let _ = webview_window.set_focus();
             } else {
-                eprintln!("no settings window");
+                eprintln!("no main window");
             }
         }))
         .invoke_handler(tauri::generate_handler![
@@ -186,9 +204,11 @@ pub fn run() {
             new_brick
         ])
         .setup(|app| {
-            let path = app.app_handle().path().app_data_dir()?;
+            let resolver = app.app_handle().path();
+            let resource_path = resolver.resource_dir()?;
+            let path = resolver.app_data_dir()?;
 
-            let state = BrickUIState::new(&path);
+            let state = BrickUIState::new(&path, &resource_path);
             app.manage(Arc::new(Mutex::new(state)));
 
             let state = app.state::<Arc<Mutex<BrickUIState>>>();
@@ -214,7 +234,9 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api , .. } = event && window.label() == "settings" {
+            if let WindowEvent::CloseRequested { .. } = event
+                && window.label() == "main"
+            {
                 window
                     .hide()
                     .map_err(|e| format!("Error while trying to hide the settings window: {e}"))
@@ -253,7 +275,6 @@ pub fn run() {
                     .expect("");
 
                 app_handle.exit(0);
-                api.prevent_close();
             }
         })
         .run(context)

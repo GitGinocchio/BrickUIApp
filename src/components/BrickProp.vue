@@ -129,9 +129,14 @@ const componentProps = computed(() => {
       };
     
     case 'Color':
+      const merged = [
+        ...(Array.isArray(prop.saved) ? prop.saved : []),
+        ...(Array.isArray(prop.swatches) ? prop.swatches : []),
+      ]
+
       return {
         placement: "top-start",
-        swatches: [...(prop.saved ? prop.saved : []), ...(prop.swatches ? prop.swatches : [])],
+        swatches: merged.length > 0 ? merged : null,
         'show-alpha': !prop.skip_alpha,
         'show-preview': true
       }

@@ -154,6 +154,9 @@ const emit = defineEmits<{
 
 const expanded = ref<Array<string>>([]);
 
+let updateTimeout: ReturnType<typeof setTimeout> | null = null;
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
 // Delete Modal variables
 const deleteModalTitle = ref<string>('');
 const deleteModalMessage = ref<string>('');
@@ -213,13 +216,22 @@ async function onPropValueChanged(prop: Prop) {
   if (index !== -1) props.brick.props[index] = prop;
   else props.brick.props.push(prop);
 
-  await emitTo("overlay", "update-brick", { 
-    name: props.brick.name, 
-    prop_name: prop.prop_name, 
-    prop_value: prop.value 
-  });
+  if (updateTimeout) clearTimeout(updateTimeout);
+  updateTimeout = setTimeout(async () => {
+    await emitTo("overlay", "update-brick", { 
+      name: props.brick.name, 
+      prop_name: prop.prop_name, 
+      prop_value: prop.value 
+    });
+    updateTimeout = null;
+  }, 50);
 
-  await invoke("save_brick", { brick: props.brick });
+  // Debounce del salvataggio
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    await invoke("save_brick", { brick: props.brick });
+    saveTimeout = null;
+  }, 3000);
 }
 
 async function onPropEditFinished(before: Prop, clone?: boolean) {

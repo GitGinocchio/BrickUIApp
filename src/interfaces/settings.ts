@@ -14,6 +14,12 @@ export interface Settings {
   taskbar: Taskbar;
 
   startmenu: StartMenu;
+
+  /** Determines whether the application should automatically start when the system boots. */
+  autostart: boolean;
+
+  /** Determines whether enable or not the system tray icon */
+  systemtray: boolean,
 }
 
 export const languages = [

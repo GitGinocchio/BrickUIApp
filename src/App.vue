@@ -23,11 +23,13 @@
         <router-view />
       </n-layout-content>
     </n-layout>
+    <SystemTray :v-if="settings.systemtray" />
   </n-config-provider>
 </template>
 
 <script setup lang="ts">
 import { ref, h, onMounted, watch, computed, Ref, inject } from 'vue'
+import SystemTray from './components/SystemTray.vue';
 import { useRouter } from 'vue-router'
 import { LayoutDashboardIcon, SettingsIcon, StoreIcon } from 'lucide-vue-next'
 import {
@@ -49,6 +51,7 @@ const { t, locale } = useI18n();
 const currentWindow = getCurrentWindow()
 const settings = inject("settings") as Ref<Settings>;
 const theme = inject("theme") as Ref<GlobalTheme>;
+const bricks = inject("bricks") as Ref<Brick[]>;
 
 const router = useRouter();
 const collapsed = ref(true);
@@ -87,7 +90,7 @@ onMounted(async () => {
   // Inizialmente la lista dei brick e' vuota, in questo modo la carichiamo una volta sola all'interno dell'app
   // in modo anche da poter prendere eventuali errori nel caricamento e mostrarli all'utente
   // in caso di brick formattati male
-  await invoke<Brick[]>("load_bricks", {});
+  bricks.value = await invoke<Brick[]>("load_bricks", {});
 
   watch(() => settings.value.taskbar.behavior, async (value) => {
     if (value === 'hide' || value === 'hide-and-fill') {

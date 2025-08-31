@@ -9,7 +9,6 @@ import { inject, onMounted, Ref, ref } from 'vue';
 import { useNotification } from 'naive-ui';
 import { handleClickThrough } from './utils/mouseClickThrough';
 import { initLoader, toggleBrick, updateBrick } from './loader';
-import { initTrayIcon } from './tray';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from 'interfaces/brick';
 import { Settings } from 'interfaces/settings';
@@ -25,7 +24,7 @@ const overlay = ref<HTMLDivElement>(null);
 const bricks = ref<Array<Brick>>();
 
 listen<[number, number]>('global_mouse_moved', async (event) => handleClickThrough(event, currentWindow));
-listen<{ brick: Brick }>('toggle-brick', async (event) => toggleBrick(event.payload.brick));
+listen<{ brick: Brick }>('toggle-brick', async (event) => await toggleBrick(event.payload.brick));
 listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', async (event) => {
   updateBrick(event.payload.name, event.payload.prop_name, event.payload.prop_value);
 });
@@ -40,7 +39,7 @@ onMounted(async () => {
     bricks.value = await invoke("get_bricks");
 
     await initLoader(bricks.value);
-    await initTrayIcon(bricks.value);
+    //await initTrayIcon(bricks.value);
 
     notification.success({
       title: "Bricks loaded successfully!",

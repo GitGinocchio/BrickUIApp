@@ -1,3 +1,4 @@
+use fs_extra::dir::{CopyOptions, copy};
 use schemars::{JsonSchema, schema_for};
 use std::{fs, path::PathBuf};
 
@@ -66,18 +67,41 @@ fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
+fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<(), String> {
+    if path.join("bricks").join(".types").exists() {
+        return Ok(());
+    }
+
+    // Opzioni di copia
+    let mut options = CopyOptions::new();
+    options.overwrite = false; // sovrascrive i file se esistono
+    options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
+    options.content_only = true;
+    options.skip_exist = true;
+
+    copy(
+        resource_path.join("assets").join("types"),
+        path.join("bricks"),
+        &options,
+    )
+    .map_err(|e| format!("Errore durante la duplicazione dei tipi: {e}"))?;
+
+    Ok(())
+}
+
 //pub struct BrickUIState<R: Runtime> {
 #[derive(Clone)]
 pub struct BrickUIState {
-    path: PathBuf,
-    settings: Settings,
-    bricks: Vec<Brick>, //overlay: Overlay<R>
+    pub resource_path: PathBuf,
+    pub path: PathBuf,
+    pub settings: Settings,
+    pub bricks: Vec<Brick>, //overlay: Overlay<R>
 }
 
 //impl<R: Runtime> BrickUIState<R> {
 impl BrickUIState {
     //pub fn new(path: &PathBuf, overlay: Overlay<R>) -> Self {
-    pub fn new(path: &PathBuf) -> Self {
+    pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Self {
         fs::create_dir_all(&path).expect("Errore nella creazione della directory di dati");
         fs::create_dir_all(&path.join("bricks"))
             .expect("Errore nella creazione della directory per i widgets");
@@ -90,12 +114,14 @@ impl BrickUIState {
 
         generate_schemas_if_missing(path).expect("Errore durante la creazione degli schemas");
         generate_templates_if_missing(path).expect("Errore durante la creazione dei template");
+        generate_types_if_missing(resource_path, path)
+            .expect("Errore durante la creazione dei tipi");
 
-        //let bricks = load_bricks(&path).expect("Errore durante il caricamento dei bricks");
         let settings = load_from_yaml::<Settings>(&path.join("settings.yml"))
             .expect("Errore durante il caricamento dei settings");
 
         Self {
+            resource_path: resource_path.clone(),
             path: path.clone(),
             settings: settings,
             bricks: vec![], //overlay: overlay

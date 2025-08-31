@@ -37,12 +37,27 @@
         </n-form-item>
       </n-form>
     </n-card>
+    <n-card title="System Tray Icon">
+      <n-form label-placement="left" label-width="100">
+        <n-form-item label="Enabled">
+          <n-switch v-model:value="settings.systemtray" @update:value="onSystemTrayChanged"></n-switch>
+        </n-form-item>
+      </n-form>
+    </n-card>
+    <n-card title="Autostart">
+      <n-form label-placement="left" label-width="100">
+        <n-form-item label="Enabled">
+          <n-switch v-model:value="settings.autostart" @update:value="onAutoStartChanged"></n-switch>
+        </n-form-item>
+      </n-form>
+    </n-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { NSelect, NForm, NFormItem, NAlert } from 'naive-ui'
-import { inject, Ref } from 'vue'
+import { NSelect, NForm, NFormItem, NAlert, NSwitch } from 'naive-ui'
+import { inject, onMounted, Ref } from 'vue'
+import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
 
 import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
 
@@ -72,6 +87,21 @@ const startMenuBehaviorOptions = startMenuBehaviors.map(pos => ({
   label: pos.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),
   value: pos
 }))
+
+onMounted(async () => {
+  const actualValue = await isAutoStartEnabled();
+  if (settings.value.autostart !== actualValue) {
+    settings.value.autostart = actualValue;
+  }
+});
+
+async function onAutoStartChanged(value: boolean) {
+  value ? await enableAutoStart() : await disableAutoStart();
+}
+
+async function onSystemTrayChanged(value: boolean) {
+
+}
 </script>
 
 
@@ -91,6 +121,11 @@ const startMenuBehaviorOptions = startMenuBehaviors.map(pos => ({
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+:deep(.n-switch) {
+  display: flex;
+  justify-content: flex-start;
 }
 </style>
 

@@ -76,16 +76,16 @@
 import { CirclePlus, Blocks } from "lucide-vue-next";
 import { NSpace, NButton, NGrid, NGi, NModal, NForm, NFormItem, NInput, NDynamicTags } from "naive-ui";
 import BrickCard from "../components/BrickCard.vue";
-import { onMounted, ref } from "vue";
+import { inject, onMounted, Ref, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick } from "interfaces/brick";
 import { deepEqual } from "../utils";
 import { useI18n } from "vue-i18n";
-import { emitTo } from "@tauri-apps/api/event";
+import { emitTo, listen } from "@tauri-apps/api/event";
 
 const { t, locale } = useI18n()
 
-const bricks = ref<Brick[]>([]);
+const bricks = inject("bricks") as Ref<Brick[]>;
 const showModal = ref(false);
 const feedback = ref<string | null>(null);
 const editMode = ref(false);
@@ -101,9 +101,8 @@ const currentBrick = ref<Brick>({
   enabled: true,
 });
 
-onMounted(async () => {
-  await updateBricks();
-});
+onMounted(async () => await loadBricks());
+listen("update_bricks",async () => await updateBricks());
 
 function onNewBrick() {
   currentBrick.value = { 
@@ -189,6 +188,10 @@ async function onEnterClicked() {
 }
 
 async function updateBricks() {
+  bricks.value = await invoke<Brick[]>("get_bricks", {});
+}
+
+async function loadBricks() {
   bricks.value = await invoke<Brick[]>("load_bricks", {});
 }
 </script>
