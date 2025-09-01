@@ -194,8 +194,6 @@ watch(async () => settings.value.systemtray,async () => {
     settings.value.systemtray ? await showSystemTray() : await hideSystemTray();
 });
 onMounted(async () => {
-    settings.value.systemtray ? await showSystemTray() : null
-
     if (iconsLoaded) return;
 
     paletteIcon = await loadIcon('assets/icons/palette.png');
@@ -205,6 +203,8 @@ onMounted(async () => {
     layoutDashboardIcon = await loadIcon('assets/icons/layout-dashboard.png');
     panelBottomCloseIcon = await loadIcon('assets/icons/panel-bottom-close.png');
     checkIcon = await loadIcon('assets/icons/check.png');
+
+    settings.value.systemtray ? await showSystemTray() : null
 });
 onUnmounted(hideSystemTray);
 </script>

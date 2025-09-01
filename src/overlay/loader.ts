@@ -10,8 +10,8 @@ import * as core from '@tauri-apps/api/core';
 import * as event from '@tauri-apps/api/event';
 
 import { Brick } from '../interfaces/brick.ts';
-import { appDataDir as getAppDataDir } from '@tauri-apps/api/path';
-import { normalizeProps } from './utils/loader.js';
+import { appDataDir as getAppDataDir, join } from '@tauri-apps/api/path';
+import { normalizePath, normalizeProps } from './utils/loader.js';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 const appDataDir = await getAppDataDir();
@@ -23,15 +23,53 @@ function createLoaderOptions({ brickName }) {
     moduleCache: { 
       vue: Vue,
       core: core,
-      event: event
+      event: event,
+      fetch: async (input, init) => {
+        console.log(input, init)
+      }
+    },
+    /*
+    getResource: (path, options) => {
+      console.log(`Brick ${brickName} requested resource:`, path, 'with options:', options);
+    },
+    */
+    processStyles(src, lang, filename) {
+      console.log(`Processing styles for filename: ${filename} with lang: ${lang}`);
+
+      const brickPath = convertFileSrc(`${appDataDir}/bricks/${brickName}`);
+
+      const result = src.replace(/url\((['"]?)(.+?)\1\)/g, (match, quote, path) => {
+        return `url(${brickPath}/${path})`;
+      });
+
+      console.log(result);
+
+      return result;
+    },
+    handleModule: async function (type, getContentData, path, options) {
+      console.log(type, getContentData, path, options);
+      switch (type) { 
+        case '.png':
+          return getContentData(true); // load as binary
+        case '.gif':
+          return getContentData(false); // load as binary
+      }
     },
     getFile: async (url) => {
-      if (url.startsWith("/")) {
-        //const path = `${appDataDir}/bricks/${brickName}${url}`;
-        //return await getFileContent(path);
+      console.log(`Brick ${brickName} requested file: ${url}`);
+      if (/^https?:\/\//.test(url)) {
+        const res = await fetch(url);
+        if (!res.ok) throw Object.assign(new Error(`Failed to load ${url}`), { res });
+        return res.text();
       }
+  
+      let path = url.startsWith("/") 
+        ? normalizePath(await join(`${appDataDir}/bricks/${brickName}`, url.slice(1)))
+        : url;
 
-      const response = await fetch(url);
+      console.log(path);
+
+      const response = await fetch(path);
       if (!response.ok) throw new Error(`Failed to load ${url}`);
       return response.text();
     },
@@ -41,8 +79,7 @@ function createLoaderOptions({ brickName }) {
       document.head.appendChild(style);
     },
     log: console.log,
-    timeout: 30000,
-  }
+  };
 }
 
 export async function loadBrickComponent(brick : Brick) {

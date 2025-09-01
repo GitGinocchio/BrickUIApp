@@ -20,7 +20,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "typeRoots" : ["./node_modules/@types"],
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "paths": {
+      "@vue3-sfc-loader": ["./public/vendor/vue3-sfc-loader.esm.js"]
+    }
   },
   "include": [
     "src/**/*.js",

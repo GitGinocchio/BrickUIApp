@@ -71,6 +71,7 @@
           "blob:",
           "asset:",
           "tauri:",
+          "https:",
           "http://tauri.localhost",
           "http://asset.localhost",
           "'sha256-ZskXiwVb6eFg98EBh2Y8oS7d0faFNFrpupvtCfmc+JE='",
