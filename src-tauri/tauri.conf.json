@@ -125,7 +125,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "msi",
+    "targets": ["msi","nsis"],
     "resources" : [
       "./assets"
     ],
