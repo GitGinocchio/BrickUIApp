@@ -1,7 +1,5 @@
 import { loadModule } from 'vue3-sfc-loader';
-import { compileScript, compileTemplate, compileStyleAsync, parse } from '@vue/compiler-sfc';
 import { Options } from 'vue3-sfc-loader/dist/types/vue3-esm/types.js';
-import * as Babel from '@babel/standalone';
 import * as Vue from 'vue';
 
 import core from './api/core.ts';
@@ -14,28 +12,12 @@ import { normalizePath, normalizeProps } from './utils/normUtils.js';
 import { InvokeArgs, InvokeOptions } from '@tauri-apps/api/core';
 import { catchBrickError } from './utils/errors.ts';
 
+
 const appDataDir = await getAppDataDir();
 
 const bricksState = Vue.reactive(new Map<string,{ component: any, props: any }>);
 
 export let app;
-
-function runInSandbox(code: string, sandbox: Record<string, any>) {
-  const sandboxProxy = new Proxy(sandbox, {
-    has: () => true, // permette l’uso di qualsiasi variabile definita nel sandbox
-  });
-
-  const func = new Function("sandbox", `
-    with (sandbox) {
-      "use strict";
-      return (function() {
-        ${code}
-      })();
-    }
-  `);
-
-  return func(sandboxProxy);
-}
 
 function createLoaderOptions({ brickName }) {
   const brickPath = `${appDataDir}/bricks/${brickName}`;
@@ -102,9 +84,9 @@ function createLoaderOptions({ brickName }) {
       }
     },
     */
-    /*
     getResource: ({ refPath, relPath }, options: any) => {
       console.log(`Brick ${brickName} requested resource:`, relPath, 'with options:', options);
+      
       return { 
         id: relPath, 
         path: relPath, 
@@ -117,7 +99,6 @@ function createLoaderOptions({ brickName }) {
         }
       }
     },
-    */
     processStyles(src, lang, filename) {
       console.log(`Processing styles for filename: ${filename} with lang: ${lang}`);
 
@@ -131,6 +112,9 @@ function createLoaderOptions({ brickName }) {
       });
 
       return result;
+    },
+    loadModule: async (path) => {
+      console.log(path)
     },
     handleModule: async function (type, getContentData, path, options) {
       console.log(type, getContentData, path, options);
@@ -182,7 +166,6 @@ function createLoaderOptions({ brickName }) {
       const response = await fetch(path);
       if (!response.ok) throw new Error(`Failed to load ${url}`);
 
-      /*
       return {
         type,
         getContentData: async (asBinary: boolean) => {
@@ -194,9 +177,8 @@ function createLoaderOptions({ brickName }) {
           }
         }
       };
-      */
-      return await response.text();
     },
+    //createCJSModule({ source, path, options }) {},
     addStyle: (text) => {
       console.log(`Brick ${brickName} requested style: ${text}`);
       const style = document.createElement("style");
@@ -210,7 +192,7 @@ function createLoaderOptions({ brickName }) {
     __name: brickName,
     __dirname: brickPath,
     __filename: brickFilename,
-    log(type, ...args) {
+    log: (type, args) => {
       console.log(type, ...args);
     },
     devMode: true
