@@ -40,7 +40,7 @@
     <n-card title="System Tray Icon">
       <n-form label-placement="left" label-width="100">
         <n-form-item label="Enabled">
-          <n-switch v-model:value="settings.systemtray" @update:value="onSystemTrayChanged"></n-switch>
+          <n-switch v-model:value="settings.systemtray"></n-switch>
         </n-form-item>
       </n-form>
     </n-card>
@@ -97,10 +97,6 @@ onMounted(async () => {
 
 async function onAutoStartChanged(value: boolean) {
   value ? await enableAutoStart() : await disableAutoStart();
-}
-
-async function onSystemTrayChanged(value: boolean) {
-
 }
 </script>
 

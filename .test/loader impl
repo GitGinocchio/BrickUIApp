@@ -1,0 +1,70 @@
+        /*
+        case '.vue': {
+          return undefined;
+          const source = await getContentData(false); // testo del .vue
+          try {
+            const descriptor = parse(source, { filename: path }).descriptor;
+            const id = btoa(path); // ID univoco
+
+            // Compila script
+            const script = compileScript(descriptor, { id });
+
+            // Compila template
+            let renderCode = '';
+            if (descriptor.template) {
+              const template = compileTemplate({
+                source: descriptor.template.content,
+                filename: path,
+                id,
+                compilerOptions: { mode: 'module', bindingMetadata: script?.bindings },
+              });
+              renderCode = template.code; // contiene: export function render(...) {...}
+            }
+
+            // Compila stili
+            for (const style of descriptor.styles) {
+              const css = await compileStyleAsync({ source: style.content, filename: path, id });
+              if (css.code) {
+                const styleEl = document.createElement('style');
+                styleEl.textContent = css.code;
+                document.head.appendChild(styleEl);
+              }
+            }
+
+            // Costruisci modulo ES valido
+            const finalModuleCode = `
+    ${script.content.replace(/export\s+default\s+/, 'const __script = ')}
+    ${renderCode}
+    __script.render = render;
+    export default __script;
+    `;
+
+            // Trasforma con Babel (TypeScript/ESNext -> browser)
+            const jsCode = Babel.transform(finalModuleCode, {
+              presets: [
+                ['es2015', { modules: false }], // modules: false → lascia export/import
+                'typescript'
+              ],
+              plugins: ['proposal-class-properties', "transform-typescript"],
+              filename: 'file.js',
+              sourceMaps: 'inline'
+            }).code;
+
+            console.log(jsCode);
+
+            // Carica come modulo dinamico
+            const blob = new Blob([jsCode], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+            try {
+              const mod = await import(url);
+              return mod.default; // componente Vue pronto
+            } finally {
+              URL.revokeObjectURL(url);
+            }
+
+          } catch (err) {
+            console.error('handleModuleError', { path, err });
+            throw err;
+          }
+        }
+        */

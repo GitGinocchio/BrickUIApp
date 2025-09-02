@@ -5,8 +5,8 @@
 <script setup lang="ts">
 import { LogicalPosition, LogicalSize, getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
-import { inject, onMounted, Ref, ref } from 'vue';
-import { useNotification } from 'naive-ui';
+import { ComponentInternalInstance, h, inject, onMounted, Ref, ref } from 'vue';
+import { NButton, useNotification } from 'naive-ui';
 import { handleClickThrough } from './utils/mouseClickThrough';
 import { initLoader, toggleBrick, updateBrick } from './loader';
 import { invoke } from '@tauri-apps/api/core';
@@ -20,7 +20,7 @@ const notification = useNotification();
 const lastNotificationPosition = ref<string>(settings.value.notifications.position);
 const lastTaskBarBehavior = ref<string>(settings.value.taskbar.behavior);
 const isReady = ref(false);
-const overlay = ref<HTMLDivElement>(null);
+const overlay = ref<HTMLDivElement>();
 const bricks = ref<Array<Brick>>();
 
 listen<[number, number]>('global_mouse_moved', async (event) => handleClickThrough(event, currentWindow));
@@ -29,8 +29,55 @@ listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', 
   updateBrick(event.payload.name, event.payload.prop_name, event.payload.prop_value);
 });
 
+async function onBrickError(error: Error, instance : ComponentInternalInstance, info : string) {
+  const brickName = instance?.vnode?.key?.toString() ?? info;
+  const stackLines = error.stack.split('\n').slice(0, 2).join('\n');
+
+  notification.error({
+    title: `Error in brick "${brickName}"`,
+    content: () => {
+      return h('code', {
+        style: {
+          whiteSpace: 'pre-wrap',
+          fontSize: '12px',
+          color: '#FFFFFF85'
+        }
+      }, stackLines);
+    },
+    action: () => {
+      return h(NButton, {
+        style: { color: 'white' },
+        onClick: async () => {
+          await invoke('open_brick', { brickName });
+        }
+      }, {
+        default: () => 'Open Brick'
+      });
+    },
+    keepAliveOnHover : true,
+    duration: 10000
+  });
+}
+
+async function onBrickWarn(error: string, instance: ComponentInternalInstance, trace : string) {
+  const brickName = instance?.vnode?.key?.toString();
+
+  notification.error({
+    title: `Warn in brick "${brickName}"`,
+    content: () => {
+      return h('code', {
+        style: {
+          whiteSpace: 'pre-wrap',  // mantiene le linee
+          fontSize: '12px',        // dimensione del testo
+        }
+      }, error+trace);
+    }
+  });
+}
+
 onMounted(async () => {
   try {
+    notification.destroyAll();
     await currentWindow.setIgnoreCursorEvents(true);
     await currentWindow.maximize();
     await currentWindow.setSize(new LogicalSize(window.outerWidth, window.outerHeight));
@@ -38,8 +85,7 @@ onMounted(async () => {
 
     bricks.value = await invoke("get_bricks");
 
-    await initLoader(bricks.value);
-    //await initTrayIcon(bricks.value);
+    await initLoader(bricks.value, onBrickError, onBrickWarn);
 
     notification.success({
       title: "Bricks loaded successfully!",
@@ -68,8 +114,8 @@ onMounted(async () => {
     console.error("Errore in onMounted:", error);
 
     notification.error({
-      title: "Something went wrong while loading bricks",
-      description: `Error occurred while loading bricks:\n${technicalMessage}`,
+      title: "Error occurred while loading bricks",
+      description: technicalMessage,
       closable : true
     });
     isReady.value = false;
