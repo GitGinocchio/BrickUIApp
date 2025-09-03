@@ -4,13 +4,13 @@ import * as Vue from 'vue';
 
 import core from './api/core.ts';
 import event from './api/event.ts';
-import { windowWrapper } from './api/window.ts';
+//import { windowWrapper } from './api/window.ts';
 
 import { Brick } from '../interfaces/brick.ts';
 import { appDataDir as getAppDataDir } from '@tauri-apps/api/path';
 import { normalizePath, normalizeProps } from './utils/normUtils.js';
 import { InvokeArgs, InvokeOptions } from '@tauri-apps/api/core';
-import { catchBrickError } from './utils/errors.ts';
+//import { catchBrickError } from './utils/errors.ts';
 
 
 const appDataDir = await getAppDataDir();

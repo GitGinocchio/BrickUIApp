@@ -1,7 +1,68 @@
 
+- [ ] Le persone potranno condividere i brick in due modi:
+  1. tramite link ad una repository github 
+    (quindi il brick viene importato e preso da internet, puo' essere copiato, ma perde gli aggiornamenti in caso ce ne fossero)
+  2. tramite un file .brick (un brick compresso che contiene brick.yml e brick.vue) scaricato e importato nell'app
+    (questo diventa modificabile ma perde gli update dalla versione online)
+
 Colore del logo:
 - #CB4154
 
+- [ ] Esempio di implementazione per la finestra background per gli sfondi animati:
+  ```rust
+  use windows::Win32::Foundation::*;
+  use windows::Win32::UI::WindowsAndMessaging::*;
+  use wry::{Application, Attributes, webview::WebViewBuilder};
+
+  fn main() -> wry::Result<()> {
+      // Step 1: Trova Progman
+      let progman = unsafe { FindWindowA("Progman", None) };
+
+      // Step 2: Manda il messaggio per creare WorkerW
+      unsafe { SendMessageA(progman, 0x052C, WPARAM(0), LPARAM(0)) };
+
+      // Step 3: Trova la finestra WorkerW
+      let mut workerw = HWND(0);
+      let mut hwnd = unsafe { FindWindowExA(HWND(0), HWND(0), "WorkerW", None) };
+
+      while hwnd.0 != 0 {
+          let shell_view = unsafe { FindWindowExA(hwnd, HWND(0), "SHELLDLL_DefView", None) };
+          if shell_view.0 != 0 {
+              workerw = hwnd;
+              break;
+          }
+          hwnd = unsafe { FindWindowExA(HWND(0), hwnd, "WorkerW", None) };
+      }
+
+      if workerw.0 == 0 {
+          println!("WorkerW non trovato!");
+          return Ok(());
+      }
+
+      // Step 4: Crea l'app Wry
+      let app = Application::new()?;
+
+      // Step 5: Crea la finestra web come child di WorkerW
+      let window = app.add_window(Attributes {
+          title: "Web Wallpaper".to_string(),
+          width: 1920,
+          height: 1080,
+          decorations: false,      // senza bordi
+          visible: true,
+          parent: Some(workerw.0 as *mut _), // agganciata a WorkerW
+          ..Default::default()
+      })?;
+
+      // Step 6: Costruisci il WebView
+      let _webview = WebViewBuilder::new(window)?
+          .with_url("https://example.com")?   // la pagina web che vuoi mostrare
+          .build()?;
+
+      app.run()?;
+
+      Ok(())
+  }
+  ```
 
 - [ ] I tipi nei bricks devono essere presi dalla cartella resource al posto di essere copiati ogni volta...
 
@@ -46,7 +107,7 @@ Colore del logo:
 
 - [x] La descrizione se modificata con l'icona della penna a destra alla fine della modifica non viene modificata veramente
 
-- Aggiungere il prop type regex
+- [ ] Aggiungere il prop type regex
 
 - Al proptype color manca il parametro skip alpha e gli swatches (che possono essere fatti come avevo gia' fatto per la selezione dell'utente...)
 
