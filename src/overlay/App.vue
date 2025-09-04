@@ -85,7 +85,8 @@ onMounted(async () => {
 
     bricks.value = await invoke("get_bricks");
 
-    await initLoader(bricks.value, onBrickError, onBrickWarn);
+    //await initLoader(bricks.value, onBrickError, onBrickWarn);
+    await initLoader(bricks.value);
 
     notification.success({
       title: "Bricks loaded successfully!",
