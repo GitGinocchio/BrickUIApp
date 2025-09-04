@@ -4,6 +4,7 @@ import { provide, h, ref, createApp, computed, watchEffect} from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../interfaces/settings";
 import { listen } from "@tauri-apps/api/event";
+import { Brick } from "interfaces/brick";
 
 const media = window.matchMedia('(prefers-color-scheme: dark)')
 media.addEventListener('change', updateSystemTheme)
@@ -12,7 +13,8 @@ function updateSystemTheme() {
   systemIsDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-const settings = ref(await invoke<Settings>("get_settings", {}));
+const settings = ref(await invoke<Settings>("get_settings"));
+const bricks = ref(await invoke<Brick[]>("get_bricks"));
 
 listen<Settings>("changed-settings", (event) => {
   settings.value = event.payload;
@@ -36,6 +38,7 @@ const app = createApp({
   setup() {
     provide("settings", settings);
     provide("theme", theme);
+    provide("bricks", bricks);
 
     // Prop reattiva tramite ref locale
     const currentNotificationTheme = ref(theme.value.Notification);
