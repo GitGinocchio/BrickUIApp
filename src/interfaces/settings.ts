@@ -18,8 +18,8 @@ export interface Settings {
   /** Determines whether the application should automatically start when the system boots. */
   autostart: boolean;
 
-  /** Determines whether enable or not the system tray icon */
-  systemtray: boolean,
+  /** System tray icon settings */
+  systemtray: SystemTray,
 }
 
 export const languages = [
@@ -54,6 +54,14 @@ export type NotificationPosition = typeof notificationPositions[number]
 export interface Notifications {
   /** Position on screen where notifications appear. */
   position: NotificationPosition; // optional because of #[serde(default)]
+}
+
+export interface SystemTray {
+  /** Determines whether enable or not the system tray icon */
+  enabled: boolean,
+
+  /** The main window taskbar icon will be hidden when minimizing the window (only available if system tray icon is enabled) */
+  hidetaskbaricon: boolean
 }
 
 export const taskBarBehaviors = [

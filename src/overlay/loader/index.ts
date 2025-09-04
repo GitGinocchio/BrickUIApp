@@ -52,8 +52,15 @@ export async function updateBrick(name : string, prop_name : string, prop_value 
   if (brick) brick.props[prop_name] = prop_value;
 }
 
-export async function initLoader(bricks: Brick[]) {
+export async function initLoader(
+  bricks: Brick[], 
+  errorHandler: (error, instance, info) => {}, 
+  warnHandler: (message, instance, trace) => {}
+) {
   app.mount('#overlay');
+
+  app.config.errorHandler = errorHandler;
+  app.config.warnHandler = warnHandler;
 
   for (const brick of bricks) {
     if (brick.enabled) await loadBrickComponent(brick);

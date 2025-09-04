@@ -134,7 +134,7 @@ Colore del logo:
 
 - [x] Sostituire Edit nei tre puntini del brick con dei pulsanti edit sui campi come name, description, props, ecc.
 
-- Non esporre direttamente le api di tauri come invoke, ma creare un wrapper tipizzato con metodi specifici (per aiutare anche l'utente)
+- [x] Non esporre direttamente le api di tauri come invoke, ma creare un wrapper tipizzato con metodi specifici (per aiutare anche l'utente)
 
 - Errore durante l'ottenimento del percorso dell'eseguibile: Accesso negato. (0x80070005), questo avviene quando si cerca di ottenere l'icona
   di un processo avviato come amministratore quando il nostro non lo e'
@@ -162,7 +162,7 @@ Colore del logo:
   (senza il bisogno di riavviare l'app)
   magari si puo' mettere come modalita' "dev" per chi crea brick
 
-- Bisogna aggiungere la possibilita' di creare un nuovo brick in app (quindi copiare il template `/src-tauri/assets/brick-template` nella cartella bricks)
+- [x] Bisogna aggiungere la possibilita' di creare un nuovo brick in app (quindi copiare il template `/src-tauri/assets/brick-template` nella cartella bricks)
   e dare la possibilita di aprire la cartella per sviluppare il brick (successivamente anche per l'editor visuale)
 
 - (Questo non ha molto senso pensandoci di nuovo, potrebbe creare confusione e sarebbe difficile da gestire per l'utente)

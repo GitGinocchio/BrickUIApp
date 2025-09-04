@@ -1,7 +1,7 @@
 <template>
   <div class="sections">
     <n-card title="General Settings">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Language">
           <n-select :options="languages" v-model:value="settings.language" />
         </n-form-item>
@@ -11,14 +11,14 @@
       </n-form>
     </n-card>
     <n-card title="Notifications">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Position">
           <n-select :options="notificationPositionOptions" v-model:value="settings.notifications.position"></n-select>
         </n-form-item>
       </n-form>
     </n-card>
     <n-card title="Windows Taskbar">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-alert type="warning">This may make navigation harder. Use with caution.</n-alert>
         <n-form-item label="Behavior">
           <n-select :options="taskBarBehaviorOptions" v-model:value="settings.taskbar.behavior"></n-select>
@@ -26,7 +26,7 @@
       </n-form>
     </n-card>
     <n-card title="Windows Start Menu">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-alert type="warning">This may make navigation harder. Use with caution.</n-alert>
         <n-alert type="warning">This setting will take effect only after restarting the app.</n-alert>
         <n-alert type="info">
@@ -38,14 +38,27 @@
       </n-form>
     </n-card>
     <n-card title="System Tray Icon">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Enabled">
-          <n-switch v-model:value="settings.systemtray"></n-switch>
+          <n-switch v-model:value="settings.systemtray.enabled"></n-switch>
+        </n-form-item>
+        <n-form-item label="Hide on minimize">
+          <n-tooltip trigger="hover" placement="top">
+            <template #trigger>
+              <n-switch
+                :disabled="!settings.systemtray.enabled"
+                v-model:value="settings.systemtray.hidetaskbaricon"
+              />
+            </template>
+            <div style="max-width: 25rem; white-space: normal;">
+              Nasconde l'app dalla barra delle applicazioni quando viene minimizzata. Puoi riaprirla dall'icona nella tray.
+            </div>
+          </n-tooltip>
         </n-form-item>
       </n-form>
     </n-card>
     <n-card title="Autostart">
-      <n-form label-placement="left" label-width="100">
+      <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Enabled">
           <n-switch v-model:value="settings.autostart" @update:value="onAutoStartChanged"></n-switch>
         </n-form-item>
@@ -55,13 +68,14 @@
 </template>
 
 <script setup lang="ts">
-import { NSelect, NForm, NFormItem, NAlert, NSwitch } from 'naive-ui'
-import { inject, onMounted, Ref } from 'vue'
+import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip } from 'naive-ui'
+import { inject, onMounted, ref, Ref } from 'vue'
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
-
 import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
 
 const settings = inject("settings") as Ref<Settings>;
+
+const labelWidth = ref<string>("12.5rem");
 
 const languages = [
   { label: 'English', value: 'en' },
@@ -110,7 +124,7 @@ async function onAutoStartChanged(value: boolean) {
 }
 
 :deep(.n-alert) {
-  margin-left: 100px;
+  margin-left: v-bind("labelWidth");
 }
 
 :deep(.n-form) {

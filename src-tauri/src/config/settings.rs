@@ -32,7 +32,7 @@ pub struct Settings {
 
     #[serde(default)]
     #[schemars(description = "Determines whether enable or not the system tray icon")]
-    pub systemtray: bool
+    pub systemtray: SystemTray
 }
 
 fn default_theme() -> Theme {
@@ -70,7 +70,7 @@ impl Default for Settings {
             taskbar: TaskBar::default(),
             startmenu: StartMenu::default(),
             autostart: false,
-            systemtray: false
+            systemtray: SystemTray::default()
         }
     }
 }
@@ -123,6 +123,28 @@ pub enum NotificationPosition {
 impl Default for NotificationPosition {
     fn default() -> Self {
         NotificationPosition::TopRight
+    }
+}
+
+/* System Tray */
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Configuration for the system tray icon.")]
+pub struct SystemTray {
+    #[schemars(description = "Determines whether enable or not the system tray icon")]
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub hidetaskbaricon: bool
+}
+
+impl Default for SystemTray {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            hidetaskbaricon: false
+        }
     }
 }
 
