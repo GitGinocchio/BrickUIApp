@@ -123,7 +123,7 @@ async function createMenu(){
                     text: 'System Tray',
                     icon: settings.value.systemtray ? checkIcon : null,
                     action: async () => {
-                        settings.value.systemtray = !settings.value.systemtray;
+                        settings.value.systemtray.enabled = !settings.value.systemtray.enabled;
                         await invoke("save_settings", { settings });
                     }
                 },
@@ -141,11 +141,6 @@ async function createMenu(){
         {
             id: 'separator',
             item: 'Separator',
-        },
-        {
-            id: 'close-menu',
-            text: 'Close',
-            icon: panelBottomCloseIcon
         },
         {
             id: "quit",
@@ -172,7 +167,18 @@ async function showSystemTray() {
     };
 
     tray = await TrayIcon.new({
-        icon: await defaultWindowIcon()
+        icon: await defaultWindowIcon(),
+        action: async (event) => {
+            switch (event.type) {
+                case 'DoubleClick':
+                    const mainWindow = await Window.getByLabel("main");
+                    if (!mainWindow) return;
+
+                    await mainWindow.show();
+                    await mainWindow.setFocus();
+            }
+        },
+        showMenuOnLeftClick : false
     });
 
     await createMenu();
@@ -183,15 +189,15 @@ async function hideSystemTray() {
     await tray.setVisible(false);
 }
 
-watch(() => bricks.value.map(b => b.enabled), async () => settings.value.systemtray ? await createMenu() : null);
+watch(() => bricks.value.map(b => b.enabled), async () => settings.value.systemtray.enabled ? await createMenu() : null);
 watch(() => [
-    settings.value.systemtray, 
+    settings.value.systemtray.enabled, 
     settings.value.autostart,
     settings.value.theme, 
     settings.value.language,
-], async () => settings.value.systemtray ? await createMenu() : null);
-watch(async () => settings.value.systemtray,async () => {
-    settings.value.systemtray ? await showSystemTray() : await hideSystemTray();
+], async () => settings.value.systemtray.enabled ? await createMenu() : null);
+watch(async () => settings.value.systemtray.enabled,async () => {
+    settings.value.systemtray.enabled ? await showSystemTray() : await hideSystemTray();
 });
 onMounted(async () => {
     if (iconsLoaded) return;
@@ -204,7 +210,7 @@ onMounted(async () => {
     panelBottomCloseIcon = await loadIcon('assets/icons/panel-bottom-close.png');
     checkIcon = await loadIcon('assets/icons/check.png');
 
-    settings.value.systemtray ? await showSystemTray() : null
+    settings.value.systemtray.enabled ? await showSystemTray() : null
 });
 onUnmounted(hideSystemTray);
 </script>

@@ -43,8 +43,10 @@ export async function loadBrickComponent(brick: Brick) {
 
 export async function toggleBrick(brick : Brick) {
   const state = getBrickFromState(brick.name);
-  if (state.enabled) disableBrick(brick.name);
-  else await loadBrickComponent(brick);
+
+  if (!state) await loadBrickComponent(brick);
+  else if (!state.enabled) await loadBrickComponent(brick);
+  else disableBrick(brick.name);
 }
 
 export async function updateBrick(name : string, prop_name : string, prop_value : any) {

@@ -42,7 +42,7 @@
         <n-form-item label="Enabled">
           <n-switch v-model:value="settings.systemtray.enabled"></n-switch>
         </n-form-item>
-        <n-form-item label="Hide on minimize">
+        <n-form-item label="Hide on close">
           <n-tooltip trigger="hover" placement="top">
             <template #trigger>
               <n-switch
@@ -51,7 +51,7 @@
               />
             </template>
             <div style="max-width: 25rem; white-space: normal;">
-              Nasconde l'app dalla barra delle applicazioni quando viene minimizzata. Puoi riaprirla dall'icona nella tray.
+              Nasconde l'app dalla barra delle applicazioni quando si clicca il tasto chiudi in alto a destra. Puoi riaprirla dall'icona nella system tray.
             </div>
           </n-tooltip>
         </n-form-item>
@@ -68,10 +68,10 @@
 </template>
 
 <script setup lang="ts">
-import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip } from 'naive-ui'
-import { inject, onMounted, ref, Ref } from 'vue'
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
 import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
+import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip } from 'naive-ui'
+import { inject, onMounted, ref, Ref } from 'vue'
 
 const settings = inject("settings") as Ref<Settings>;
 

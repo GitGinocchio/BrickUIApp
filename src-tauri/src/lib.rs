@@ -234,15 +234,31 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { .. } = event
-                && window.label() == "main"
-            {
+            if let WindowEvent::CloseRequested { api, .. } = event && window.label() == "main" {
+                let app_handle = window.app_handle();
+                let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+                let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
+                    Ok(guard) => guard,
+                    Err(e) => panic!("{e}"),
+                };
+                let settings = state_guard.get_settings();
+
+                if settings.systemtray.enabled 
+                && settings.systemtray.hidetaskbaricon 
+                && let Ok(true) = window.is_visible() { 
+                    api.prevent_close();
+                    window
+                        .hide()
+                        .map_err(|e| format!("Error while trying to hide the main window: {e}"))
+                        .expect("");
+                    return;
+                };
+
                 window
                     .hide()
-                    .map_err(|e| format!("Error while trying to hide the settings window: {e}"))
+                    .map_err(|e| format!("Error while trying to hide the main window: {e}"))
                     .expect("");
 
-                let app_handle = window.app_handle();
                 if let Some(window) = app_handle.get_window("overlay")
                     && window.is_closable().is_ok()
                 {
@@ -255,13 +271,6 @@ pub fn run() {
                         .map_err(|e| format!("Error while trying to close the overlay window: {e}"))
                         .unwrap();
                 }
-
-                let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
-                let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
-                    Ok(guard) => guard,
-                    Err(e) => panic!("{e}"),
-                };
-                let settings = state_guard.get_settings();
 
                 if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
                     match show_taskbar() {
