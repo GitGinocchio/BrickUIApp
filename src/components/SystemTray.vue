@@ -183,7 +183,7 @@ async function hideSystemTray() {
     await tray.setVisible(false);
 }
 
-watch(() => bricks.value.map(b => b.enabled), async () => await createMenu());
+watch(() => bricks.value.map(b => b.enabled), async () => settings.value.systemtray ? await createMenu() : null);
 watch(() => [
     settings.value.systemtray, 
     settings.value.autostart,
