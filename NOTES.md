@@ -3,6 +3,9 @@
   la prima cosa che deve fare e' creare un wall (un tema) da li in poi potra' creare i brick
   e quando si crea un brick verra' chiesto in quale wall si vuole mettere quel brick
 
+- [ ] In ogni Wall dovra' esserci una validazione e controllo a runtime per i brick, in modo che non collidano
+  o competano tra di loro o che se dovesse capitare che sia una cosa voluta dal creatore
+
 - [ ] Le persone potranno condividere i brick in due modi:
   1. tramite link ad una repository github 
     (quindi il brick viene importato e preso da internet, puo' essere copiato, ma perde gli aggiornamenti in caso ce ne fossero)
@@ -12,7 +15,7 @@
 Colore del logo:
 - #cb4153ff
 
-- [ ] Modificare i prop di tipo collections per far si che esista solo Array e Select
+- [x] Modificare i prop di tipo collections per far si che esista solo Array e Select
   e all'interno di questi si puo' decidere se devono essere di interi, float, stringhe, ecc.
 
 - [ ] Esempio di implementazione per la finestra background per gli sfondi animati:
@@ -121,13 +124,13 @@ Colore del logo:
 - Ai proptype di tipo collections manca un parametro per dire il valore minimo e massimo dei valori all'interno 
   (per quanto riguarda le stringhe potrebbe diventare la lunghezza di esse)
 
-- Ai proptype di tipo select manca un vero limite per quanto riguarda la quantita' dei valori selezionati...
+- [x] Ai proptype di tipo select manca un vero limite per quanto riguarda la quantita' dei valori selezionati...
 
 - [x] la tendina per la scelta dei proptype dovrebbe avere delle icone riconoscibili per ogni proptype...
 
 - [ ] Finire di coprire tutti i tipi di prop per quanto riguarda la modifica e la creazione
 
-- Il proptype Any sarebbe da rimuovere in quanto realmente inutilizzabile (forse)
+- [x] Il proptype Any sarebbe da rimuovere in quanto realmente inutilizzabile (forse)
   per renderlo piu' utilizzabile si potrebbe utilizzare una textarea al posto di una input singleline...
 
 - [x] Aggiungere la funzionalita' di eliminare i prop
@@ -149,11 +152,12 @@ Colore del logo:
 
 - [x] Anche la descrizione del prop dovrebbe supportare markdown
 
-- Aggiungere i proptype: bool, date, time, datetime, color, shortcut
+- [ ] Aggiungere i proptype: bool, date, time, datetime, color, shortcut (Anche a UI)
 
 - Aggiungere la possibilita' negli input di tipo stringa di essere validati attraverso un regex
 
-- Sistemare i permessi per l'api tauri magari con un token generato a runtime che deve essere scambiato per emettere o ascoltare eventi particolari che solo la finestra overlay puo' ascoltare
+- (Vedere se ha ancora senso implementarlo)
+  Sistemare i permessi per l'api tauri magari con un token generato a runtime che deve essere scambiato per emettere o ascoltare eventi particolari che solo la finestra overlay puo' ascoltare
 
 - Problema con le cartelle per i nomi dei brick perche' possono essere uguali infatti taskBar e TaskBar vengono viste allo stesso modo
   questo e' un problema da risolvere e si potrebbe sistemare con il kebab-case (non e' vero ma dettagli)
@@ -166,8 +170,9 @@ Colore del logo:
 - [x] Bisogna aggiungere nel backend rust in `src-tauri/src/state.rs` la creazione del file `settings.yml`
   dal template `settings-template.yml` in `src-tauri/assets/settings-template.yml`
 
-- Bisogna aggiungere la funzionalita' che quando viene modificato un brick vengono ricaricati tutti i brick nuovamente
+- [ ] Bisogna aggiungere la funzionalita' che quando viene modificato un brick vengono ricaricati tutti i brick nuovamente
   (senza il bisogno di riavviare l'app)
+  e aggiungere un pulsante "ricarica brick"
   magari si puo' mettere come modalita' "dev" per chi crea brick
 
 - [x] Bisogna aggiungere la possibilita' di creare un nuovo brick in app (quindi copiare il template `/src-tauri/assets/brick-template` nella cartella bricks)
@@ -195,7 +200,8 @@ Colore del logo:
 
 - [x] Creare la logica Rust per l'invio di eventi globali (mouse, click, ecc.) che magari possono essere utilizzati dall'utente
 
-- Al momento la creazione delle finestre la lasciamo a tauri
+- (non serve al momento)
+  Al momento la creazione delle finestre la lasciamo a tauri
   piu avanti sarebbe meglio utilizzare `overlay::window::Overlay` per l'overlay
 
 Ho modificato questo in package.json, sarebbe da rimettere per controlli piu' stringenti su typescript
