@@ -38,8 +38,37 @@
         <n-select 
           v-model:value="prop.prop_type" 
           :options="propTypes"
-          @update:value="onNewPropTypeSelected"
+          @update:value="(value) => {
+            onNewPropTypeSelected(value)
+            if (prop.prop_type === 'Select' || prop.prop_type === 'Array') prop.value_type = 'String'
+          }"
           :render-label="renderLabel"
+        />
+      </n-form-item>
+      <n-form-item 
+        label="Value type"
+        v-if="prop.prop_type === 'Select' || prop.prop_type === 'Array'"
+      >
+        <n-select
+          v-model:value="prop.value_type"
+          :options="[
+            { label: 'String', value: 'String', icon: h(Type, { size: 16 }) }, 
+            { label: 'Float', value: 'Float', icon: h(DecimalsArrowRight, { size: 16 }) },
+            { label: 'Integer', value: 'Integer', icon: h(ArrowUp10, { size: 16 }) },
+          ]"
+          :render-label="(option: { label: string, value: string, icon: any }) => {
+            return h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
+              option.icon,
+              h('span', option.label)
+            ]);
+          }"
+          @update:value="() => { 
+            if (prop.prop_type === 'Select') {
+              prop.options = []
+            } else if (prop.prop_type === 'Array') {
+              prop.default = [] 
+            }
+          }"
         />
       </n-form-item>
       
@@ -50,12 +79,33 @@
         <n-switch v-model:value="prop.skip_alpha" :default-value="false" @update:value="onSkipAlphaChanged"></n-switch>
       </n-form-item>
       <n-form-item v-if="defaultInputField" label="Default value">
-        <component :is="defaultInputField" />
+        <component :is="defaultInputField">
+          <template v-if="prop.prop_type == 'Color'" #action>
+            <n-tooltip trigger="hover" placement="bottom" :delay="500">
+              <template #trigger>
+                <n-button size="small" @click="onSaveColor">Save</n-button>
+              </template>
+              Clicca salva per creare un campione di colore
+            </n-tooltip>
+            <n-tooltip trigger="hover" placement="bottom" :delay="500">
+              <template #trigger>
+                <n-button size="small" @click="onRemoveColor">Remove</n-button>
+              </template>
+              Clicca rimuovi per eliminare un campione di colore
+            </n-tooltip>
+            <n-tooltip trigger="hover" placement="bottom" :delay="500">
+              <template #trigger>
+                <n-button size="small" @click="onClearColor">Clear</n-button>
+              </template>
+              Clicca pulisci per rimuovere il colore di default
+            </n-tooltip>
+          </template>
+        </component>
       </n-form-item>
-      <n-form-item v-if="minInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Input the minimum allowed number' : 'Input the minimum number of values'">
+      <n-form-item v-if="minInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Minimum allowed number' : 'Minimum number of values'">
         <component :is="minInputField" />
       </n-form-item>
-      <n-form-item v-if="maxInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Input the maximum allowed number' : 'Input the maximum number of values'">
+      <n-form-item v-if="maxInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Maximum allowed number' : 'Maximum number of values'">
         <component :is="maxInputField" />
       </n-form-item>
     </n-form>
@@ -82,9 +132,9 @@
 </template>
 
 <script setup lang="ts">
-import { NColorPicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui';
-import { Asterisk, Hash, List, ListOrdered, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type } from 'lucide-vue-next';
-import { computed, h, ref } from 'vue';
+import { NColorPicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTooltip } from 'naive-ui';
+import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10 } from 'lucide-vue-next';
+import { computed, h, ref, toValue } from 'vue';
 
 import { createProp, Prop, PropTypeValue, propTypeValues } from '../../interfaces/brick';
 import { colorStringToRGBA, deepEqual } from '../../utils';
@@ -114,24 +164,14 @@ const props = defineProps({
 const feedback = ref<string|null>(null);
 
 const iconsMap: Record<string, any> = {
-  Any: Asterisk,
   Select: ListTodo,
   Array: List,
-  
   String: Type,
-  StringSelect: ListTodo,
-  StringArray: List,
-
-  Int: Hash,
-  IntSelect: ListTodo,
-  IntArray: ListOrdered,
-
-  Float: Hash,
-  FloatSelect: ListTodo,
-  FloatArray: ListOrdered,
-
+  Text: Text,
+  Int: ArrowUp10,
+  Float: DecimalsArrowRight,
   Bool: ToggleLeft,
-  
+
   Color: PaintBucket,
   Gradient: SwatchBook
 };
@@ -150,7 +190,12 @@ function renderLabel(option) {
 }
 
 function onNewPropTypeSelected(value: PropTypeValue) {
-  prop.value = createProp(value, prop.value.prop_name, prop.value.description);
+  prop.value = createProp(
+    value, 
+    prop.value.prop_name, 
+    prop.value.description, 
+    (prop.value.prop_type === 'Select' || prop.value.prop_type === 'Array' ? prop.value.value_type ?? 'String' : null)
+  );
 }
 
 function onPropNameInput(value: string) {
@@ -172,6 +217,28 @@ function onFinished(clone: boolean) {
   show.value = false; 
 
   emit('finished', initialProp.value, clone)
+}
+
+function onClearColor() {
+  prop.value.default = null;
+}
+
+function onSaveColor() {
+  if (prop.value.prop_type !== 'Color') return;
+
+  // Se il colore è già nei swatches, non fare nulla
+  if (prop.value.swatches && prop.value.swatches.includes(prop.value.default)) return;
+
+  if (prop.value.swatches) prop.value.swatches = [prop.value.default, ...(prop.value.swatches || [])];
+  else prop.value.swatches = [prop.value.default]
+}
+
+function onRemoveColor() {
+  if (prop.value.prop_type !== 'Color') return;
+
+  if (prop.value.swatches && prop.value.swatches.includes(prop.value.default)) {
+    prop.value.swatches = prop.value.swatches.filter((value) => value !== prop.value.default);
+  }
 }
 
 //let valueBeforeSkipAlpha = null;
@@ -207,12 +274,23 @@ function onSkipAlphaChanged(skip_alpha: boolean) {
 
 const defaultInputField = computed(() => {
   switch (prop.value.prop_type) {
-    case "Any":
     case "String":
       return h(
         NInput,
         {
           value: prop.value.default,
+          placeholder: "Input a string value",
+          clearable: true,
+          "onUpdate:value": (val: string) => (prop.value.default = val)
+        }
+      );
+    case "Text":
+      return h(
+        NInput,
+        {
+          value: prop.value.default,
+          placeholder: "Input a multiline string value",
+          type: 'textarea',
           clearable: true,
           "onUpdate:value": (val: string) => (prop.value.default = val)
         }
@@ -243,14 +321,12 @@ const defaultInputField = computed(() => {
       );
 
     case "Select":
-    case "StringSelect":
-    case "FloatSelect":
-    case "IntSelect":
       return h(
         NSelect,
         {
-          value: prop.value.default,
+          value: prop.value.default as any,
           clearable: true,
+          multiple: prop.value.max > 1,
           options: (prop.value.options || []).map(v => ({
             label: String(v),
             value: v
@@ -260,9 +336,7 @@ const defaultInputField = computed(() => {
       );
 
     case "Array":
-    case "StringArray":
-    case "FloatArray":
-    case "IntArray":
+      const value_type = prop.value.value_type;
       return h(
         NDynamicTags,
         {
@@ -271,10 +345,10 @@ const defaultInputField = computed(() => {
           "onUpdate:value": (newValue: any[]) => {
             let parsedValue;
 
-            if (prop.value.prop_type === 'StringArray') {
+            if (value_type === 'String') {
               parsedValue = newValue.map(item => typeof item === 'string' ? item : item.value);
             } 
-            else if (prop.value.prop_type === 'IntArray') {
+            else if (value_type === 'Integer') {
               parsedValue = newValue
                 .map(item => {
                   const val = typeof item === 'string'
@@ -284,7 +358,7 @@ const defaultInputField = computed(() => {
                 })
                 .filter(val => val !== null);
             } 
-            else if (prop.value.prop_type === 'FloatArray') {
+            else if (value_type === 'Float') {
               parsedValue = newValue
                 .map(item => {
                   const val = typeof item === 'string'
@@ -309,9 +383,9 @@ const defaultInputField = computed(() => {
         NColorPicker, 
         {
           value: prop.value.default ?? (prop.value.skip_alpha ? "#000000FF" : "#00000000"),
+          swatches: prop.value.swatches.length > 0 ? prop.value.swatches : null,
           'showAlpha' : !prop.value.skip_alpha,
           clearable: true,
-          actions: ['clear'],
           "onUpdate:value": (val: string) => (prop.value.default = val !== null ? colorStringToRGBA(val) : val)
         }
       );
@@ -324,7 +398,7 @@ const defaultInputField = computed(() => {
           "value": prop.value.default ?? [{ color: prop.value.skip_alpha ? "#000000FF" : "#00000000", position: 50 }],
           "onUpdate:value" : (stops) => (prop.value.default = stops)
         }
-      )
+      );
 
     default:
       return null
@@ -334,9 +408,7 @@ const defaultInputField = computed(() => {
 const optionsInputField = computed(() => {
   switch (prop.value.prop_type) {
     case "Select":
-    case "FloatSelect":
-    case "IntSelect":
-    case "StringSelect":
+      const value_type = prop.value.value_type;
       return h(
         NDynamicTags, 
         {
@@ -344,10 +416,10 @@ const optionsInputField = computed(() => {
           "onUpdate:value": (newValue: any[]) => {
             let parsedValue;
 
-            if (prop.value.prop_type === 'StringSelect') {
+            if (value_type === 'String') {
               parsedValue = newValue.map(item => typeof item === 'string' ? item : item.value);
             } 
-            else if (prop.value.prop_type === 'IntSelect') {
+            else if (value_type === 'Integer') {
               parsedValue = newValue
                 .map(item => {
                   const val = typeof item === 'string'
@@ -357,7 +429,7 @@ const optionsInputField = computed(() => {
                 })
                 .filter(val => val !== null);
             } 
-            else if (prop.value.prop_type === 'FloatSelect') {
+            else if (value_type === 'Float') {
               parsedValue = newValue
                 .map(item => {
                   const val = typeof item === 'string'
@@ -378,7 +450,8 @@ const optionsInputField = computed(() => {
             if (!prop.value.options.includes(prop.value.default)) {
               prop.value.default = null;
             }
-          }
+          },
+          type : 'info'
         }
       );
 
@@ -392,13 +465,7 @@ const minInputField = computed(() => {
     case "Int":
     case "Float":
     case "Array":
-    case "StringArray":
-    case "IntArray":
-    case "FloatArray":
     case "Select":
-    case "StringSelect":
-    case "IntSelect":
-    case "FloatSelect":
       if (prop.value.max !== null && prop.value.min > prop.value.max) {
         prop.value.max = prop.value.min;
       }
@@ -430,13 +497,7 @@ const maxInputField = computed(() => {
     case "Int":
     case "Float":
     case "Array":
-    case "StringArray":
-    case "IntArray":
-    case "FloatArray":
     case "Select":
-    case "StringSelect":
-    case "IntSelect":
-    case "FloatSelect":
       return h(
         NInputNumber, {
           value: prop.value.max,
@@ -457,3 +518,9 @@ const maxInputField = computed(() => {
   };
 });
 </script>
+
+<style scoped>
+.n-input-number {
+  width: 100%;
+}
+</style>

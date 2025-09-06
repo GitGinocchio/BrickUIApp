@@ -35,24 +35,13 @@ export interface Brick {
 }
 
 export const propTypeValues = [
-  "Any",
   "Select",
   "Array",
-
   "String",
-  "StringSelect",
-  "StringArray",
-
+  "Text",
   "Int",
-  "IntSelect",
-  "IntArray",
-
   "Float",
-  "FloatSelect",
-  "FloatArray",
-
   "Bool",
-
   "Color",
   "Gradient"
 ] as const;
@@ -64,15 +53,16 @@ export type PropTypeValue = typeof propTypeValues[number];
 /** Enumeration of supported property types for a Brick (flatten respected). */
 export type Prop =
   | ({ prop_type: 'String' } & PropType<string>)
+  | ({ prop_type: 'Text' } & PropType<string>)
   | ({ prop_type: 'Bool' } & PropType<boolean>)
   | ({ prop_type: 'Int' | 'Float' } & NumericPropType<number>)
-  | ({ prop_type: 'StringArray' } & ArrayPropType<string>)
-  | ({ prop_type: 'IntArray' | 'FloatArray' } & ArrayPropType<number>)
-  | ({ prop_type: 'StringSelect' } & SelectablePropType<string>)
-  | ({ prop_type: 'IntSelect' | 'FloatSelect' } & SelectablePropType<number>)
-  | ({ prop_type: 'Array' } & ArrayPropType<any>)
-  | ({ prop_type: 'Select' } & SelectablePropType<any>)
-  | ({ prop_type: 'Any' } & PropType<any>)
+
+  | ({ prop_type: 'Array', value_type: 'String' } & ArrayPropType<string>)
+  | ({ prop_type: 'Array', value_type: 'Integer' | 'Float' } & ArrayPropType<number>)
+
+  | ({ prop_type: 'Select', value_type: 'String' } & SelectablePropType<string>)
+  | ({ prop_type: 'Select', value_type: 'Integer' | 'Float' } & SelectablePropType<number>)
+
   | ({ prop_type: 'Color'} & ColorPropType)
   | ({ prop_type: 'Gradient'} & GradientPropType);
 
@@ -143,10 +133,16 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
 
   /** Maximum number of items allowed in the array. */
   max?: number;
+
+  /** Minimum value allowed in the array. */
+  min_value?: number;
+
+  /** Maximum value allowed in the array. */
+  max_value?: number;
 }
 
 /** Selectable property container with typed options. */
-export interface SelectablePropType<T> extends PropType<T> {
+export interface SelectablePropType<T> extends PropType<Array<T>> {
   /** List of selectable options. */
   options: T[];
 
@@ -155,6 +151,12 @@ export interface SelectablePropType<T> extends PropType<T> {
 
   /** Maximum number of selections allowed. */
   max?: number;
+  
+  /** Minimum value allowed in the array. */
+  min_value?: number;
+
+  /** Maximum value allowed in the array. */
+  max_value?: number;
 }
 
 function createBaseProp<T>(name: string, description = null): PropType<T> {
@@ -176,10 +178,12 @@ function createNumericProp(name: string, description = null): NumericPropType<nu
 
 function createSelectableProp<T>(name: string, options: T[], description = null): SelectablePropType<T> {
   return {
-    ...createBaseProp<T>(name, description),
+    ...createBaseProp<Array<T>>(name, description),
     options,
     min: null,
-    max: null
+    max: null,
+    min_value: null,
+    max_value: null
   }
 }
 
@@ -187,14 +191,18 @@ function createArrayProp<T>(name: string, description = null): ArrayPropType<T> 
   return {
     ...createBaseProp<Array<T>>(name, description),
     min: null,
-    max: null
+    max: null,
+    min_value: null,
+    max_value: null
   }
 }
 
-export function createProp(type: PropTypeValue, name: string, description: string): Prop {
+export function createProp(type: PropTypeValue, name: string, description: string, value_type?: 'String' | 'Integer' | 'Float'): Prop {
   switch (type) {
     case "String":
       return { prop_type: "String", ...createBaseProp<string>(name, description) }
+    case "Text":
+      return { prop_type: "Text", ...createBaseProp<string>(name, description) }
     case "Bool":
       return { prop_type: "Bool", ...createBaseProp<boolean>(name, description), default: false }
     case "Int":
@@ -203,29 +211,28 @@ export function createProp(type: PropTypeValue, name: string, description: strin
       return { prop_type: "Float", ...createNumericProp(name, description) }
     
     case "Select":
-      return { prop_type: "Select", ...createSelectableProp<any>(name, [], description) }
-    case "StringSelect":
-      return { prop_type: "StringSelect", ...createSelectableProp<string>(name, [], description) }
-    case "IntSelect":
-      return { prop_type: "IntSelect", ...createSelectableProp<number>(name, [], description) }
-    case "FloatSelect":
-      return { prop_type: "FloatSelect", ...createSelectableProp<number>(name, [], description) }
+      switch (value_type) {
+        case 'String':
+          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
+        case 'Float':
+        case 'Integer':
+          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<number>(name, [], description) }
+      }
     
     case "Array":
-      return { prop_type: "Array", ...createArrayProp<any>(name, description)}
-    case "StringArray":
-      return { prop_type: "StringArray", ...createArrayProp<string>(name, description)}
-    case "FloatArray":
-      return { prop_type: "FloatArray", ...createArrayProp<number>(name, description)}
-    case "IntArray":
-      return { prop_type: "IntArray", ...createArrayProp<number>(name, description)}
+      switch (value_type) {
+        case 'String':
+          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
+        case 'Float':
+        case 'Integer':
+          return { prop_type: "Array", value_type: value_type, ...createArrayProp<number>(name, description) }
+      }
 
     case "Color":
       return { prop_type: "Color", ...createBaseProp<string>(name, description), skip_alpha: false, swatches: [], saved: [] }
     case "Gradient":
       return { prop_type: "Gradient", ...createBaseProp<Array<GradientStop>>(name, description), skip_alpha: false, type: GradientType.LINEAR }
-
     default:
-      return { prop_type: "Any", ...createBaseProp<any>(name, description) }
+      throw new Error(`Invalid prop type ${type}`);
   }
 }

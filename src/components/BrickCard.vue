@@ -180,7 +180,7 @@ const brickOptions = ref([
 ]);
 
 function onNewProp() {
-  targetProp.value = { prop_type: "Any", prop_name: "", description: null };
+  targetProp.value = { prop_type: "String", prop_name: "", description: null };
   initialProp.value = null;
   propModalEditMode.value = false;
   propModalShow.value = true;

@@ -1,4 +1,8 @@
 
+- [ ] Forse bisognerebbe fare che quando una persona apre l'app per la prima volta
+  la prima cosa che deve fare e' creare un wall (un tema) da li in poi potra' creare i brick
+  e quando si crea un brick verra' chiesto in quale wall si vuole mettere quel brick
+
 - [ ] Le persone potranno condividere i brick in due modi:
   1. tramite link ad una repository github 
     (quindi il brick viene importato e preso da internet, puo' essere copiato, ma perde gli aggiornamenti in caso ce ne fossero)
@@ -6,7 +10,10 @@
     (questo diventa modificabile ma perde gli update dalla versione online)
 
 Colore del logo:
-- #CB4154
+- #cb4153ff
+
+- [ ] Modificare i prop di tipo collections per far si che esista solo Array e Select
+  e all'interno di questi si puo' decidere se devono essere di interi, float, stringhe, ecc.
 
 - [ ] Esempio di implementazione per la finestra background per gli sfondi animati:
   ```rust
@@ -109,7 +116,7 @@ Colore del logo:
 
 - [ ] Aggiungere il prop type regex
 
-- Al proptype color manca il parametro skip alpha e gli swatches (che possono essere fatti come avevo gia' fatto per la selezione dell'utente...)
+- [x] Al proptype color manca il parametro skip alpha e gli swatches (che possono essere fatti come avevo gia' fatto per la selezione dell'utente...)
 
 - Ai proptype di tipo collections manca un parametro per dire il valore minimo e massimo dei valori all'interno 
   (per quanto riguarda le stringhe potrebbe diventare la lunghezza di esse)
@@ -127,7 +134,8 @@ Colore del logo:
 
 - Sistemare la pagina dei settings
 
-- Inviare un avviso quando si duplica un prop in quanto attivando due prop uguali si potrebbero andare in contro a dei problemi di navigazione
+- (inutile)
+  Inviare un avviso quando si duplica un prop in quanto attivando due prop uguali si potrebbero andare in contro a dei problemi di navigazione
 
 - Quando si sta modificando un prop select, e si toglie un opzione che e' attualmente selezionata come default questa rimane nel default
   il default in quel caso dovrebbe tornare vuoto, senza un valore (solo in quel caso)
@@ -148,7 +156,7 @@ Colore del logo:
 - Sistemare i permessi per l'api tauri magari con un token generato a runtime che deve essere scambiato per emettere o ascoltare eventi particolari che solo la finestra overlay puo' ascoltare
 
 - Problema con le cartelle per i nomi dei brick perche' possono essere uguali infatti taskBar e TaskBar vengono viste allo stesso modo
-  questo e' un problema da risolvere e si potrebbe sistemare con il kebab-case
+  questo e' un problema da risolvere e si potrebbe sistemare con il kebab-case (non e' vero ma dettagli)
 
 - Gestire il caso in cui un'altra app e' a schermo intero, quindi tutti i brick (o quelli configurati per farlo) devono essere tolti
 

@@ -14,9 +14,24 @@
         class="prop-input-component"
       >
         <template v-if="currentComponent == NColorPicker && prop.prop_type == 'Color'" #action>
-          <n-button size="small" @click="onSaveColor">Save</n-button>
-          <n-button size="small" @click="onRemoveColor">Remove</n-button>
-          <n-button size="small" @click="onClearColor">Clear</n-button>
+          <n-tooltip trigger="hover" placement="bottom" :delay="500">
+            <template #trigger>
+              <n-button size="small" @click="onSaveColor">Save</n-button>
+            </template>
+            Clicca salva per salvare un colore
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="bottom" :delay="500">
+            <template #trigger>
+              <n-button size="small" @click="onRemoveColor">Remove</n-button>
+            </template>
+            Clicca rimuovi per eliminare un colore dai salvati
+          </n-tooltip>
+          <n-tooltip trigger="hover" placement="bottom" :delay="500">
+            <template #trigger>
+              <n-button size="small" @click="onClearColor">Clear</n-button>
+            </template>
+            Clicca pulisci per rimuovere il colore attuale
+          </n-tooltip>
         </template>
       </component>
       <template v-if="editMode">
@@ -28,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch } from 'naive-ui';
+import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch, NText } from 'naive-ui';
 import { computed, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';
@@ -63,6 +78,7 @@ const renderedDescription = computed(() => md.render(prop.description));
 // Mapping dei componenti
 const componentMap: Record<string, any> = {
   'String': NInput,
+  'Text' : NInput,
   'Any': NInput,
   'Int': NInputNumber,
   'Float': NInputNumber,
@@ -89,9 +105,9 @@ const componentProps = computed(() => {
         defaultValue: prop.default || false
       };
     case 'String':
-    case 'Any':
       return {
-        placeholder: prop.default || 'Type a string value...',
+        placeholder: 'Type a string value...',
+        defaultValue: prop.default,
         clearable: true
       };
     case 'Int':
@@ -104,23 +120,24 @@ const componentProps = computed(() => {
         placeholder: prop.default ? `${prop.default}` : 'Type a number...',
         clearable: true
       };
-    
+    case 'Text':
+      return {
+        type: 'textarea',
+        placeholder: 'Type a multiline text value...',
+        defaultValue: prop.default,
+        clearable: true
+      };
 
     case 'Select':
-    case 'StringSelect':
-    case 'IntSelect':
-    case 'FloatSelect':
       return {
+        defaultValue: prop.default,
         options: prop.options.map(option => ({ label: option, value: option })),
-        placeholder: String(prop.default) || 'Select a value...',
+        placeholder: 'Select a value...',
         multiple: prop.max > 1,
         clearable: true
       };
 
     case 'Array':
-    case 'StringArray':
-    case 'IntArray':
-    case 'FloatArray':
       return {
         defaultValue: prop.default?.map(v => ({ label: String(v), value: v })) || [],
         round: true,
@@ -139,13 +156,13 @@ const componentProps = computed(() => {
         swatches: merged.length > 0 ? merged : null,
         'show-alpha': !prop.skip_alpha,
         'show-preview': true
-      }
+      };
 
     case 'Gradient':
       return {
         defaultValue: prop.value,
         "onUpdate:value" : (stops) => (prop.value = stops)
-      }
+      };
 
     default:
       return {};
@@ -158,8 +175,8 @@ const modelValue = computed<any>({
       case 'Bool':
         return prop.value ?? prop.default ?? false;
       case 'String':
-        return prop.value ?? prop.default ?? '';
-      case 'Any':
+        return prop.value ?? prop.default ?? null;
+      case 'Text':
         return prop.value ?? prop.default ?? null;
       case 'Int':
         return prop.value ?? prop.default ?? null;
@@ -167,16 +184,13 @@ const modelValue = computed<any>({
         return prop.value ?? prop.default ?? null;
 
       case 'Select':
-      case 'StringSelect':
-      case 'IntSelect':
-      case 'FloatSelect':
+        if (prop.max <= 1) {
+          return prop.value[0] ?? prop.default[0] ?? null;
+        }
         return prop.value ?? prop.default ?? [];
 
       case 'Array':
-      case 'StringArray':
-      case 'IntArray':
-      case 'FloatArray':
-        return (prop.value ?? prop.default ?? []).map(v => ({ label: String(v.toLocaleString()), value: v }));
+        return (prop.value ?? prop.default ?? []).map(v => ({ label: String(v), value: v }));
 
       case 'Color':
         return prop.value ?? prop.default ?? '#00000000';
@@ -193,25 +207,40 @@ const modelValue = computed<any>({
     let value;
     switch (prop.prop_type) {
       case 'Array':
-      case 'StringArray':
-        value = newValue
-          ? newValue
-              .map(item => (typeof item === 'string' ? item : item.value))
-          : prop.default ?? [];
+        if (prop.value_type === 'String') {
+          value = newValue
+            ? newValue
+                .map(item => (typeof item === 'string' ? item : item.value))
+            : prop.default ?? [];
+          break;
+        }
+        else if (prop.value_type === 'Integer') {
+          value = newValue
+            ? newValue
+                .map(item => (typeof item === 'string' ? /[a-zA-Z]/.test(item) ? NaN : parseInt(item.replace(',', '.')) : item.value))
+                .filter(val => !isNaN(val))
+            : prop.default ?? [];
+          break;
+        }
+        else if (prop.value_type === 'Float') {
+          value = newValue
+            ? newValue
+                .map(item => (typeof item === 'string' ? (/[a-zA-Z]/.test(item) ? NaN : parseFloat(item.replace(',', '.'))) : item.value))
+                .filter(val => !isNaN(val))
+            : prop.default ?? [];
+          break;
+        }
         break;
-      case 'IntArray':
-        value = newValue
-          ? newValue
-              .map(item => (typeof item === 'string' ? /[a-zA-Z]/.test(item) ? Number.NaN : parseInt(item) : item.value))
-              .filter(val => !isNaN(val))
-          : prop.default ?? [];
-        break;
-      case 'FloatArray':
-        value = newValue
-          ? newValue
-              .map(item => (typeof item === 'string' ? /[a-zA-Z]/.test(item) ? null : parseFloat(item) : item.value))
-              .filter(val => !isNaN(val))
-          : prop.default ?? [];
+
+      case 'Select':
+        if (!Array.isArray(newValue)) { 
+          newValue = [newValue];
+        }
+        else if (newValue.length > prop.max) {
+          newValue = newValue.slice(0, prop.max);
+        }
+
+        value = newValue !== null ? newValue : (prop.default ? prop.default : []);
         break;
 
       case 'Color':

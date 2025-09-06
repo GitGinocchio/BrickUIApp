@@ -6,7 +6,21 @@ export const appDataDir = await getAppDataDir();
 
 export function formatProps(props: Prop[]): Record<string, any> {
   return Object.fromEntries(
-    props.map(p => [p.prop_name, p.value ?? p.default])
+    props.map(p => {
+      let value;
+
+      if (Array.isArray(p.value) && p.value.length > 0) {
+        value = p.value;
+      }
+      else if (Array.isArray(p.value)) {
+        value = p.default;
+      }
+      else {
+        value = p.value;
+      }
+
+      return [p.prop_name, value]
+    })
   );
 }
 

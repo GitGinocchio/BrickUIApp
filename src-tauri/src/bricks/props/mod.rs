@@ -5,7 +5,7 @@ pub mod array;
 use super::props::array::ArrayPropType;
 
 pub mod select;
-use super::props::select::SelectablePropType;
+use super::props::select::SelectPropType;
 
 pub mod date;
 use super::props::date::{DatePropType, DateTimePropType, TimePropType};
@@ -67,6 +67,12 @@ pub enum Prop {
         data: PropType<String>,
     },
 
+    #[schemars(description = "Multiline text property type.")]
+    Text {
+        #[serde(flatten)]
+        data: PropType<String>,
+    },
+
     #[schemars(description = "Integer property type.")]
     Int {
         #[serde(flatten)]
@@ -111,66 +117,17 @@ pub enum Prop {
         data: TimePropType,
     },
 
-    // Arrays
-    #[schemars(description = "Array property containing a list of boolean values.")]
-    BoolArray {
-        #[serde(flatten)]
-        data: ArrayPropType<bool>,
-    },
-
-    #[schemars(description = "Array property containing a list of string values.")]
-    StringArray {
-        #[serde(flatten)]
-        data: ArrayPropType<String>,
-    },
-
-    #[schemars(description = "Array property containing a list of integer values.")]
-    IntArray {
-        #[serde(flatten)]
-        data: ArrayPropType<i64>,
-    },
-
-    #[schemars(description = "Array property containing a list of floating point values.")]
-    FloatArray {
-        #[serde(flatten)]
-        data: ArrayPropType<f64>,
-    },
-
-    // Selects
-    #[schemars(description = "Selectable property with predefined string options.")]
-    StringSelect {
-        #[serde(flatten)]
-        data: SelectablePropType<String>,
-    },
-
-    #[schemars(description = "Selectable property with predefined integer options.")]
-    IntSelect {
-        #[serde(flatten)]
-        data: SelectablePropType<i64>,
-    },
-
-    #[schemars(description = "Selectable property with predefined floating point options.")]
-    FloatSelect {
-        #[serde(flatten)]
-        data: SelectablePropType<f64>,
-    },
-
-    // Generics
-    #[schemars(description = "Array property containing a list of generic values.")]
+    // Array
+    #[schemars(description = "Array property containing a list of values.")]
     Array {
         #[serde(flatten)]
-        data: ArrayPropType<serde_json::Value>,
+        data: ArrayPropType,
     },
 
-    #[schemars(description = "Selectable property with predefined generic options.")]
+    // Select
+    #[schemars(description = "Selectable property with predefined options.")]
     Select {
         #[serde(flatten)]
-        data: SelectablePropType<serde_json::Value>,
-    },
-
-    #[schemars(description = "Generic property type.")]
-    Any {
-        #[serde(flatten)]
-        data: serde_json::Value,
-    },
+        data: SelectPropType,
+    }
 }

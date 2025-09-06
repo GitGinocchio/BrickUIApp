@@ -5,7 +5,7 @@ use crate::bricks::props::PropType;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Property container for numeric types, including optional bounds.")]
-pub struct NumericPropType<T: Default> {
+pub struct NumericPropType<T: Default + PartialOrd> {
     #[serde(flatten)]
     base: PropType<T>,
 

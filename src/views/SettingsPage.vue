@@ -51,7 +51,8 @@
               />
             </template>
             <div style="max-width: 25rem; white-space: normal;">
-              Nasconde l'app dalla barra delle applicazioni quando si clicca il tasto chiudi in alto a destra. Puoi riaprirla dall'icona nella system tray.
+              Nasconde l'app dalla barra delle applicazioni quando si clicca il tasto chiudi in alto a destra. 
+              Puoi riaprirla cliccando due volte con il tasto sinistro sulla system tray icon.
             </div>
           </n-tooltip>
         </n-form-item>

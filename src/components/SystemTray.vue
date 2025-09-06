@@ -148,7 +148,12 @@ async function createMenu(){
             icon: logoutIcon,
             action: async () => {
                 const mainWindow = await Window.getByLabel("main");
-                if (mainWindow) await mainWindow.close();
+                if (mainWindow) {
+                    if (mainWindow.isVisible()) {
+                        await mainWindow.close();
+                    }
+                    await mainWindow.close();
+                }
             }
         },
     ]
