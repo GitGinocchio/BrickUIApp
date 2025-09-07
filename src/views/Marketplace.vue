@@ -1,16 +1,68 @@
 <template>
   <div class="container">
+    <div class="header">
+      <ShoppingBasket :size="24" /><h2>Marketplace</h2>
+    </div>
+    <n-input placeholder="Search widgets or themes…">
+      <template #prefix><Search :size="16" /></template>
+    </n-input>
     <n-tabs type="line">
       <n-tab-pane name="bricks" tab="Bricks">
         <div class="brick-grid">
-          <BrickCard
+          <BrickInfoCard
             v-for="brick in bricks"
             :key="brick.name"
             :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
+          />
+          <BrickInfoCard
+            v-for="brick in bricks"
+            :key="brick.name"
+            :brick="brick"
+            :offline="false"
           />
         </div>
       </n-tab-pane>
       <n-tab-pane name="walls" tab="Walls">
+        <p>Qui si possono scaricare temi.</p>
+      </n-tab-pane>
+      <n-tab-pane name="wallpapers" tab="Wallpapers">
         <p>Qui si possono scaricare temi.</p>
       </n-tab-pane>
     </n-tabs>
@@ -18,28 +70,14 @@
 </template>
 
 <script setup lang="ts">
-import BrickCard from '../components/marketplace/BrickCard.vue';
-import { NTabs, NTabPane } from "naive-ui"
-const bricks = [
-  {
-    name: "Brick 1",
-    description: "Questo brick è uno strumento completo per la gestione dei progetti, progettato per aiutare team di qualsiasi dimensione a coordinare attività, scadenze e risorse in maniera semplice ed efficiente. Include dashboard personalizzabili, notifiche in tempo reale, report dettagliati e integrazioni con le principali piattaforme di lavoro collaborativo. Ideale per team agili che vogliono tenere traccia di ogni task e ottenere una panoramica chiara dello stato di avanzamento dei progetti.",
-    tags: ["Utility", "Stable", "Popular"],
-    version: "1.0.0",
-    link: "https://example.com",
-    icon: "https://via.placeholder.com/32",
-  },
-  {
-    name: "Brick 2",
-    description: "Un brick potente per l’analisi dei dati, che permette di trasformare grandi quantità di informazioni in insight utili. Offre visualizzazioni interattive, grafici dinamici, filtri avanzati e la possibilità di esportare report in diversi formati. Grazie agli algoritmi integrati di machine learning, è possibile rilevare trend nascosti e supportare decisioni strategiche basate sui dati.",
-    tags: ["AI", "Beta"],
-    version: "2.3.1",
-    price: 25,
-    active: false,
-    link: "https://example.com",
-    icon: "https://via.placeholder.com/32",
-  }
-]
+import { Brick } from 'interfaces/brick';
+import BrickInfoCard from '../components/BrickInfoCard.vue';
+import { ShoppingBasket, Search } from 'lucide-vue-next';
+import { NTabs, NTabPane, NInput } from "naive-ui"
+import { inject, Ref } from 'vue';
+
+const bricks = inject("bricks") as Ref<Brick[]>;
+
 </script>
 
 <style scoped>
@@ -51,5 +89,14 @@ const bricks = [
 
 .container { 
   padding: 16px;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  margin-left: 0.5rem;
 }
 </style>

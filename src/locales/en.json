@@ -6,7 +6,6 @@
     "description" : "Description",
     "props" : "Props",
     "emits" : "Emits",
-    "bricks-manager" : "Bricks Manager",
     "settings" : "Settings",
     "marketplace" : "Marketplace"
 }

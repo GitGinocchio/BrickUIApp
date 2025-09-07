@@ -76,7 +76,7 @@ import { inject, onMounted, ref, Ref } from 'vue'
 
 const settings = inject("settings") as Ref<Settings>;
 
-const labelWidth = ref<string>("12.5rem");
+const labelWidth = ref<string>("8rem");
 
 const languages = [
   { label: 'English', value: 'en' },

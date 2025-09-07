@@ -9,11 +9,16 @@
         <CirclePlus />
       </n-button>
     </div>
-    <n-grid :cols="1" x-gap="16" y-gap="16" class="bricks-grid">
-      <n-gi v-for="brick in bricks" :key="brick.name">
-        <BrickCard :brick="brick" @edit="onEditBrick" @changed="updateBricks" />
-      </n-gi>
-    </n-grid>
+    <div class="brick-grid">
+      <BrickInfoCard 
+        v-for="brick in bricks" 
+        :key="brick.name" 
+        :brick="brick" 
+        :offline="true"
+        @edit="onEditBrick" 
+        @changed="updateBricks" 
+      />
+    </div>
   </div>
 
   <!-- Modal per nuovo brick -->
@@ -75,13 +80,14 @@
 <script setup lang="ts">
 import { CirclePlus, Blocks } from "lucide-vue-next";
 import { NSpace, NButton, NGrid, NGi, NModal, NForm, NFormItem, NInput, NDynamicTags } from "naive-ui";
-import BrickCard from "../components/BrickCard.vue";
+import BrickCard from "../components/BrickSettingsCard.vue";
 import { inject, onMounted, Ref, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick } from "interfaces/brick";
 import { deepEqual } from "../utils";
 import { useI18n } from "vue-i18n";
 import { emitTo, listen } from "@tauri-apps/api/event";
+import BrickInfoCard from "../components/BrickInfoCard.vue";
 
 const { t, locale } = useI18n()
 
@@ -206,8 +212,11 @@ async function loadBricks() {
 }
 
 .container {
+  display: flex;
+  flex-direction: column;
   overflow-y: hidden;
-  padding: 16px;
+  padding: 1rem;
+  gap: 1rem;
 }
 
 n-card.full-height {
@@ -218,9 +227,10 @@ n-card.full-height {
 }
 
 /* Se vuoi che la griglia si espanda e scrolli */
-.bricks-grid {
-  flex: 1;
-  overflow-y: auto;
+.brick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
+  gap: 1rem
 }
 
 .bricks-scroll {
@@ -233,9 +243,10 @@ n-card.full-height {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  padding-bottom: 0;
   margin-left: 0.5rem;
   margin-right: 0.5rem;
-  flex: 0 0 auto;
+  margin-top: 1rem;
 }
 
 .header div {
@@ -244,6 +255,10 @@ n-card.full-height {
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
+}
+
+.header div h2 {
+  margin: 0;
 }
 </style>
 

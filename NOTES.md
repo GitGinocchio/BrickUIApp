@@ -1,4 +1,8 @@
 
+- [ ] Rimuovere l'alt+f4 sulla finestra dell'overlay
+
+- [ ] Creare un header comune a tutte le pagine
+
 - [ ] Forse bisognerebbe fare che quando una persona apre l'app per la prima volta
   la prima cosa che deve fare e' creare un wall (un tema) da li in poi potra' creare i brick
   e quando si crea un brick verra' chiesto in quale wall si vuole mettere quel brick

@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch, NText } from 'naive-ui';
+import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch } from 'naive-ui';
 import { computed, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';

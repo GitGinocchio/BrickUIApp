@@ -2,6 +2,7 @@
   <n-config-provider :theme="theme">
     <n-layout style="height: 100vh" has-sider>
       <n-layout-sider
+        class="sider"
         width="220"
         :collapsed-width="64"
         :collapsed="collapsed"
@@ -15,6 +16,12 @@
           v-model:value="option"
           :collapsed="collapsed"
           :options="menuOptions"
+          @update:value="onMenuSelect"
+        />
+        <n-menu
+          v-model:value="option"
+          :collapsed="collapsed"
+          :options="bottomMenuOptions"
           @update:value="onMenuSelect"
         />
       </n-layout-sider>
@@ -31,7 +38,7 @@
 import { ref, h, onMounted, watch, computed, Ref, inject } from 'vue'
 import SystemTray from './components/SystemTray.vue';
 import { useRouter } from 'vue-router'
-import { LayoutDashboardIcon, SettingsIcon, StoreIcon } from 'lucide-vue-next'
+import { LayoutDashboardIcon, SettingsIcon, StoreIcon, CircleUser, BrickWall, Cuboid, LayoutDashboard, Wallpaper } from 'lucide-vue-next'
 import {
   NConfigProvider,
   NLayout,
@@ -74,12 +81,18 @@ function handleMouseLeave() {
   collapsed.value = true
 }
 
-const option = ref('/widgets')
+const option = ref('/bricks')
 const menuOptions = computed(() => [
-  { label: t('bricks-manager'), key: '/widgets',     icon: () => h(LayoutDashboardIcon) },
+  { label: t('bricks'),           key: '/bricks',       icon: () => h(Cuboid) },
+  { label: 'Walls',               key: '/walls',        icon: () => h(LayoutDashboard) },
+  { label: 'Wallpapers',          key: '/background',   icon: () => h(Wallpaper) },
+  { label: t('marketplace'),      key: '/marketplace',  icon: () => h(StoreIcon) }
+]);
+
+const bottomMenuOptions = computed(() => [
+  { label: 'User',       key: '/user',    icon: () => h(CircleUser) },
   { label: t('settings'),       key: '/settings',    icon: () => h(SettingsIcon) },
-  { label: t('marketplace'),    key: '/marketplace', icon: () => h(StoreIcon) }
-])
+]);
 
 function onMenuSelect(key: string) {
   clearTimeout(hoverTimer)
@@ -114,6 +127,13 @@ watch(settings, async (newSettings) => {
 
 
 <style scoped>
+:deep(.n-layout-sider-scroll-container) {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+}
+
 :deep(.n-menu-item .n-menu-item-content){
   padding-left: 18px !important;
   margin-right: 2px;
