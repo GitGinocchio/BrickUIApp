@@ -212,3 +212,9 @@ Ho modificato questo in package.json, sarebbe da rimettere per controlli piu' st
 ```json
 "build": "vue-tsc --noEmit && vite build"
 ```
+
+```
+"options": {
+  "dir": "../src/isolation"
+}
+```

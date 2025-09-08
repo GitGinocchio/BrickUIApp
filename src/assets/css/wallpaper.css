@@ -1,0 +1,32 @@
+
+* {
+  pointer-events: auto;
+  cursor: auto;
+  background-color: transparent;
+  border-color: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+*:hover {
+  background-color: transparent;
+  border-color: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  user-select: none;
+  width: min-content;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#app {
+  user-select: none;
+  pointer-events: none;
+}
+
+iframe {
+  pointer-events: none;
+  user-select: none;
+}

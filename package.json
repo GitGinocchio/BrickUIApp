@@ -10,6 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@babel/standalone": "^7.28.4",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-autostart": "^2.5.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
@@ -17,6 +18,7 @@
     "lucide-vue-next": "^0.542.0",
     "markdown-it": "^14.1.0",
     "naive-ui": "^2.42.0",
+    "ogl": "^1.0.11",
     "vue": "^3.5.21",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.3",
+    "@types/babel__standalone": "^7.1.9",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.3.0",
     "@vitejs/plugin-vue": "^6.0.1",

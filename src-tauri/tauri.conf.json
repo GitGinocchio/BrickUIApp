@@ -19,11 +19,20 @@
         "height": 800,
         "center" : true,
         "resizable": true,
-        "alwaysOnTop": false,
+        "alwaysOnTop": true,
         "fullscreen": false,
         "devtools": true,
         "focus" : true,
         "visible": false
+      },
+      {
+        "label" : "wallpaper",
+        "title" : "Brick UI [Wallpaper]",
+        "url" : "/wallpaper/index.html",
+        "fullscreen": true,
+        "devtools": true,
+        "visible" : true,
+        "focus" : true
       },
       {
         "label": "overlay",
@@ -50,10 +59,7 @@
     "withGlobalTauri": false,
     "security": {
       "pattern": {
-        "use": "isolation",
-        "options": {
-          "dir": "../src/isolation"
-        }
+        "use": "brownfield"
       },
       "csp": {
         "default-src": [

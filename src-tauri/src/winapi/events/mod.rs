@@ -87,6 +87,7 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
             match event {
                 GlobalEvent::MouseMove { x, y } => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_moved", (x, y));
+                    let _ = app_handle.emit_to("wallpaper", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown(btn) => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_pressed", btn);

@@ -25,13 +25,12 @@ panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
 [build-dependencies]
-tauri-build = { version = "2.4.0", features = ["isolation"] }
+tauri-build = { version = "2.4.0", features = [] }
 
 [dependencies]
 tauri = { version = "2.8.4", features = [ 
     "protocol-asset", 
     "unstable", 
-    "isolation", 
     "tray-icon",
     "image-png"
 ] }

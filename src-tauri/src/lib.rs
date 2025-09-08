@@ -174,9 +174,11 @@ fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result
 pub fn run() {
     let context = tauri::generate_context!();
 
+    /*
     if let tauri::Pattern::Isolation { schema, .. } = context.pattern() {
         dbg!(schema);
     }
+    */
 
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
@@ -229,11 +231,17 @@ pub fn run() {
                 hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill)?;
             }
 
-            let webview = app.get_webview_window("overlay").unwrap();
-            let window = &webview.get_window("overlay").unwrap();
-            remove_titlebar(window);
+            let overlayw = app.get_window("overlay").unwrap();
+            remove_titlebar(&overlayw);
 
-            set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
+            let wallpaperwv = app.get_webview("wallpaper").unwrap();
+            let wallpaperw = app.get_window("wallpaper").unwrap();
+            let hwnd = wallpaperw.hwnd().map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
+            println!("{hwnd:?}");
+            //remove_titlebar(&wallpaperw);
+            set_as_wallpaper_background(hwnd)?;
+
+            wallpaperwv.open_devtools();
 
             set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 
@@ -277,6 +285,19 @@ pub fn run() {
                     window
                         .close()
                         .map_err(|e| format!("Error while trying to close the overlay window: {e}"))
+                        .unwrap();
+                }
+
+                if let Some(window) = app_handle.get_window("wallpaper")
+                    && window.is_closable().is_ok()
+                {
+                    window
+                        .hide()
+                        .map_err(|e| format!("Error while trying to hide the wallpaper window: {e}"))
+                        .expect("");
+                    window
+                        .close()
+                        .map_err(|e| format!("Error while trying to close the wallpaper window: {e}"))
                         .unwrap();
                 }
 
