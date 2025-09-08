@@ -2,7 +2,7 @@ mod winapi;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::set_snap_flyout;
 use crate::winapi::taskbar::apps::GroupedIcons;
-use crate::winapi::window::remove_titlebar;
+use crate::winapi::window::{remove_titlebar, set_as_wallpaper_background};
 
 mod bricks;
 use crate::bricks::brick::Brick;
@@ -63,6 +63,13 @@ fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, 
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
 
     Ok(state_guard.get_bricks().to_vec())
+}
+
+#[tauri::command]
+fn get_brick_by_name(state: State<'_, Arc<Mutex<BrickUIState>>>, name: String) -> Result<Option<Brick>, String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
+    Ok(state_guard.get_brick_by_name(&name))
 }
 
 #[tauri::command]
@@ -195,6 +202,7 @@ pub fn run() {
             get_settings,
             save_settings,
             get_bricks,
+            get_brick_by_name,
             load_bricks,
             duplicate_brick,
             delete_brick,
@@ -227,7 +235,7 @@ pub fn run() {
 
             set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 
-            //start_global_input_listener(app.handle().clone());
+            set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 
             start_event_listeners(app.handle().clone())?;
 

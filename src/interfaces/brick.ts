@@ -35,13 +35,13 @@ export interface Brick {
 }
 
 export const propTypeValues = [
-  "Select",
-  "Array",
   "String",
   "Text",
   "Int",
   "Float",
   "Bool",
+  "Select",
+  "Array",
   "Color",
   "Gradient"
 ] as const;

@@ -136,6 +136,13 @@ impl BrickUIState {
         &self.bricks
     }
 
+    pub fn get_brick_by_name(&self, name: &str) -> Option<Brick> {
+        self.bricks
+            .iter()
+            .find(|brick| brick.name == name)
+            .cloned()
+    }
+
     pub fn get_mut_bricks(&mut self) -> &mut Vec<Brick> {
         &mut self.bricks
     }

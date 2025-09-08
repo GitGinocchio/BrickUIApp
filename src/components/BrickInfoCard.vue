@@ -24,7 +24,7 @@
       </div>
       <div class="brick-controls" v-if="offline">
         <n-switch v-model:value="brick.enabled" @update:value="onToggle" @click.stop="() => {}" />
-        <n-dropdown :options="brickOptions" :animated="true" @select="handleBrickAction">
+        <n-dropdown :options="brickOptions" trigger="click" :animated="true" @select="handleBrickAction">
           <n-button text circle @click.stop="() => {}"><MoreVertical/></n-button>
         </n-dropdown>
       </div>

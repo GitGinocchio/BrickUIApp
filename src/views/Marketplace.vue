@@ -1,8 +1,6 @@
 <template>
   <div class="container">
-    <div class="header">
-      <ShoppingBasket :size="24" /><h2>Marketplace</h2>
-    </div>
+    <Header :sections="sections"></Header>
     <n-input placeholder="Search widgets or themes…">
       <template #prefix><Search :size="16" /></template>
     </n-input>
@@ -72,11 +70,20 @@
 <script setup lang="ts">
 import { Brick } from 'interfaces/brick';
 import BrickInfoCard from '../components/BrickInfoCard.vue';
+import Header from '../components/Header.vue';
 import { ShoppingBasket, Search } from 'lucide-vue-next';
 import { NTabs, NTabPane, NInput } from "naive-ui"
-import { inject, Ref } from 'vue';
+import { computed, inject, Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const bricks = inject("bricks") as Ref<Brick[]>;
+const sections = computed(() => {
+  return [
+    { icon: ShoppingBasket, label: t('marketplace') },
+  ]
+});
 
 </script>
 
@@ -87,8 +94,11 @@ const bricks = inject("bricks") as Ref<Brick[]>;
   gap: 1rem
 }
 
-.container { 
+.container {
+  display: flex;
+  flex-direction: column;
   padding: 16px;
+  gap: 1rem;
 }
 
 .header {
