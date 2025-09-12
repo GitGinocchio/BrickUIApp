@@ -4,15 +4,13 @@ import { catchBrickError } from '../utils/errors';
 
 const allowedCommands = new Set<string>([
   "get_bricks",
-  "get_taskbar_icons"
+  "get_taskbar_icons",
+  "open_start_menu"
 ]);
 
 async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.InvokeOptions): Promise<any> {
   if (!allowedCommands.has(cmd)) {
     const error = new Error(`Command "${cmd}" is forbidden`);
-
-    catchBrickError(error);
-
     return Promise.reject(error);
   }
   return core.invoke(cmd, args, options);

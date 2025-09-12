@@ -23,13 +23,15 @@ export const windowWrapper = {
 
 const blockedProps = [
     'onbeforeunload', 'onerror', 'document', 'location', 
-    'localStorage', 'sessionStorage', 'indexedDB'
+    'localStorage', 'sessionStorage', 'indexedDB', 'fetch'
 ];
 
 const allowedProps: (keyof Window)[] = [
     'innerWidth','innerHeight', 'devicePixelRatio', 'navigator', 'screen', 'requestAnimationFrame',
     'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
-    'performance', 'scrollX', 'scrollY', 'pageXOffset', 'pageYOffset'
+    'performance', 'scrollX', 'scrollY', 'pageXOffset', 'pageYOffset', 
+    'addEventListener',
+    'removeEventListener'
 ];
 
 export const windowWrapper = new Proxy(window, {

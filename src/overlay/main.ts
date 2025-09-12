@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../interfaces/settings";
 import { listen } from "@tauri-apps/api/event";
 import { Brick } from "interfaces/brick";
+import { catchBrickError } from "../utils/errors";
 
 const media = window.matchMedia('(prefers-color-scheme: dark)')
 media.addEventListener('change', updateSystemTheme)

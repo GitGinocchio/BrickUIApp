@@ -5,6 +5,7 @@
     preset="dialog"
     :title="editMode ? 'Edit Prop' : 'New Prop'"
     :draggable="true"
+    @keyup.enter="onFinished(false)"
   >
     <n-form>
       <n-form-item 
@@ -134,7 +135,7 @@
 <script setup lang="ts">
 import { NColorPicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTooltip } from 'naive-ui';
 import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10 } from 'lucide-vue-next';
-import { computed, h, ref, toValue } from 'vue';
+import { computed, h, ref } from 'vue';
 
 import { createProp, Prop, PropTypeValue, propTypeValues } from '../../interfaces/brick';
 import { colorStringToRGBA, deepEqual } from '../../utils';
@@ -252,7 +253,7 @@ function onSkipAlphaChanged(skip_alpha: boolean) {
 
   if (prop.value.prop_type === 'Color') {
     //prop.value.default = skip_alpha ? prop.value.default.slice(0, 7) + "FF" : valueBeforeSkipAlpha;
-    prop.value.default = prop.value.default.slice(0, 7) + (skip_alpha ? "FF" : "CC");
+    prop.value.default = prop.value.default?.slice(0, 7) + (skip_alpha ? "FF" : "CC");
   }
   else if (prop.value.prop_type === 'Gradient') {
     /*
@@ -263,7 +264,7 @@ function onSkipAlphaChanged(skip_alpha: boolean) {
       }
     }) : valueBeforeSkipAlpha;
     */
-    prop.value.default = prop.value.default.map((gradient_stop) => {
+    prop.value.default = prop.value.default?.map((gradient_stop) => {
       return {
         'color': gradient_stop.color.slice(0, 7) + (skip_alpha ? "FF" : "CC"),
         'position': gradient_stop.position

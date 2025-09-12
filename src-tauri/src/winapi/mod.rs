@@ -1,6 +1,7 @@
 pub mod events;
 pub mod taskbar;
 pub mod window;
+pub mod startmenu;
 
 use std::ffi::CString;
 use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};

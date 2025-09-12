@@ -170,6 +170,13 @@ fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result
     Ok(())
 }
 
+#[tauri::command]
+fn open_start_menu() -> Result<(), String> {
+    crate::winapi::startmenu::open_start_menu();
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
@@ -211,7 +218,8 @@ pub fn run() {
             rename_brick,
             save_brick,
             open_brick,
-            new_brick
+            new_brick,
+            open_start_menu
         ])
         .setup(|app| {
             let resolver = app.app_handle().path();
@@ -237,8 +245,6 @@ pub fn run() {
             let wallpaperwv = app.get_webview("wallpaper").unwrap();
             let wallpaperw = app.get_window("wallpaper").unwrap();
             let hwnd = wallpaperw.hwnd().map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
-            println!("{hwnd:?}");
-            //remove_titlebar(&wallpaperw);
             set_as_wallpaper_background(hwnd)?;
 
             wallpaperwv.open_devtools();

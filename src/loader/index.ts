@@ -5,6 +5,7 @@ import { Brick } from "interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
 import { appDataDir, normalizePath } from "./utils";
+import { BrickError } from "./types";
 
 export const app = createApp({
   render() {
@@ -34,7 +35,13 @@ export async function loadBrickComponent(brick: Brick) {
       name: brick.name,
     });
 
-    component = await loadVueModuleToCJS(brick, moduleCache);
+    try {
+      component = await loadVueModuleToCJS(brick, moduleCache);
+    }
+    catch (error) {
+      return Promise.reject(error);
+    }
+
     addBrickToCache(brick.name, component);
   }
 

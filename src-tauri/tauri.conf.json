@@ -23,15 +23,16 @@
         "fullscreen": false,
         "devtools": true,
         "focus" : true,
-        "visible": false
+        "visible": true
       },
       {
         "label" : "wallpaper",
         "title" : "Brick UI [Wallpaper]",
         "url" : "/wallpaper/index.html",
+        "skipTaskbar": true,
         "fullscreen": true,
         "devtools": true,
-        "visible" : true,
+        "visible" : false,
         "focus" : true
       },
       {

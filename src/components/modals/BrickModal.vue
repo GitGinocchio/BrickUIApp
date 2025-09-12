@@ -59,7 +59,7 @@ import { NModal, NForm, NFormItem, NDynamicTags, NInput } from 'naive-ui';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from '../../interfaces/brick';
 import { deepEqual } from '../../utils';
-import { inject, Ref, ref } from 'vue';
+import { inject, onMounted, onUnmounted, Ref, ref } from 'vue';
 
 const show = defineModel<boolean>("show");
 const brick = defineModel<Brick>("brick");
@@ -117,6 +117,7 @@ async function updateBrick() {
 }
 
 async function onEnterClicked() {
+  console.log('enter clicked');
   if (editMode.value) {
     if (deepEqual(initialBrick.value, brick.value) || feedback != null) {
       return;

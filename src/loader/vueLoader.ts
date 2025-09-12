@@ -1,5 +1,5 @@
 import { Brick } from "interfaces/brick";
-import { Component } from "vue";
+import { App, Component } from "vue";
 
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { compileScript, compileStyleAsync, compileTemplate, parse } from "@vue/compiler-sfc";
@@ -9,21 +9,32 @@ import { transform } from "@babel/standalone";
 
 import { windowWrapper } from "../api/window";
 import { processStyle } from "./styleProcessor";
+import { addErrorToBrickState } from "./state";
+import { catchBrickError } from "../utils/errors";
 
-export async function loadVueModuleToCJS(brick: Brick, moduleCache: object = {}): Promise<Component> {
+export async function loadVueModuleToCJS(
+  brick: Brick, 
+  moduleCache: object = {}
+): Promise<Component> {
   const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, { baseDir: BaseDirectory.AppData });
   const path = normalizePath(`./bricks/${brick.name}/brick.vue`, { root: appDataDir });
+
+  const errors = [];
 
   // 1. Fa il parse del file .vue
   const parsed = parse(source, { filename: path });
   const descriptor = parsed.descriptor;
   const id = btoa(path);
-  console.log('parsed:', parsed, 'descriptor:', descriptor, 'id:', id);
+
+  errors.push(...parsed.errors);
 
   // 2. Compila lo script
   const script = compileScript(descriptor, { id });
   const scriptContent = script.content.replace(/export\s+default\s+/, 'const __script = ');
-  console.log(`script block:`, script);
+  if (script.warnings) errors.push(...script.warnings.map(message => new Error(message)));
+
+  console.log(script);
+  // Qui va fatta la riscrittura degli import
 
   // 3. Compila il template
   let renderCode = '';
@@ -38,6 +49,10 @@ export async function loadVueModuleToCJS(brick: Brick, moduleCache: object = {})
       },
     })
 
+    console.log(template);
+
+    errors.push(...template.errors.map(message => typeof message === "string" ? new Error(message) : message));
+
     renderCode = template.code.replace(/export function render/, 'function render');
   }
 
@@ -48,6 +63,8 @@ export async function loadVueModuleToCJS(brick: Brick, moduleCache: object = {})
       filename: path, 
       id 
     });
+
+    errors.push(...css.errors);
 
     if (css.code) {
       const code = processStyle(css.code, 'css', brick);
@@ -62,6 +79,14 @@ export async function loadVueModuleToCJS(brick: Brick, moduleCache: object = {})
     ${scriptContent}
     ${renderCode}
     if (typeof render !== 'undefined') __script.render = render;
+
+    __script.__brickContext = {
+      name: "${brick.name}",
+      author: "${brick.author}"
+    };
+
+    const fetch = (...args) => window.fetch(args);
+
     module.exports = { default: __script, render: __script.render };
   `;
 
@@ -79,10 +104,28 @@ export async function loadVueModuleToCJS(brick: Brick, moduleCache: object = {})
     sourceMaps: false
   });
 
+  errors.forEach(error => {
+    console.log(error);
+    catchBrickError(error, { name: brick.name, author: String(brick.author) }, "parsing")
+  });
+
   // 8. Esegue il codice in un modulo CommonJS per ottenere la render funcion
   const mod: { exports: { default: any; render?: any } } = { exports: { default: undefined } };
-  const fn = new Function('module', 'exports', 'moduleCache', 'window', babelResult.code);
-  fn(mod, mod.exports, moduleCache, windowWrapper);
+  try {
+    const fn = new Function('module', 'exports', 'moduleCache', 'window', babelResult.code);
+    const result = fn(mod, mod.exports, moduleCache, windowWrapper);
+    if (result instanceof Promise) {
+      result.catch(error => {
+        //console.error(`[Brick: ${brick.name}] Runtime async error:`, error);
+        catchBrickError(error, { name: brick.name, author: String(brick.author) }, "executing");
+        return Promise.reject(error);
+      });
+    }
+  } catch (error) {
+    //console.error(`[Brick: ${brick.name}] Runtime sync error:`, error);
+    catchBrickError(error, { name: brick.name, author: String(brick.author) }, "executing");
+    return Promise.reject(error);
+  }
 
   return mod.exports.default;
 }

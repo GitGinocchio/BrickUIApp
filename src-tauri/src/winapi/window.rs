@@ -1,5 +1,5 @@
 use windows::Win32::{
-    Foundation::{HWND, LPARAM, RECT, WPARAM}, Graphics::Gdi::{MonitorFromWindow, GetMonitorInfoA, MONITORINFO, MONITORINFOEXA, MONITOR_DEFAULTTONEAREST}, UI::WindowsAndMessaging::{
+    Foundation::{HWND, LPARAM, POINT, RECT, WPARAM}, Graphics::Gdi::{GetMonitorInfoA, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITORINFOEXA, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY}, UI::WindowsAndMessaging::{
         FindWindowA, FindWindowExA, GetSystemMetrics, GetWindowLongA, GetWindowLongPtrW, 
         GetWindowRect, SendMessageTimeoutA, SetLayeredWindowAttributes, SetParent, 
         SetWindowLongA, SetWindowLongPtrW, SetWindowPos, 
@@ -64,32 +64,6 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
         );
     }
 
-    // scorri tutte le finestre WorkerW
-    let mut hwnd = HWND(null_mut());
-    loop {
-        hwnd = unsafe {
-            FindWindowExA(
-                None, 
-                Some(hwnd), 
-                PCSTR(b"WorkerW\0".as_ptr()), 
-                PCSTR(null_mut()))
-                .unwrap_or(HWND(null_mut())
-        )};
-        if hwnd.0 == null_mut() { break; }
-
-        let shell = unsafe {
-            FindWindowExA(
-                Some(hwnd), 
-                None, 
-                PCSTR(b"SHELLDLL_DefView\0".as_ptr()), 
-                PCSTR(null_mut())).unwrap_or(HWND(null_mut()))
-        };
-        if shell.0 == null_mut() {
-            workerw = hwnd; // questo WorkerW non ha DefView → è quello giusto
-            break;
-        }
-    }
-
     unsafe {
         let shell = FindWindowExA(
             Some(progman), 
@@ -112,35 +86,7 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
         return Err("WorkerW non trovato!".into());
     }
 
-    /*
-    let style = unsafe { GetWindowLongA(hwnd_tauri, GWL_STYLE) };
-    unsafe { SetWindowLongA(hwnd_tauri, GWL_STYLE, style | WS_CHILD.0 as i32 | WS_VISIBLE.0 as i32) };
-
-    // Massimizza la finestra sullo schermo
-    unsafe { 
-        SetWindowPos(
-            hwnd_tauri,
-            Some(HWND(null_mut())),
-            0,
-            0,
-            GetSystemMetrics(SM_CXSCREEN),
-            GetSystemMetrics(SM_CYSCREEN),
-            SWP_NOZORDER | SWP_NOACTIVATE,
-        ).map_err(|e| format!("Errore durante la modifica della posizione della finestra: {e}"))?;
-    }
-
-    unsafe { 
-        SetWindowLongA(hwnd_tauri, GWL_EXSTYLE, WS_EX_TOOLWINDOW.0 as i32 | WS_EX_LAYERED.0 as i32);
-        SetLayeredWindowAttributes(
-            hwnd_tauri, 
-            windows::Win32::Foundation::COLORREF(0), 
-            255, 
-            LWA_ALPHA
-        ).map_err(|e| format!("Errore durante l'impostazione di un attributo della finestra: {e}"))?; 
-    };
-    */
-
-    let hmonitor = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
+    let hmonitor = unsafe { MonitorFromPoint(POINT { x: 0, y: 0 }, MONITOR_DEFAULTTONEAREST) };
     let mut mi = MONITORINFO {
         cbSize: std::mem::size_of::<MONITORINFO>() as u32,
         rcMonitor: RECT::default(),
@@ -153,9 +99,25 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
             .map_err(|e| format!("Errore durante l'ottenimento delle info del monitor: {e}"))?;
     }
 
+    /*
     unsafe {
         SetWindowPos(
-            hwnd,
+            workerw,
+            None,
+            mi.rcMonitor.left,
+            mi.rcMonitor.top,
+            mi.rcMonitor.right - mi.rcMonitor.left,
+            mi.rcMonitor.bottom - mi.rcMonitor.top,
+            SWP_NOZORDER | SWP_NOACTIVATE,
+        ).map_err(|e| format!("Errore durante la modifica della posizione della finestra workerw: {e}"))?;
+    }
+    */
+
+    println!("{hmonitor:?}");
+
+    unsafe {
+        SetWindowPos(
+            hwnd_tauri,
             Some(HWND(null_mut())), // non davanti ad altre finestre
             mi.rcMonitor.left,
             mi.rcMonitor.top,
@@ -164,7 +126,6 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
             SWP_NOZORDER | SWP_NOACTIVATE
         ).map_err(|e| format!("Errore durante la modifica della posizione della finestra: {e}"))?
     };
-
 
     // 4. Imposta la tua finestra come child di WorkerW
     unsafe {

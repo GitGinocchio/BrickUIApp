@@ -7,6 +7,8 @@
     :title="title"
     :negative-text="negative"
     :positive-text="positive"
+    @keyup.enter="emit('confirm')"
+    @keyup.escape="emit('decline')"
     @positive-click="emit('confirm')"
     @negative-click="emit('decline')"
   >

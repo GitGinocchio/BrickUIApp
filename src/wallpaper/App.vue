@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalPosition, LogicalSize, PhysicalPosition } from '@tauri-apps/api/window';
 import { onMounted } from 'vue';
 import NeuralBg from './NeuralBg.vue';
 import { listen } from '@tauri-apps/api/event';
@@ -30,7 +30,7 @@ function simulateFakeMouseEvent(x: number, y: number) {
 onMounted(async () => {
   const window = getCurrentWindow();
   await window.setIgnoreCursorEvents(true);
-  await window.show();
+  //await window.show();
 
   listen<[number, number]>('global_mouse_moved', async (event) => {
     simulateFakeMouseEvent(event.payload[0],event.payload[1]);

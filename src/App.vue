@@ -85,12 +85,11 @@ const option = ref('/bricks')
 const menuOptions = computed(() => [
   { label: t('bricks'),           key: '/bricks',       icon: () => h(Cuboid) },
   { label: 'Walls',               key: '/walls',        icon: () => h(LayoutDashboard) },
-  { label: 'Wallpapers',          key: '/background',   icon: () => h(Wallpaper) },
   { label: t('marketplace'),      key: '/marketplace',  icon: () => h(StoreIcon) }
 ]);
 
 const bottomMenuOptions = computed(() => [
-  { label: 'User',       key: '/user',    icon: () => h(CircleUser) },
+  { label: 'User',              key: '/user',    icon: () => h(CircleUser) },
   { label: t('settings'),       key: '/settings',    icon: () => h(SettingsIcon) },
 ]);
 
@@ -115,7 +114,7 @@ onMounted(async () => {
   });
 
   await currentWindow.hide();
-  await currentWindow.show();
+  await currentWindow.show()
 });
 
 watch(settings, async (newSettings) => {
