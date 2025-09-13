@@ -1,11 +1,13 @@
 import { h, createApp } from "vue";
-import { bricksState, disableBrick, getBrickFromState, isBrickInState, setBrickState } from "./state";
+import { bricksState, disableBrick, getBrickFromState, setBrickState } from "./state";
 import { addBrickToCache, getBrickFromCache } from "./cache";
 import { Brick } from "interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
 import { appDataDir, normalizePath } from "./utils";
-import { BrickError } from "./types";
+import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { catchBrickError } from "../utils/errors";
 
 export const app = createApp({
   render() {
@@ -29,17 +31,21 @@ export const app = createApp({
 export async function loadBrickComponent(brick: Brick) {
   let component = getBrickFromCache(brick.name);
 
+  const path = normalizePath(`./bricks/${brick.name}/brick.vue`, { root: appDataDir }, false);
+
   if (!component) {
     const moduleCache = createModuleCache({
-      path: normalizePath(`./bricks/${brick.name}/brick.vue`, { root: appDataDir }),
+      path: convertFileSrc(path),
       name: brick.name,
     });
 
     try {
-      component = await loadVueModuleToCJS(brick, moduleCache);
+      const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, { baseDir: BaseDirectory.AppData });
+      component = await loadVueModuleToCJS(source, path, path, moduleCache, brick);
     }
     catch (error) {
-      return Promise.reject(error);
+      catchBrickError(error, { name: brick.name, author: brick.author }, "importing");
+      return Promise.resolve();
     }
 
     addBrickToCache(brick.name, component);

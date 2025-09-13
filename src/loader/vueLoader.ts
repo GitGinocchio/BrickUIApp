@@ -3,8 +3,8 @@ import { App, Component } from "vue";
 
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { compileScript, compileStyleAsync, compileTemplate, parse } from "@vue/compiler-sfc";
-import { appDataDir, normalizePath } from "./utils";
-import { rewriteImports } from "./scriptProcessor";
+import { appDataDir, dirname, filename, getRelativePath, normalizePath } from "./utils";
+import { extractImports, rewriteImports } from "./scriptProcessor";
 import { transform } from "@babel/standalone";
 
 import { windowWrapper } from "../api/window";
@@ -13,35 +13,73 @@ import { addErrorToBrickState } from "./state";
 import { catchBrickError } from "../utils/errors";
 
 export async function loadVueModuleToCJS(
-  brick: Brick, 
-  moduleCache: object = {}
+  source: string,
+  componentPath: string,
+  brickFilePath: string,
+  moduleCache: object = {},
+  brick: Brick | null = null,
 ): Promise<Component> {
-  const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, { baseDir: BaseDirectory.AppData });
-  const path = normalizePath(`./bricks/${brick.name}/brick.vue`, { root: appDataDir });
-
+  const brickDirName = dirname(brickFilePath);
+  const componentDirName = dirname(componentPath);
   const errors = [];
 
   // 1. Fa il parse del file .vue
-  const parsed = parse(source, { filename: path });
+  const parsed = parse(source, { filename: componentPath });
   const descriptor = parsed.descriptor;
-  const id = btoa(path);
+  const id = btoa(componentPath);
+
+  const imports = extractImports(descriptor);
+  
+  await Promise.all(
+    imports.map(async (binding) => {
+      if (binding.imported === 'default' && binding.source.endsWith('.vue')) {
+        const importPath = normalizePath(binding.source, { root: componentDirName }, false);
+
+        if (importPath === componentPath) {
+          const error = new Error(`You can't import module ${filename(importPath)} in the same module!`);
+          return Promise.reject(error);
+        }
+
+        if (importPath in moduleCache) return Promise.resolve();
+
+        const relativeImportPath = getRelativePath(`${componentDirName}/${binding.source}`, appDataDir);
+        const normRelImportPath = normalizePath(relativeImportPath, { root: appDataDir }, false);
+
+        if (normRelImportPath === brickFilePath) {
+          const error = new Error(`You can't import module ${filename(normRelImportPath)} in ${filename(brickFilePath)} module!`);
+          return Promise.reject(error);
+        }
+
+        try {
+          const source = await readTextFile(normRelImportPath, { baseDir: BaseDirectory.AppData });
+          moduleCache[normRelImportPath] = await loadVueModuleToCJS(source, normRelImportPath, importPath, moduleCache, brick);
+        } catch (error) {
+          return Promise.reject(new Error(error));
+        }
+      }
+    })
+  );
 
   errors.push(...parsed.errors);
 
   // 2. Compila lo script
-  const script = compileScript(descriptor, { id });
-  const scriptContent = script.content.replace(/export\s+default\s+/, 'const __script = ');
+  let script;
+  try {
+    script = compileScript(descriptor, { id });
+  }
+  catch (error) {
+    return Promise.reject(error);
+  }
+  
+  let scriptContent = script.content.replace(/export\s+default\s+/, 'const __script = ');
   if (script.warnings) errors.push(...script.warnings.map(message => new Error(message)));
-
-  console.log(script);
-  // Qui va fatta la riscrittura degli import
 
   // 3. Compila il template
   let renderCode = '';
   if (descriptor.template) {
     const template = compileTemplate({
       source: descriptor.template.content,
-      filename: path,
+      filename: componentPath,
       id,
       compilerOptions: { 
         mode: 'module', 
@@ -60,14 +98,14 @@ export async function loadVueModuleToCJS(
   for (const style of descriptor.styles) {
     const css = await compileStyleAsync({ 
       source: style.content, 
-      filename: path, 
+      filename: componentPath, 
       id 
     });
 
     errors.push(...css.errors);
 
     if (css.code) {
-      const code = processStyle(css.code, 'css', brick);
+      const code = processStyle(css.code, 'css', dirname(componentPath));
       const styleEl = document.createElement('style');
       styleEl.textContent = code;
       document.head.appendChild(styleEl);
@@ -80,10 +118,13 @@ export async function loadVueModuleToCJS(
     ${renderCode}
     if (typeof render !== 'undefined') __script.render = render;
 
+    ${brick !== null ? `
     __script.__brickContext = {
       name: "${brick.name}",
-      author: "${brick.author}"
-    };
+      author: "${brick.author}",
+      component: "${filename(componentPath, false)}"
+    };` : ''
+    }
 
     const fetch = (...args) => window.fetch(args);
 
@@ -91,7 +132,7 @@ export async function loadVueModuleToCJS(
   `;
 
   // 6. Riscrive gli import verso moduleCache
-  fullCode = rewriteImports(fullCode, moduleCache);
+  fullCode = rewriteImports(fullCode, moduleCache, brickDirName);
 
   // 7. Trasforma con Babel (JS moderno/CJS → JS compatibile)
   const babelResult = transform(fullCode, {
@@ -106,7 +147,7 @@ export async function loadVueModuleToCJS(
 
   errors.forEach(error => {
     console.log(error);
-    catchBrickError(error, { name: brick.name, author: String(brick.author) }, "parsing")
+    catchBrickError(error, { name: brick?.name, author: String(brick?.author) }, "parsing")
   });
 
   // 8. Esegue il codice in un modulo CommonJS per ottenere la render funcion
@@ -116,14 +157,12 @@ export async function loadVueModuleToCJS(
     const result = fn(mod, mod.exports, moduleCache, windowWrapper);
     if (result instanceof Promise) {
       result.catch(error => {
-        //console.error(`[Brick: ${brick.name}] Runtime async error:`, error);
-        catchBrickError(error, { name: brick.name, author: String(brick.author) }, "executing");
+        catchBrickError(error, { name: brick?.name, author: String(brick?.author) }, "executing");
         return Promise.reject(error);
       });
     }
   } catch (error) {
-    //console.error(`[Brick: ${brick.name}] Runtime sync error:`, error);
-    catchBrickError(error, { name: brick.name, author: String(brick.author) }, "executing");
+    catchBrickError(error, { name: brick?.name, author: String(brick?.author) }, "executing");
     return Promise.reject(error);
   }
 

@@ -247,7 +247,7 @@ pub fn run() {
             let hwnd = wallpaperw.hwnd().map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
             set_as_wallpaper_background(hwnd)?;
 
-            wallpaperwv.open_devtools();
+            //wallpaperwv.open_devtools();
 
             set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
 

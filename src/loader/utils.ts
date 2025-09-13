@@ -74,3 +74,65 @@ export function normalizePath(path: string, options?: { protocol?: string; root?
   console.log('normalized', normalized);
   return useConvertFileSrc ? convertFileSrc(normalized, protocol) : normalized;
 }
+
+export function dirname(filePath: string): string {
+  const decoded = decodeURIComponent(filePath);
+
+  // Normalizza separatori (Unix/Windows)
+  const normalized = decoded.replace(/\\/g, "/");
+  
+  // Rimuove eventuale trailing slash
+  const cleanPath = normalized.replace(/\/+$/, "");
+
+  // Trova l'ultimo slash
+  const lastSlashIndex = cleanPath.lastIndexOf("/");
+
+  // Se non c'è slash, restituisce "."
+  if (lastSlashIndex === -1) return ".";
+
+  // Ritorna tutto fino all'ultimo slash
+  return cleanPath.slice(0, lastSlashIndex);
+}
+
+export function filename(filePath: string, ext: boolean = true): string {
+  // Decodifica eventuali caratteri URL-encoded
+  const decoded = decodeURIComponent(filePath);
+
+  // Normalizza separatori (Unix/Windows)
+  const normalized = decoded.replace(/\\/g, "/").replace(/\/+$/, "");
+
+  // Trova l'ultimo slash
+  const lastSlashIndex = normalized.lastIndexOf("/");
+  let base = lastSlashIndex === -1 ? normalized : normalized.slice(lastSlashIndex + 1);
+
+  // Se ext è false, rimuove l'estensione
+  if (!ext) {
+    const lastDotIndex = base.lastIndexOf(".");
+    if (lastDotIndex > 0) {
+      base = base.slice(0, lastDotIndex);
+    }
+  }
+
+  return base;
+}
+
+export function getRelativePath(filePath: string, root: string): string {
+  // Decodifica temporaneamente
+  const decodedFilePath = decodeURIComponent(filePath).replace(/\\/g, "/").replace(/\/+$/, "");
+  const decodedRoot = decodeURIComponent(root).replace(/\\/g, "/").replace(/\/+$/, "");
+
+  const fileSegments = decodedFilePath.split("/");
+  const rootSegments = decodedRoot.split("/");
+
+  // Trova la parte comune
+  let commonLength = 0;
+  for (; commonLength < Math.min(fileSegments.length, rootSegments.length); commonLength++) {
+    if (fileSegments[commonLength] !== rootSegments[commonLength]) break;
+  }
+
+  // Segmenti da risalire dal root
+  const upSegments = rootSegments.length - commonLength;
+  const relativeParts = Array(upSegments).fill("..").concat(fileSegments.slice(commonLength));
+
+  return relativeParts.join("/") || ".";
+}
