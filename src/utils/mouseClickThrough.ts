@@ -23,11 +23,40 @@ export async function handleClickThrough(event: Event<[number, number]>, current
 
   // se click-through abilitato, genera eventi finti
   if (isClickThroughEnabled) {
-    simulateFakeMouseEvent(screenX, screenY);
+    simulateFakeMouseMoved(screenX, screenY);
   }
 }
 
-function simulateFakeMouseEvent(x: number, y: number) {
+export function simulateFakeMousePressed(event: { payload: [number, number, string]}) {
+  console.log(event);
+
+  let button = null;
+  switch (event.payload[2]) {
+    case "Left":
+      button = 0;
+      break;
+    case "Middle":
+      button = 1;
+      break;
+    case "Right":
+      button = 2;
+      break;
+    default: 
+      button = null;
+
+  }
+
+  const clickEvent = new MouseEvent('click', {
+    clientX: event.payload[0],
+    clientY: event.payload[1],
+    bubbles: true,
+    cancelable: true,
+    button: button
+  });
+  document.dispatchEvent(clickEvent);
+}
+
+export function simulateFakeMouseMoved(x: number, y: number) {
   const event = new MouseEvent('mousemove', {
     clientX: x,
     clientY: y,
@@ -35,15 +64,4 @@ function simulateFakeMouseEvent(x: number, y: number) {
     cancelable: true
   });
   document.dispatchEvent(event);
-
-  // In futuro da fare quando avviene un click globale
-  /*
-  const clickEvent = new MouseEvent('click', {
-    clientX: x,
-    clientY: y,
-    bubbles: true,
-    cancelable: true
-  });
-  document.dispatchEvent(clickEvent);
-  */
 }

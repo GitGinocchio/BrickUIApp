@@ -164,7 +164,8 @@ export function rewriteImports(code: string, moduleCache: Record<string, any>, b
           return s;
         })
         .join(", ");
-      return `const ${defaultName} = ${moduleVar(moduleName)}.default ?? ${moduleVar(moduleName)}; const { ${names} } = ${moduleVar(moduleName)};`;
+      return `const ${defaultName} = ${moduleVar(moduleName)}.default ?? ${moduleVar(moduleName)}; 
+              const { ${names} } = ${moduleVar(moduleName)};`;
     }
   );
 

@@ -7,7 +7,7 @@ import { LogicalPosition, LogicalSize, getCurrentWindow } from '@tauri-apps/api/
 import { listen } from '@tauri-apps/api/event';
 import { ComponentPublicInstance, h, inject, onMounted, Ref, ref } from 'vue';
 import { NButton, useNotification } from 'naive-ui';
-import { handleClickThrough } from '../utils/mouseClickThrough';
+import { handleClickThrough, simulateFakeMousePressed } from '../utils/mouseClickThrough';
 import { initLoader, toggleBrick, updateBrick } from '../loader';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from 'interfaces/brick';
@@ -23,6 +23,7 @@ const isReady = ref(false);
 const overlay = ref<HTMLDivElement>();
 const bricks = ref<Array<Brick>>();
 
+listen<[number, number, string]>('global_mouse_pressed', async (event) => simulateFakeMousePressed(event));
 listen<[number, number]>('global_mouse_moved', async (event) => handleClickThrough(event, currentWindow));
 listen<{ brick: Brick }>('toggle-brick', async (event) => await toggleBrick(event.payload.brick));
 listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', async (event) => {

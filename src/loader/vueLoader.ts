@@ -18,7 +18,7 @@ export async function loadVueModuleToCJS(
   brickFilePath: string,
   moduleCache: object = {},
   brick: Brick | null = null,
-): Promise<Component> {
+): Promise<{ default: Component, render?: () => void}> {
   const brickDirName = dirname(brickFilePath);
   const componentDirName = dirname(componentPath);
   const errors = [];
@@ -46,13 +46,13 @@ export async function loadVueModuleToCJS(
         const normRelImportPath = normalizePath(relativeImportPath, { root: appDataDir }, false);
 
         if (normRelImportPath === brickFilePath) {
-          const error = new Error(`You can't import module ${filename(normRelImportPath)} in ${filename(brickFilePath)} module!`);
+          const error = new Error(`You can't import module ${filename(brickFilePath)} in module ${filename(componentPath)}!`);
           return Promise.reject(error);
         }
 
         try {
           const source = await readTextFile(normRelImportPath, { baseDir: BaseDirectory.AppData });
-          moduleCache[normRelImportPath] = await loadVueModuleToCJS(source, normRelImportPath, importPath, moduleCache, brick);
+          moduleCache[normRelImportPath] = await loadVueModuleToCJS(source, normRelImportPath, brickFilePath, moduleCache, brick);
         } catch (error) {
           return Promise.reject(new Error(error));
         }
@@ -63,16 +63,24 @@ export async function loadVueModuleToCJS(
   errors.push(...parsed.errors);
 
   // 2. Compila lo script
-  let script;
+  let scriptContent = "";
+  let bindings: any = undefined;
   try {
-    script = compileScript(descriptor, { id });
-  }
-  catch (error) {
+    if (descriptor.scriptSetup || descriptor.script) {
+      const compiled = compileScript(descriptor, { id });
+      if (compiled.warnings) {
+        errors.push(...compiled.warnings.map(message => new Error(message)));
+      }
+
+      scriptContent = compiled.content.replace(/export\s+default\s+/, "const __script = ");
+      scriptContent  = scriptContent.replace(/export\s*{[^}]+};?/g, "");
+      bindings = compiled.bindings;
+    } else {
+      scriptContent = "const __script = {}";
+    }
+  } catch (error) {
     return Promise.reject(error);
   }
-  
-  let scriptContent = script.content.replace(/export\s+default\s+/, 'const __script = ');
-  if (script.warnings) errors.push(...script.warnings.map(message => new Error(message)));
 
   // 3. Compila il template
   let renderCode = '';
@@ -83,11 +91,9 @@ export async function loadVueModuleToCJS(
       id,
       compilerOptions: { 
         mode: 'module', 
-        bindingMetadata: script?.bindings 
-      },
+        bindingMetadata: bindings
+      }
     })
-
-    console.log(template);
 
     errors.push(...template.errors.map(message => typeof message === "string" ? new Error(message) : message));
 
@@ -122,13 +128,27 @@ export async function loadVueModuleToCJS(
     __script.__brickContext = {
       name: "${brick.name}",
       author: "${brick.author}",
-      component: "${filename(componentPath, false)}"
+      component: "${filename(componentPath, false)}",
     };` : ''
     }
 
     const fetch = (...args) => window.fetch(args);
 
-    module.exports = { default: __script, render: __script.render };
+    console.log(moduleCache);
+
+    module.exports = { 
+      default: __script, 
+      render: __script.render,
+      ${/* componentPath !== brickFilePath 
+          ? Object.entries(bindings)
+              .map(([entry, type]) => {
+                if (type === "setup-ref") return;
+                return `${entry}:${entry},`;
+              })
+              .join("\n") 
+          : '' 
+      */''}
+    };
   `;
 
   // 6. Riscrive gli import verso moduleCache
@@ -151,7 +171,7 @@ export async function loadVueModuleToCJS(
   });
 
   // 8. Esegue il codice in un modulo CommonJS per ottenere la render funcion
-  const mod: { exports: { default: any; render?: any } } = { exports: { default: undefined } };
+  const mod: { exports: { default: Component; render?: () => void } } = { exports: { default: undefined } };
   try {
     const fn = new Function('module', 'exports', 'moduleCache', 'window', babelResult.code);
     const result = fn(mod, mod.exports, moduleCache, windowWrapper);
@@ -165,6 +185,5 @@ export async function loadVueModuleToCJS(
     catchBrickError(error, { name: brick?.name, author: String(brick?.author) }, "executing");
     return Promise.reject(error);
   }
-
-  return mod.exports.default;
+  return mod.exports;
 }

@@ -35,8 +35,10 @@
         </template>
       </component>
       <template v-if="editMode">
-        <n-button circle text @click="emit('edit:prop', prop)"><Wrench :size="16" /></n-button>
-        <n-button circle text @click="emit('delete:prop', prop)"><Trash2 :size="16" /></n-button>
+        <div>
+          <n-button circle text @click="emit('edit:prop', prop)"><Wrench :size="16" /></n-button>
+          <n-button circle text @click="emit('delete:prop', prop)"><Trash2 :size="16" /></n-button> 
+        </div>
       </template>
     </div>
   </div>
@@ -306,20 +308,28 @@ watch(modelValue, () => {
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   margin-top: 0.5rem;
+  margin-left: 0.75rem;
+  margin-right: 0.75rem;
 }
 
 .brick-prop label {
   font-weight: normal;
   margin-left: 0rem;
 }
-</style>
 
-<style>
 ::deep(.n-popover__content) {
   display: flex;
 }
 
 .prop-input-section {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.prop-input-section div {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
@@ -327,9 +337,10 @@ watch(modelValue, () => {
 
 .prop-input-component {
   justify-content: flex-start;
-  width: 100%;
 }
+</style>
 
+<style>
 .brick-prop-description * {
   margin: 0;
 }

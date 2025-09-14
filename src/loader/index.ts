@@ -41,7 +41,8 @@ export async function loadBrickComponent(brick: Brick) {
 
     try {
       const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, { baseDir: BaseDirectory.AppData });
-      component = await loadVueModuleToCJS(source, path, path, moduleCache, brick);
+      const module = await loadVueModuleToCJS(source, path, path, moduleCache, brick);
+      component = module.default;
     }
     catch (error) {
       catchBrickError(error, { name: brick.name, author: brick.author }, "importing");

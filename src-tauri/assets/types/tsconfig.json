@@ -1,9 +1,20 @@
 {
   "compilerOptions": {
-    "target": "ES2024",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
-    "typeRoots": [".types"]
+    "typeRoots": ["./.types", ".", "./node_modules/@types"],
+    "composite" : true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["./**/*.vue", ".types/**/*.d.ts"]
+  "include": [
+    "./.types/**/*.js",
+    "./.types/**/*.ts", 
+    "./.types/**/*.tsx",
+    "./.types/**/*.d.ts",
+    "./**/*.d.ts",
+    "./**/*.vue"
+  ]
 }

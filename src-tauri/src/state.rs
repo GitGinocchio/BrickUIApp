@@ -78,6 +78,7 @@ fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<
     options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
     options.content_only = true;
     options.skip_exist = true;
+    options.depth = 3;
 
     copy(
         resource_path.join("assets").join("types"),

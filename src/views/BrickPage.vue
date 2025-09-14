@@ -53,7 +53,7 @@
             </div>
           </template>
           <div class="movable" v-for="(prop, index) in brick.props" :key="prop.prop_name">
-            <span v-if="propsEditMode" class="arrows cursor-move mr-2">
+            <span v-if="propsEditMode" class="arrows">
               <ChevronUp v-if="index !== 0" @click="onMovePropUp(prop)" :size="16" />
               <ChevronDown v-if="index < brick.props.length - 1" @click="onMovePropDown(prop)" :size="16" />
             </span>
@@ -344,6 +344,7 @@ async function deleteBrick() {
 .header,
 .content {
   z-index: 1;
+  margin-bottom: 1rem;
 }
 
 .content {
@@ -396,7 +397,7 @@ async function deleteBrick() {
 
 .arrows {
   cursor: pointer;
-  margin-right: 8px;
+  /* margin-right: 8px; */
   font-size: 18px;
   display: flex;
   flex-direction: column;
