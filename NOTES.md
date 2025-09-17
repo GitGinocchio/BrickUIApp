@@ -1,9 +1,15 @@
 
-- [ ] Rimuovere l'alt+f4 sulla finestra dell'overlay
+- [ ] Aggiungere un metodo per ottenere la lista dei file recenti
 
-- [ ] Creare un header comune a tutte le pagine
+- [ ] Aggiungere un cache icon size nei settings
 
-- [ ] Forse bisognerebbe fare che quando una persona apre l'app per la prima volta
+- [ ] Rimuovere l'alt+f4 sulla finestra dell'overlay (forse anche no)
+
+- [x] Creare un header comune a tutte le pagine
+
+- [ ] 
+  (Questo non serve in realta', si possono comunque implementare i wall)
+  Forse bisognerebbe fare che quando una persona apre l'app per la prima volta
   la prima cosa che deve fare e' creare un wall (un tema) da li in poi potra' creare i brick
   e quando si crea un brick verra' chiesto in quale wall si vuole mettere quel brick
 
@@ -142,7 +148,7 @@ Colore del logo:
 - Sistemare la pagina dei settings
 
 - (inutile)
-  Inviare un avviso quando si duplica un prop in quanto attivando due prop uguali si potrebbero andare in contro a dei problemi di navigazione
+  Inviare un avviso quando si duplica un brick in quanto attivando due brick uguali si potrebbero andare in contro a dei problemi di navigazione
 
 - Quando si sta modificando un prop select, e si toglie un opzione che e' attualmente selezionata come default questa rimane nel default
   il default in quel caso dovrebbe tornare vuoto, senza un valore (solo in quel caso)
@@ -156,7 +162,7 @@ Colore del logo:
 
 - [x] Anche la descrizione del prop dovrebbe supportare markdown
 
-- [ ] Aggiungere i proptype: bool, date, time, datetime, color, shortcut (Anche a UI)
+- [ ] Aggiungere i proptype: date, time, datetime, shortcut (Anche a UI)
 
 - Aggiungere la possibilita' negli input di tipo stringa di essere validati attraverso un regex
 

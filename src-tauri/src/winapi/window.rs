@@ -1,17 +1,19 @@
-use windows::Win32::{
-    Foundation::{HWND, LPARAM, POINT, RECT, WPARAM}, Graphics::Gdi::{GetMonitorInfoA, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITORINFOEXA, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY}, UI::WindowsAndMessaging::{
-        FindWindowA, FindWindowExA, GetSystemMetrics, GetWindowLongA, GetWindowLongPtrW, 
-        GetWindowRect, SendMessageTimeoutA, SetLayeredWindowAttributes, SetParent, 
-        SetWindowLongA, SetWindowLongPtrW, SetWindowPos, 
-        GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, LWA_ALPHA, SMTO_NORMAL, 
-        SM_CXSCREEN, SM_CYSCREEN, SWP_FRAMECHANGED, SWP_NOACTIVATE, 
-        SWP_NOZORDER, WS_CAPTION, WS_CHILD, WS_EX_LAYERED, WS_EX_TOOLWINDOW, 
-        WS_THICKFRAME, WS_VISIBLE
-    }
-};
-use windows::core::{PCSTR};
 use std::ptr::null_mut;
-
+use windows::Win32::{
+    Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
+    Graphics::Gdi::{
+        GetMonitorInfoA, MONITOR_DEFAULTTONEAREST, MONITORINFO,
+        MonitorFromPoint
+    },
+    UI::WindowsAndMessaging::{
+        FindWindowA, FindWindowExA, GWL_STYLE,
+        GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST,
+        SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, SendMessageTimeoutA,
+        SetParent, SetWindowLongPtrW, SetWindowPos,
+        WS_CAPTION, WS_THICKFRAME,
+    },
+};
+use windows::core::PCSTR;
 
 fn force_window_style_refresh(hwnd: HWND) {
     unsafe {
@@ -48,37 +50,39 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
     let mut workerw = HWND(null_mut());
     let progman = unsafe {
         FindWindowA(PCSTR(b"Progman\0".as_ptr()), PCSTR(null_mut()))
-        .map_err(|e| format!("Errore durante l'ottenimento della finestra Progman: {e}"))?
+            .map_err(|e| format!("Errore durante l'ottenimento della finestra Progman: {e}"))?
     };
 
     // manda messaggio 0x052C
     unsafe {
         SendMessageTimeoutA(
-            progman, 
-            0x052C, 
+            progman,
+            0x052C,
             WPARAM(0),
-            LPARAM(0), 
-            SMTO_NORMAL, 
-            1000, 
-            None
+            LPARAM(0),
+            SMTO_NORMAL,
+            1000,
+            None,
         );
     }
 
     unsafe {
         let shell = FindWindowExA(
-            Some(progman), 
-            None, 
-            PCSTR(b"SHELLDLL_DefView\0".as_ptr()), 
-            PCSTR(null_mut())
-        ).map_err(|e| format!("errore durante la ricerca della finestra SHELLDLL_DefView: {e}"))?;
-        
+            Some(progman),
+            None,
+            PCSTR(b"SHELLDLL_DefView\0".as_ptr()),
+            PCSTR(null_mut()),
+        )
+        .map_err(|e| format!("errore durante la ricerca della finestra SHELLDLL_DefView: {e}"))?;
+
         if shell.0 != null_mut() {
             workerw = FindWindowExA(
-                Some(progman), 
-                None, 
-                PCSTR(b"WorkerW\0".as_ptr()), 
-                PCSTR(null_mut())
-            ).map_err(|e| format!("Errore durante l'ottenimento della finestra WorkerW: {e}"))?;
+                Some(progman),
+                None,
+                PCSTR(b"WorkerW\0".as_ptr()),
+                PCSTR(null_mut()),
+            )
+            .map_err(|e| format!("Errore durante l'ottenimento della finestra WorkerW: {e}"))?;
         }
     }
 
@@ -123,16 +127,15 @@ pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
             mi.rcMonitor.top,
             mi.rcMonitor.right - mi.rcMonitor.left,
             mi.rcMonitor.bottom - mi.rcMonitor.top,
-            SWP_NOZORDER | SWP_NOACTIVATE
-        ).map_err(|e| format!("Errore durante la modifica della posizione della finestra: {e}"))?
+            SWP_NOZORDER | SWP_NOACTIVATE,
+        )
+        .map_err(|e| format!("Errore durante la modifica della posizione della finestra: {e}"))?
     };
 
     // 4. Imposta la tua finestra come child di WorkerW
     unsafe {
-        SetParent(
-            hwnd_tauri, 
-            Some(workerw)
-        ).map_err(|e| format!("Errore durante il SetParent della finestra child: {e}"))?;
+        SetParent(hwnd_tauri, Some(workerw))
+            .map_err(|e| format!("Errore durante il SetParent della finestra child: {e}"))?;
     }
 
     Ok(())

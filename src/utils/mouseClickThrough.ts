@@ -10,7 +10,8 @@ const elementsToSkip = [
 export async function handleClickThrough(event: Event<[number, number]>, currentWindow: Window) {
   const [screenX, screenY] = event.payload;
 
-  let elementTagName = document.elementFromPoint(screenX, screenY)?.tagName;
+  let element = document.elementFromPoint(screenX, screenY);
+  let elementTagName = element?.tagName;
 
 
   // logica per decidere se abilitare o disabilitare click-through
@@ -22,8 +23,8 @@ export async function handleClickThrough(event: Event<[number, number]>, current
   }
 
   // se click-through abilitato, genera eventi finti
-  if (isClickThroughEnabled) {
-    simulateFakeMouseMoved(screenX, screenY);
+  if (isClickThroughEnabled && element) {
+    simulateFakeMouseMoved(element, screenX, screenY);
   }
 }
 
@@ -31,37 +32,51 @@ export function simulateFakeMousePressed(event: { payload: [number, number, stri
   console.log(event);
 
   let button = null;
+  let buttons = null;
   switch (event.payload[2]) {
     case "Left":
       button = 0;
+      buttons = 1;
       break;
     case "Middle":
       button = 1;
+      buttons = 4;
       break;
     case "Right":
       button = 2;
+      buttons = 2;
       break;
     default: 
-      button = null;
+      button = 0;
+      buttons = 0;
 
   }
 
-  const clickEvent = new MouseEvent('click', {
-    clientX: event.payload[0],
-    clientY: event.payload[1],
-    bubbles: true,
-    cancelable: true,
-    button: button
+  const element = document.elementFromPoint(event.payload[0], event.payload[1]);
+  if (!element) return;
+
+  ["mousedown", "mouseup", "click"].forEach(type => {
+    const evt = new MouseEvent(type, {
+      clientX: event.payload[0],
+      clientY: event.payload[1],
+      screenX: event.payload[0],
+      screenY: event.payload[1],
+      bubbles: true,
+      cancelable: true,
+      button,
+      buttons
+    });
+    element.dispatchEvent(evt);
   });
-  document.dispatchEvent(clickEvent);
 }
 
-export function simulateFakeMouseMoved(x: number, y: number) {
+export function simulateFakeMouseMoved(element: Element, x: number, y: number) {
   const event = new MouseEvent('mousemove', {
     clientX: x,
     clientY: y,
     bubbles: true,
     cancelable: true
   });
-  document.dispatchEvent(event);
+
+  (element ?? document).dispatchEvent(event);
 }

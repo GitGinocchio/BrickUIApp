@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "A collection of plugins with their configurations.")]
 pub struct Plugins {
     #[serde(default, rename = "$schema", skip)]

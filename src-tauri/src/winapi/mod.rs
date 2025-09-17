@@ -1,13 +1,23 @@
 pub mod events;
+pub mod icons;
+pub mod startmenu;
 pub mod taskbar;
 pub mod window;
-pub mod startmenu;
 
 use std::ffi::CString;
+use std::path::{Path, PathBuf};
 use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
-use windows::core::{PCSTR, Result};
+use windows::core::{PCSTR};
+use lnk::ShellLink;
+use lnk::encoding::WINDOWS_1252;
 
-pub fn set_snap_flyout(enabled: bool) -> Result<()> {
+
+pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
+    let shortcut = ShellLink::open(lnk, WINDOWS_1252).unwrap();
+    Ok(shortcut)
+}
+
+pub fn set_snap_flyout(enabled: bool) -> windows::core::Result<()> {
     unsafe {
         let mut hkey = HKEY::default();
 

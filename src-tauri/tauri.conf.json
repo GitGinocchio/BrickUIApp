@@ -19,7 +19,7 @@
         "height": 800,
         "center" : true,
         "resizable": true,
-        "alwaysOnTop": true,
+        "alwaysOnTop": false,
         "fullscreen": false,
         "devtools": true,
         "focus" : true,

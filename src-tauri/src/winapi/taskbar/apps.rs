@@ -1,20 +1,19 @@
-use base64::{Engine as _, engine::general_purpose};
-use image::{ImageBuffer, Rgba};
 use std::{
     collections::HashMap,
     ffi::OsString,
-    os::windows::ffi::{OsStrExt, OsStringExt},
+    os::windows::ffi::OsStringExt,
     path::PathBuf,
 };
 use windows::{
     Win32::{
         Foundation::*,
-        Graphics::Gdi::*,
         System::Threading::*,
-        UI::{Shell::ExtractIconExW, WindowsAndMessaging::*},
+        UI::{WindowsAndMessaging::*},
     },
-    core::{BOOL, PCWSTR, PWSTR},
+    core::{BOOL, PWSTR},
 };
+
+use crate::winapi::{icons::get_exe_icon, resolve_lnk};
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
@@ -58,146 +57,52 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
         )
         .is_ok()
         {
-            CloseHandle(handle);
+            CloseHandle(handle)
+                .map_err(|e| format!("Error while closing handle: {e}"))
+                .ok()?;
             Some(PathBuf::from(OsString::from_wide(&buffer[..size as usize])))
         } else {
-            CloseHandle(handle);
+            CloseHandle(handle)
+                .map_err(|e| format!("Error while closing handle: {e}"))
+                .ok()?;
             None
         }
     }
 }
 
-pub fn extract_icon(exe_path: &PathBuf) -> Option<String> {
-    unsafe {
-        // Converte in UTF-16
-        let path_utf16: Vec<u16> = exe_path.as_os_str().encode_wide().chain(Some(0)).collect();
-
-        // Usa ExtractIconExW per estrarre la prima icona
-        let mut large_icon: HICON = HICON(std::ptr::null_mut());
-        let icons_loaded = ExtractIconExW(
-            PCWSTR(path_utf16.as_ptr()),
-            0,
-            Some(&mut large_icon),
-            None,
-            1,
-        );
-
-        if icons_loaded == 0 || large_icon.0.is_null() {
-            return None;
-        }
-
-        let mut icon_info = ICONINFO::default();
-        if GetIconInfo(large_icon, &mut icon_info).is_err() {
-            DestroyIcon(large_icon);
-            return None;
-        }
-
-        let mut bmp = BITMAP::default();
-        if GetObjectW(
-            HGDIOBJ(icon_info.hbmColor.0),
-            std::mem::size_of::<BITMAP>() as i32,
-            Some(&mut bmp as *mut _ as *mut _),
-        ) == 0
-        {
-            DeleteObject(icon_info.hbmColor.into());
-            DeleteObject(icon_info.hbmMask.into());
-            DestroyIcon(large_icon);
-            return None;
-        }
-
-        let width = bmp.bmWidth as u32;
-        let height = bmp.bmHeight as u32;
-        let mut buffer = vec![0u8; (width * height * 4) as usize];
-
-        let mut bmi = BITMAPINFO {
-            bmiHeader: BITMAPINFOHEADER {
-                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                biWidth: width as i32,
-                biHeight: -(height as i32),
-                biPlanes: 1,
-                biBitCount: 32,
-                biCompression: BI_RGB.0 as u32,
-                biSizeImage: 0,
-                biXPelsPerMeter: 0,
-                biYPelsPerMeter: 0,
-                biClrUsed: 0,
-                biClrImportant: 0,
-            },
-            bmiColors: [RGBQUAD::default(); 1],
-        };
-
-        let hdc = GetDC(None);
-        if GetDIBits(
-            hdc,
-            icon_info.hbmColor,
-            0,
-            height as u32,
-            Some(buffer.as_mut_ptr() as _),
-            &mut bmi,
-            DIB_RGB_COLORS,
-        ) == 0
-        {
-            ReleaseDC(None, hdc);
-            DeleteObject(icon_info.hbmColor.into());
-            DeleteObject(icon_info.hbmMask.into());
-            DestroyIcon(large_icon);
-            return None;
-        }
-        ReleaseDC(None, hdc);
-
-        // BGRA → RGBA
-        for px in buffer.chunks_exact_mut(4) {
-            let b = px[0];
-            px[0] = px[2];
-            px[2] = b;
-        }
-
-        let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, buffer)?;
-
-        let mut png_bytes = Vec::new();
-        image::DynamicImage::ImageRgba8(img_buf)
-            .write_to(
-                &mut std::io::Cursor::new(&mut png_bytes),
-                image::ImageFormat::Png,
-            )
-            .ok()?;
-
-        let base64_icon = general_purpose::STANDARD.encode(&png_bytes);
-
-        DeleteObject(icon_info.hbmColor.into());
-        DeleteObject(icon_info.hbmMask.into());
-        DestroyIcon(large_icon);
-
-        Some(format!("data:image/png;base64,{}", base64_icon))
-    }
-}
-
 #[derive(serde::Serialize)]
-pub struct GroupedIcons {
-    exe_path: String,
-    icon: String,
+pub struct App {
+    exe: String,
+    icon: Option<String>,
     titles: Vec<String>,
+    pinned: bool
 }
 
-pub fn get_taskbar_icons(path: &PathBuf) -> Vec<GroupedIcons> {
-    let mut results: HashMap<String, GroupedIcons> = HashMap::new();
+fn collect_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize, pinned: Option<HashMap<String, App>>) -> HashMap<String, App> {
+    let mut results: HashMap<String, App> = pinned.unwrap_or_else(|| HashMap::new());
 
     struct EnumContext<'a> {
-        results: &'a mut HashMap<String, GroupedIcons>,
+        max_files: usize,
+        icon_cache_dir: &'a PathBuf,
+        results: &'a mut HashMap<String, App>,
     }
 
     let mut context = EnumContext {
+        max_files: max_files,
+        icon_cache_dir: icon_cache_dir,
         results: &mut results,
     };
 
     unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
-        let ctx = &mut *(lparam.0 as *mut EnumContext);
+        let ctx = unsafe { &mut *(lparam.0 as *mut EnumContext) };
+        let icon_cache_dir = ctx.icon_cache_dir;
         let results = &mut ctx.results;
+        let max_files = ctx.max_files;
 
-        if !IsWindowVisible(hwnd).as_bool() {
+        if unsafe { !IsWindowVisible(hwnd).as_bool() } {
             return BOOL(1);
         }
-        let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        let ex_style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) };
         if (ex_style as u32) & WS_EX_TOOLWINDOW.0 != 0 {
             return BOOL(1);
         }
@@ -208,20 +113,32 @@ pub fn get_taskbar_icons(path: &PathBuf) -> Vec<GroupedIcons> {
         };
 
         let mut pid = 0;
-        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };
 
         if let Some(exe_path) = get_exe_path(pid) {
             let exe_str = exe_path.to_string_lossy().to_string();
 
-            if let Some(icon_data) = extract_icon(&exe_path) {
-                results
-                    .entry(exe_str.clone())
-                    .and_modify(|g| g.titles.push(title.clone()))
-                    .or_insert(GroupedIcons {
-                        exe_path: exe_str.clone(),
-                        icon: icon_data,
-                        titles: vec![title.clone()],
-                    });
+            // Da aggiungere altri casi... (Anche Program Manager, vedi sopra)
+            if exe_str.ends_with("TextInputHost.exe") {
+                return BOOL(1);
+            }
+
+            match get_exe_icon(&exe_path, icon_cache_dir, max_files) {
+                Ok(some_icon) => {
+                    
+                    results
+                        .entry(exe_str.clone())
+                        .and_modify(|g| g.titles.push(title.clone()))
+                        .or_insert(App {
+                            exe: exe_str.clone(),
+                            icon: some_icon,
+                            titles: vec![title.clone()],
+                            pinned: false
+                        });
+                },
+                Err(e) => {
+                    eprintln!("Error while obtaining the exe icon: {e}");
+                }
             }
         }
 
@@ -235,5 +152,65 @@ pub fn get_taskbar_icons(path: &PathBuf) -> Vec<GroupedIcons> {
         );
     }
 
-    results.into_values().collect()
+    results
+}
+
+fn collect_pinned_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> HashMap<String, App> {
+    let mut results: HashMap<String, App> = HashMap::new();
+
+    let pinned_dir = config_dir.join("Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar");
+
+    for entry in std::fs::read_dir(pinned_dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().map(|e| e == "lnk").unwrap_or(false) {
+            match resolve_lnk(&path) {
+                Ok(lnk) => {
+
+                    let exe = if path.ends_with("File Explorer.lnk") {
+                        "C:\\Windows\\explorer.exe".into()
+                    } else {
+                        match lnk.link_target() {
+                            Some(exe) => exe,
+                            None => { continue; }
+                        }
+                    };
+
+                    let icon_location = match lnk.string_data().icon_location() {
+                        Some(icon_location) => icon_location,
+                        None => &exe
+                    };
+
+                    let icon = get_exe_icon(&PathBuf::from(icon_location), icon_cache_dir, max_files).ok().flatten();
+
+                    results
+                        .entry(exe.clone())
+                        .or_insert(App {
+                            exe,
+                            icon,
+                            titles: vec![],
+                            pinned: true
+                        });
+                },
+                Err(error) => {
+                    eprintln!("Error while trying to resolve the lnk: {error}");
+                }
+            }
+        }
+    }
+
+    // Poi trasformi in Vec<App>
+    results
+}
+
+pub fn get_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> Vec<App> {
+    let results: HashMap<String, App> = collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files);
+    collect_active_taskbar_apps(icon_cache_dir, max_files, Some(results)).into_values().collect()
+}
+
+pub fn get_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize) -> Vec<App> {
+    collect_active_taskbar_apps(icon_cache_dir, max_files, None).into_values().collect()
+}
+
+pub fn get_pinned_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> Vec<App> {
+    collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files).into_values().collect()
 }

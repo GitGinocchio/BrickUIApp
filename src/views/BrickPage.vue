@@ -79,6 +79,17 @@
           -->
           <p>Work in progress :P</p>
         </n-collapse-item>
+        <n-collapse-item title="Permissions" name="permissions" class="emits-container">
+          <template #arrow>
+            <Shield />
+          </template>
+          <!--
+          <div v-for="prop in brick.props" :key="prop.prop_name">
+
+          </div>
+          -->
+          <p>Work in progress :P</p>
+        </n-collapse-item>
       </n-collapse>
     </div>
     
@@ -111,7 +122,7 @@ import { NCollapse, NCollapseItem, NButton, NSwitch, NInput } from 'naive-ui';
 import { computed, onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useI18n } from 'vue-i18n';
-import { Blocks, Cuboid, BadgeCheck, Text, Pencil, PencilOff, Cog, CirclePlus, ChevronDown, ChevronUp, Wifi } from 'lucide-vue-next';
+import { Blocks, Cuboid, BadgeCheck, Text, Pencil, PencilOff, Cog, CirclePlus, ChevronDown, ChevronUp, Wifi, Shield } from 'lucide-vue-next';
 import ConfirmModal from '../components/modals/ConfirmModal.vue';
 import PropModal from '../components/modals/PropModal.vue';
 import BrickProp from '../components/BrickProp.vue';

@@ -2,12 +2,12 @@ pub mod apps;
 
 use windows::{
     Win32::{
-        Foundation::{HWND, LPARAM, RECT},
+        Foundation::{LPARAM},
         UI::{
             Shell::{ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA, SHAppBarMessage},
             WindowsAndMessaging::{
-                FindWindowA, GetWindowRect, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW,
-                SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+                FindWindowA, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW,
+                SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
                 SetWindowPos, ShowWindow,
             },
         },

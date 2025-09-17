@@ -18,9 +18,9 @@ use tauri::{AppHandle, Emitter, Manager};
 #[derive(Debug, Clone)]
 pub enum GlobalEvent {
     MouseMove { x: i32, y: i32 },
-    MouseButtonDown{ x: i32, y: i32, button: String },
-    MouseButtonUp{ x: i32, y: i32, button: String },
-    MouseWheel{ x: i32, y: i32, notches: i16 },
+    MouseButtonDown { x: i32, y: i32, button: String },
+    MouseButtonUp { x: i32, y: i32, button: String },
+    MouseWheel { x: i32, y: i32, notches: i16 },
 
     KeyDown(String),
     KeyUp(String),
@@ -90,12 +90,12 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
                     let _ = app_handle.emit_to("wallpaper", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown { x, y, button } => {
-                    let _ = app_handle.emit_to("overlay", "global_mouse_pressed", (x,  y, button));
+                    let _ = app_handle.emit_to("overlay", "global_mouse_pressed", (x, y, button));
                 }
-                GlobalEvent::MouseButtonUp{ x, y, button } => {
+                GlobalEvent::MouseButtonUp { x, y, button } => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_released", (x, y, button));
                 }
-                GlobalEvent::MouseWheel{ x, y, notches } => {
+                GlobalEvent::MouseWheel { x, y, notches } => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
                 }
                 GlobalEvent::KeyDown(key) => {

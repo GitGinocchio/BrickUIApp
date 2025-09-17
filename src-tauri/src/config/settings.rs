@@ -27,12 +27,14 @@ pub struct Settings {
     pub startmenu: StartMenu,
 
     #[serde(default)]
-    #[schemars(description = "Determines whether the application should automatically start when the system boots.")]
+    #[schemars(
+        description = "Determines whether the application should automatically start when the system boots."
+    )]
     pub autostart: bool,
 
     #[serde(default)]
     #[schemars(description = "Determines whether enable or not the system tray icon")]
-    pub systemtray: SystemTray
+    pub systemtray: SystemTray,
 }
 
 fn default_theme() -> Theme {
@@ -70,7 +72,7 @@ impl Default for Settings {
             taskbar: TaskBar::default(),
             startmenu: StartMenu::default(),
             autostart: false,
-            systemtray: SystemTray::default()
+            systemtray: SystemTray::default(),
         }
     }
 }
@@ -136,14 +138,14 @@ pub struct SystemTray {
     pub enabled: bool,
 
     #[serde(default)]
-    pub hidetaskbaricon: bool
+    pub hidetaskbaricon: bool,
 }
 
 impl Default for SystemTray {
     fn default() -> Self {
         Self {
             enabled: false,
-            hidetaskbaricon: false
+            hidetaskbaricon: false,
         }
     }
 }

@@ -103,6 +103,13 @@ export function extractImports(descriptor: SFCDescriptor): ImportBinding[] {
 export function rewriteImports(code: string, moduleCache: Record<string, any>, brickDirName: string): string {
   function moduleVar(moduleName: string): string {
     if (moduleName.startsWith('./')) {
+      Object.entries(moduleCache).forEach(([path, _]) => {
+        if (path.endsWith(moduleName.replace('./', ''))) {
+          moduleName = path;
+        }
+      });
+    } 
+    else if (moduleName.startsWith('/')) {
       moduleName = normalizePath(moduleName, { root: brickDirName }, false);
     }
 

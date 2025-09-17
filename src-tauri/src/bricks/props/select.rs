@@ -9,7 +9,7 @@ use crate::bricks::props::PropType;
 pub enum SelectPropType {
     String(Select<String, u32>),
     Integer(Select<i32, i32>),
-    Float(Select<i32, i32>)
+    Float(Select<i32, i32>),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]

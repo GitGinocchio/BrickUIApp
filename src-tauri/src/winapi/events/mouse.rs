@@ -27,22 +27,46 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
                         });
                     }
                     WM_LBUTTONDOWN => {
-                        let _ = tx.send(GlobalEvent::MouseButtonDown { button: "Left".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonDown {
+                            button: "Left".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_LBUTTONUP => {
-                        let _ = tx.send(GlobalEvent::MouseButtonUp { button: "Left".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonUp {
+                            button: "Left".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_RBUTTONDOWN => {
-                        let _ = tx.send(GlobalEvent::MouseButtonDown { button: "Right".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonDown {
+                            button: "Right".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_RBUTTONUP => {
-                        let _ = tx.send(GlobalEvent::MouseButtonUp { button: "Right".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonUp {
+                            button: "Right".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_MBUTTONDOWN => {
-                        let _ = tx.send(GlobalEvent::MouseButtonDown { button: "Middle".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonDown {
+                            button: "Middle".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_MBUTTONUP => {
-                        let _ = tx.send(GlobalEvent::MouseButtonUp { button: "Middle".into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonUp {
+                            button: "Middle".into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_XBUTTONDOWN => {
                         let button = if hiword(ms.mouseData) == 1 {
@@ -50,7 +74,11 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
                         } else {
                             "XButton2"
                         };
-                        let _ = tx.send(GlobalEvent::MouseButtonDown { button: button.into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonDown {
+                            button: button.into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_XBUTTONUP => {
                         let button = if hiword(ms.mouseData) == 1 {
@@ -58,12 +86,20 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
                         } else {
                             "XButton2"
                         };
-                        let _ = tx.send(GlobalEvent::MouseButtonUp { button: button.into(), x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseButtonUp {
+                            button: button.into(),
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     WM_MOUSEWHEEL => {
                         let delta = (hiword(ms.mouseData) as i16) - 120;
                         let notches = delta.signum();
-                        let _ = tx.send(GlobalEvent::MouseWheel{ notches: notches, x: ms.pt.x, y: ms.pt.y });
+                        let _ = tx.send(GlobalEvent::MouseWheel {
+                            notches: notches,
+                            x: ms.pt.x,
+                            y: ms.pt.y,
+                        });
                     }
                     _ => {}
                 }

@@ -1,7 +1,8 @@
 mod winapi;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::set_snap_flyout;
-use crate::winapi::taskbar::apps::GroupedIcons;
+use crate::winapi::startmenu::favorites::Favorites;
+use crate::winapi::taskbar::apps::App;
 use crate::winapi::window::{remove_titlebar, set_as_wallpaper_background};
 
 mod bricks;
@@ -11,7 +12,7 @@ mod config;
 use crate::config::settings::{Settings, TaskBarBehavior};
 
 use std::sync::{Arc, Mutex};
-use tauri::{Manager, State, WindowEvent};
+use tauri::{AppHandle, Manager, State, WindowEvent};
 
 mod state;
 use state::BrickUIState;
@@ -29,13 +30,45 @@ fn show_taskbar() -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_taskbar_icons(
+fn get_active_taskbar_apps(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
-) -> Result<Vec<GroupedIcons>, String> {
+) -> Result<Vec<App>, String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
+    let icon_cache_path = path.join("cache").join("icons");
 
-    Ok(crate::winapi::taskbar::apps::get_taskbar_icons(&path))
+    // Qui max_files andrebbe sostituito con un impostazione presa dal file settings
+    Ok(crate::winapi::taskbar::apps::get_active_taskbar_apps(&icon_cache_path, 50))
+}
+
+#[tauri::command]
+fn get_pinned_taskbar_apps(
+    app_handle: AppHandle,
+    state: State<'_, Arc<Mutex<BrickUIState>>>
+) -> Result<Vec<App>, String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+    let icon_cache_path = path.join("cache").join("icons");
+
+    let resolver = app_handle.path();
+    let config_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
+
+    Ok(crate::winapi::taskbar::apps::get_pinned_taskbar_apps(&icon_cache_path, &config_dir, 50))
+}
+
+#[tauri::command]
+fn get_taskbar_apps(
+    app_handle: AppHandle,
+    state: State<'_, Arc<Mutex<BrickUIState>>>
+) -> Result<Vec<App>, String> {
+    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let path = state_guard.get_path();
+    let icon_cache_path = path.join("cache").join("icons");
+
+    let resolver = app_handle.path();
+    let config_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
+
+    Ok(crate::winapi::taskbar::apps::get_taskbar_apps(&icon_cache_path, &config_dir, 50))
 }
 
 #[tauri::command]
@@ -66,7 +99,10 @@ fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, 
 }
 
 #[tauri::command]
-fn get_brick_by_name(state: State<'_, Arc<Mutex<BrickUIState>>>, name: String) -> Result<Option<Brick>, String> {
+fn get_brick_by_name(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    name: String,
+) -> Result<Option<Brick>, String> {
     let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
 
     Ok(state_guard.get_brick_by_name(&name))
@@ -177,6 +213,14 @@ fn open_start_menu() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_start_menu_favorites(app_handle: AppHandle) -> Result<Vec<Favorites>, String> {
+    let resolver = app_handle.path();
+    let app_data_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
+
+    crate::winapi::startmenu::favorites::get_start_menu_favorites(&app_data_dir)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
@@ -188,7 +232,10 @@ pub fn run() {
     */
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -205,11 +252,25 @@ pub fn run() {
             }
         }))
         .invoke_handler(tauri::generate_handler![
+            // Taskbar
             hide_taskbar,
             show_taskbar,
-            get_taskbar_icons,
+
+            // Taskbar / Apps
+            get_taskbar_apps,
+            get_active_taskbar_apps,
+            get_pinned_taskbar_apps,
+
+            // Start Menu
+            open_start_menu,
+
+            get_start_menu_favorites,
+
+            // Settings
             get_settings,
             save_settings,
+
+            // Bricks
             get_bricks,
             get_brick_by_name,
             load_bricks,
@@ -218,8 +279,7 @@ pub fn run() {
             rename_brick,
             save_brick,
             open_brick,
-            new_brick,
-            open_start_menu
+            new_brick
         ])
         .setup(|app| {
             let resolver = app.app_handle().path();
@@ -244,7 +304,9 @@ pub fn run() {
 
             let wallpaperwv = app.get_webview("wallpaper").unwrap();
             let wallpaperw = app.get_window("wallpaper").unwrap();
-            let hwnd = wallpaperw.hwnd().map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
+            let hwnd = wallpaperw
+                .hwnd()
+                .map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
             set_as_wallpaper_background(hwnd)?;
 
             //wallpaperwv.open_devtools();
@@ -256,7 +318,9 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event && window.label() == "main" {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+            {
                 let app_handle = window.app_handle();
                 let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
                 let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
@@ -265,9 +329,10 @@ pub fn run() {
                 };
                 let settings = state_guard.get_settings();
 
-                if settings.systemtray.enabled 
-                && settings.systemtray.hidetaskbaricon 
-                && let Ok(true) = window.is_visible() { 
+                if settings.systemtray.enabled
+                    && settings.systemtray.hidetaskbaricon
+                    && let Ok(true) = window.is_visible()
+                {
                     api.prevent_close();
                     window
                         .hide()
@@ -299,11 +364,15 @@ pub fn run() {
                 {
                     window
                         .hide()
-                        .map_err(|e| format!("Error while trying to hide the wallpaper window: {e}"))
+                        .map_err(|e| {
+                            format!("Error while trying to hide the wallpaper window: {e}")
+                        })
                         .expect("");
                     window
                         .close()
-                        .map_err(|e| format!("Error while trying to close the wallpaper window: {e}"))
+                        .map_err(|e| {
+                            format!("Error while trying to close the wallpaper window: {e}")
+                        })
                         .unwrap();
                 }
 

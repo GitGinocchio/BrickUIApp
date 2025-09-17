@@ -35,6 +35,8 @@ export async function loadVueModuleToCJS(
       if (binding.imported === 'default' && binding.source.endsWith('.vue')) {
         const importPath = normalizePath(binding.source, { root: componentDirName }, false);
 
+        console.log(`Found component ${importPath}`);
+
         if (importPath === componentPath) {
           const error = new Error(`You can't import module ${filename(importPath)} in the same module!`);
           return Promise.reject(error);
@@ -50,6 +52,8 @@ export async function loadVueModuleToCJS(
           return Promise.reject(error);
         }
 
+        console.log(`Normalized relative component path: ${normRelImportPath}`)
+
         try {
           const source = await readTextFile(normRelImportPath, { baseDir: BaseDirectory.AppData });
           moduleCache[normRelImportPath] = await loadVueModuleToCJS(source, normRelImportPath, brickFilePath, moduleCache, brick);
@@ -59,6 +63,8 @@ export async function loadVueModuleToCJS(
       }
     })
   );
+
+  console.log(moduleCache);
 
   errors.push(...parsed.errors);
 

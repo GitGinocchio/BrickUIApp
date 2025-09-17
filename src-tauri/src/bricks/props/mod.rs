@@ -129,5 +129,5 @@ pub enum Prop {
     Select {
         #[serde(flatten)]
         data: SelectPropType,
-    }
+    },
 }

@@ -1,0 +1,14 @@
+# ---- rustfmt.toml ----
+
+# Raggruppa gli import in tre blocchi: std, crate esterne, crate locali
+group_imports = "StdExternalCrate"
+
+# Metti ogni simbolo su una riga (import granularity = One)
+imports_granularity = "One"
+
+# Ordina alfabeticamente gli import
+reorder_imports = true
+
+# Mantieni una riga vuota tra blocchi di use
+merge_derives = false
+normalize_doc_attributes = true
