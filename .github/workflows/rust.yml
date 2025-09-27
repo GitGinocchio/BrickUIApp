@@ -31,7 +31,8 @@ jobs:
             pkg-config
       
       - name: Build
-        run: cargo build --verbose --manifest-path src-tauri/Cargo.toml
-
+        run: cargo build --verbose --manifest-path=./src-tauri/Cargo.toml
+      
       - name: Run tests
-        run: cargo test --verbose --manifest-path src-tauri/Cargo.toml
+        run: cargo test --verbose --manifest-path=./src-tauri/Cargo.toml
+
