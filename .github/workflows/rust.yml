@@ -17,6 +17,8 @@ jobs:
         working-directory: src-tauri
 
     steps:
+      - uses: actions/checkout@v4
+    
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -27,8 +29,6 @@ jobs:
             webkit2gtk-4.1 \
             libglib2.0-dev \
             pkg-config
-            
-      - uses: actions/checkout@v4
       
       - name: Build
         run: cargo build --verbose --manifest-path src-tauri/Cargo.toml
