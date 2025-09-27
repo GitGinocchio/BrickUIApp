@@ -57,7 +57,7 @@
   </n-card>
 
   <!-- Confirm Delete Modal -->
-  <ConfirmModal
+  <GenericModal
     v-model:show="deleteModalShow"
     :message="deleteModalMessage"
     :title="deleteModalTitle"
@@ -71,12 +71,13 @@
 
 <script setup lang="ts">
 import { NSpace, NTag, NCard, NIcon, NButton, NDropdown } from "naive-ui"
-import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid } from "lucide-vue-next"
+import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid, Share2 } from "lucide-vue-next"
 import { h, PropType, ref } from "vue"
-import ConfirmModal from "./modals/ConfirmModal.vue";
+import GenericModal from "./modals/GenericModal.vue";
 import { Brick, Prop } from "interfaces/brick";
 import { emitTo } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { save } from '@tauri-apps/plugin-dialog';
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -118,6 +119,7 @@ const brickOptions = ref([
   { label: 'Edit', key: 'edit', icon: () => h(Pencil) },
   { label: 'Delete', key: 'delete', type: 'error', icon: () => h(Trash2) },
   { label: 'Duplicate', key: 'duplicate', icon: () => h(Copy) },
+  { label: 'Share', key: 'share', icon: () => h(Share2)}
 ]);
 
 async function onToggle() {
@@ -145,6 +147,23 @@ async function handleBrickAction(action: string) {
     case "duplicate":
       await invoke("duplicate_brick", { brick: props.brick});
       emit("changed");
+      break;
+    case "share":
+      const path = await save({
+        title: "Save your brick!",
+        defaultPath: `${props.brick.name}.brk`,
+        filters: [
+          { name: "Brick files", extensions: ["brick", "brck", "brk", "bk"] },
+          { name: "All files", extensions: ["*"] }
+        ]
+      });
+
+      if (path) {
+        console.log(props.brick.name, path);
+        await invoke("pack_brick", { brickName: props.brick.name, outputPath: path });
+      } else {
+        console.log("Operazione annullata");
+      }
       break;
     default:
       console.error(`azione non riconosciuta: ${action}`);

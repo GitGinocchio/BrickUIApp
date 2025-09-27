@@ -1,16 +1,19 @@
+pub mod cursor;
 pub mod events;
+pub mod explorer;
 pub mod icons;
 pub mod startmenu;
 pub mod taskbar;
 pub mod window;
 
-use std::ffi::CString;
-use std::path::{Path, PathBuf};
-use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
-use windows::core::{PCSTR};
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
-
+use std::ffi::CString;
+use std::path::PathBuf;
+use std::ptr::null_mut;
+use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
+use windows::core::PCSTR;
+use winreg::HKEY;
 
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
     let shortcut = ShellLink::open(lnk, WINDOWS_1252).unwrap();
@@ -19,7 +22,7 @@ pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
 
 pub fn set_snap_flyout(enabled: bool) -> windows::core::Result<()> {
     unsafe {
-        let mut hkey = HKEY::default();
+        let mut hkey = HKEY(null_mut());
 
         let subkey =
             CString::new("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced")

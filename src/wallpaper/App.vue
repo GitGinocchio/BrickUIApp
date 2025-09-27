@@ -30,7 +30,7 @@ function simulateFakeMouseEvent(x: number, y: number) {
 onMounted(async () => {
   const window = getCurrentWindow();
   await window.setIgnoreCursorEvents(true);
-  //await window.show();
+  await window.show();
 
   listen<[number, number]>('global_mouse_moved', async (event) => {
     simulateFakeMouseEvent(event.payload[0],event.payload[1]);

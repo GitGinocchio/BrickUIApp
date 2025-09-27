@@ -43,7 +43,10 @@ export const propTypeValues = [
   "Select",
   "Array",
   "Color",
-  "Gradient"
+  "Gradient",
+  "Date",
+  "Datetime",
+  "Time"
 ] as const;
 
 // Tipo unione inferito automaticamente
@@ -56,15 +59,16 @@ export type Prop =
   | ({ prop_type: 'Text' } & PropType<string>)
   | ({ prop_type: 'Bool' } & PropType<boolean>)
   | ({ prop_type: 'Int' | 'Float' } & NumericPropType<number>)
-
   | ({ prop_type: 'Array', value_type: 'String' } & ArrayPropType<string>)
   | ({ prop_type: 'Array', value_type: 'Integer' | 'Float' } & ArrayPropType<number>)
-
   | ({ prop_type: 'Select', value_type: 'String' } & SelectablePropType<string>)
   | ({ prop_type: 'Select', value_type: 'Integer' | 'Float' } & SelectablePropType<number>)
-
   | ({ prop_type: 'Color'} & ColorPropType)
-  | ({ prop_type: 'Gradient'} & GradientPropType);
+  | ({ prop_type: 'Gradient'} & GradientPropType)
+  | ({ prop_type: 'Date'} & DatePropType)
+  | ({ prop_type: 'Datetime'} & DatePropType)
+  | ({ prop_type: 'Time'} & DatePropType)
+;
 
 /** Generic property container. */
 export interface PropType<T> {
@@ -84,6 +88,14 @@ export interface PropType<T> {
   default?: T | null;
 }
 
+export interface DatePropType extends PropType<number> {
+  /** If past dates are allowed */
+  allow_past: boolean,
+
+  /** If future dates are allowed */
+  allow_future: boolean
+}
+
 /** Property container for numeric types, including optional bounds. */
 export interface NumericPropType<T> extends PropType<T> {
   /** Minimum allowed value (inclusive). */
@@ -91,6 +103,9 @@ export interface NumericPropType<T> extends PropType<T> {
 
   /** Maximum allowed value (inclusive). */
   max?: T;
+
+  /** Step value. */
+  step?: T;
 }
 
 /** Color property container. */
@@ -232,6 +247,14 @@ export function createProp(type: PropTypeValue, name: string, description: strin
       return { prop_type: "Color", ...createBaseProp<string>(name, description), skip_alpha: false, swatches: [], saved: [] }
     case "Gradient":
       return { prop_type: "Gradient", ...createBaseProp<Array<GradientStop>>(name, description), skip_alpha: false, type: GradientType.LINEAR }
+    
+    case "Date":
+      return { prop_type: "Date", ...createBaseProp<number>(name, description), allow_future: true, allow_past: true }
+    case "Datetime":
+      return { prop_type: "Datetime", ...createBaseProp<number>(name, description), allow_future: true, allow_past: true }
+    case "Time":
+      return { prop_type: "Time", ...createBaseProp<number>(name, description), allow_future: true, allow_past: true }
+    
     default:
       throw new Error(`Invalid prop type ${type}`);
   }

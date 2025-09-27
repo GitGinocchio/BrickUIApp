@@ -7,7 +7,12 @@
     "composite" : true,
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "paths" : {
+      "core": ["./.types/core"],
+      "vue" : ["./.types/vue"],
+      "event" : ["./.types/event"]
+    }
   },
   "include": [
     "./.types/**/*.js",

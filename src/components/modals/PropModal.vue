@@ -109,6 +109,37 @@
       <n-form-item v-if="maxInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Maximum allowed number' : 'Maximum number of values'">
         <component :is="maxInputField" />
       </n-form-item>
+      <n-form-item v-if="stepInputField" label="Step value">
+        <component :is="stepInputField" />
+      </n-form-item>
+      <n-form-item label="Allow past" v-if="prop.prop_type === 'Date' || prop.prop_type === 'Datetime'">
+        <n-switch
+          :value="prop.allow_past"
+          v-on:update:value="(value: boolean) => {
+            if (prop.prop_type !== 'Date' && prop.prop_type !== 'Datetime') return;
+            
+            prop.allow_past = value;
+
+            if (prop.allow_future === prop.allow_past && prop.allow_future === false) {
+              prop.allow_future = !prop.allow_past
+            }
+          }"
+        />
+      </n-form-item>
+      <n-form-item label="Allow future" v-if="prop.prop_type === 'Date' || prop.prop_type === 'Datetime'">
+        <n-switch
+          :value="prop.allow_future"
+          v-on:update:value="(value: boolean) => {
+            if (prop.prop_type !== 'Date' && prop.prop_type !== 'Datetime') return;
+            
+            prop.allow_future = value;
+
+            if (prop.allow_future === prop.allow_past && prop.allow_future === false) {
+              prop.allow_past = !prop.allow_future
+            }
+          }"
+        />
+      </n-form-item>
     </n-form>
     <template #action>
       <n-space justify="end">
@@ -133,13 +164,14 @@
 </template>
 
 <script setup lang="ts">
-import { NColorPicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTooltip } from 'naive-ui';
-import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10 } from 'lucide-vue-next';
+import { NColorPicker, NDatePicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTimePicker, NTooltip } from 'naive-ui';
+import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock } from 'lucide-vue-next';
 import { computed, h, ref } from 'vue';
 
 import { createProp, Prop, PropTypeValue, propTypeValues } from '../../interfaces/brick';
 import { colorStringToRGBA, deepEqual } from '../../utils';
 import GradientPicker from '../GradientPicker.vue';
+import { DatePickerType } from 'naive-ui/es/date-picker/src/config';
 
 
 const show = defineModel<boolean>("show");
@@ -174,7 +206,10 @@ const iconsMap: Record<string, any> = {
   Bool: ToggleLeft,
 
   Color: PaintBucket,
-  Gradient: SwatchBook
+  Gradient: SwatchBook,
+  Datetime: CalendarClock,
+  Date: Calendar1,
+  Time: Clock
 };
 
 const propTypes = propTypeValues.map((value) => ({
@@ -307,6 +342,7 @@ const defaultInputField = computed(() => {
           max: prop.value.max,
           clearable: true,
           precision: prop.value.prop_type == 'Int' ? 0 : 2,
+          step: prop.value.step ? prop.value.step : (prop.value.prop_type === 'Float' ? 0.1 : 1),
           "onUpdate:value": (val: number) => (prop.value.default = val)
         }
       );
@@ -401,6 +437,105 @@ const defaultInputField = computed(() => {
         }
       );
 
+    case "Datetime":
+    case "Date":
+      const allow_future = prop.value.allow_future;
+      const allow_past = prop.value.allow_past;
+
+      let type: DatePickerType;
+      switch (prop.value.prop_type) {
+        case "Date":
+          type = "date";
+          break;
+        case "Datetime":
+          type = "datetime";
+          break;
+      }
+
+      return h(
+        NDatePicker,
+        {
+          clearable: true,
+          type: type,
+          value: prop.value.default ? prop.value.default : null,
+          onUpdateValue: (value: number) => {
+            prop.value.default = value
+          },
+          isTimeDisabled: (current) => {
+            const date = new Date(current);
+            const now = new Date();
+
+            const isToday =
+              date.getFullYear() === now.getFullYear() &&
+              date.getMonth() === now.getMonth() &&
+              date.getDate() === now.getDate();
+
+            return {
+              isHourDisabled: (hour: number) => {
+                if (!isToday) return false;
+
+                if (!allow_past && allow_future) {
+                  return hour < now.getHours();
+                }
+                if (!allow_future && allow_past) {
+                  return hour > now.getHours();
+                }
+                return false;
+              },
+
+              isMinuteDisabled: (minute: number, hour: number) => {
+                if (!isToday) return false;
+
+                if (!allow_past && allow_future && hour === now.getHours()) {
+                  return minute < now.getMinutes();
+                }
+                if (!allow_future && allow_past && hour === now.getHours()) {
+                  return minute > now.getMinutes();
+                }
+                return false;
+              },
+
+              isSecondDisabled: (second: number, minute: number, hour: number) => {
+                if (!isToday) return false;
+
+                if (!allow_past && allow_future && hour === now.getHours() && minute === now.getMinutes()) {
+                  return second < now.getSeconds();
+                }
+                if (!allow_future && allow_past && hour === now.getHours() && minute === now.getMinutes()) {
+                  return second > now.getSeconds();
+                }
+                return false;
+              }
+            };
+          },
+          isDateDisabled: (ts: number) => {
+            const date = new Date(ts);
+            const now = new Date();
+            if (allow_future) now.setHours(now.getHours() - 24);
+
+            if (allow_future && date.getTime() >= now.getTime()) {
+              return false;
+            }
+            if (allow_past && date.getTime() <= now.getTime()) {
+              return false;
+            }
+
+            return true;
+          }
+        }
+      );
+    case "Time":
+      return h(
+        NTimePicker,
+        {
+          clearable: true,
+          value: prop.value.default ? prop.value.default : null,
+          onUpdateValue: (value: number) => {
+            prop.value.default = value
+          },
+        }
+      );
+
     default:
       return null
   }
@@ -477,6 +612,7 @@ const minInputField = computed(() => {
           placeholder: ['Int', 'Float'].includes(prop.value.prop_type) ? "Input the minumum allowed number" : "Input the minumum number of values",
           clearable: true,
           precision: prop.value.prop_type === 'Float' ? 2 : 0,
+          step: prop.value.prop_type === 'Float' ? (prop.value.step ? prop.value.step : 0.1) : 1,
           "onUpdate:value": (val: number) => {
             // @ts-ignore
             prop.value.min = val !== null ? val : 0;
@@ -506,7 +642,8 @@ const maxInputField = computed(() => {
           placeholder: ['Int', 'Float'].includes(prop.value.prop_type) ? "Input the minumum allowed number" : "Input the maximum number of values",
           precision: prop.value.prop_type === 'Float' ? 2 : 0,
           clearable: true,
-          min: prop.value.min ? prop.value.min : 1,
+          min: prop.value.min ? prop.value.min : 0.01,
+          step: prop.value.prop_type === 'Float' ? (prop.value.step ? prop.value.step : 0.1) : 1,
           "onUpdate:value": (val: number) => {
             console.log('max-value:', val);
             // @ts-ignore
@@ -518,10 +655,35 @@ const maxInputField = computed(() => {
       return null;
   };
 });
+
+const stepInputField = computed(() => {
+  switch (prop.value.prop_type) {
+    case "Int":
+    case "Float":
+      return h(
+        NInputNumber,
+        {
+          value: prop.value.step,
+          defaultValue: prop.value.step ? prop.value.step : (prop.value.prop_type === "Float" ? 0.1 : 1.0),
+          // @ts-ignore
+          "onUpdate:value": (val: number) => prop.value.step = val,
+          placeholder: "Input the step value",
+          precision: prop.value.prop_type === 'Float' ? 2 : 0,
+          clearable: true,
+          step: prop.value.prop_type === 'Float' ? 0.01 : 1,
+          min: prop.value.prop_type === 'Float' ? 0.01 : 1,
+        }
+      )
+    default:
+      return null;
+  }
+});
 </script>
 
 <style scoped>
-.n-input-number {
+.n-input-number,
+.n-date-picker,
+.n-time-picker {
   width: 100%;
 }
 </style>

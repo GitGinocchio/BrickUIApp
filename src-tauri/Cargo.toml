@@ -25,7 +25,7 @@ panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
 [build-dependencies]
-tauri-build = { version = "2.4.0", features = [] }
+tauri-build = { version = "2.4.0", features = [ "codegen" ] }
 
 [dependencies]
 tauri = { version = "2.8.4", features = [ 
@@ -34,7 +34,11 @@ tauri = { version = "2.8.4", features = [
     "tray-icon",
     "image-png"
 ] }
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2.5.0"
+tauri-plugin-fs = "2.4.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.143"
 serde_yaml = "0.9.34"
@@ -47,19 +51,10 @@ windows = { version = "0.61.3", features = [
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Com",
     "Win32_Graphics_Gdi",
+    "Win32_Storage_FileSystem",
     "Win32_UI_Shell"
 ] }
-windows-sys = { version = "0.60.2", features = [
-    "Win32_UI_Shell",
-    "Win32_Storage_FileSystem",
-    "Win32_Graphics_Gdi",
-    "Win32_System_Com",
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_System_Threading",
-    "Win32_Foundation"
-] }
 winreg = "0.55.0"
-tauri-plugin-fs = "2.4.2"
 uuid = { version = "1.18.0", features = [ "v4"] }
 image = "0.25.6"
 chrono = "0.4.41"
@@ -67,9 +62,5 @@ base64 = "0.22.1"
 fs_extra = "1.3.0"
 crossbeam = "0.8.4"
 sha2 = "0.10.9"
-filetime = "0.2.26"
 lnk = "0.6.3"
-
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-autostart = "2"
-tauri-plugin-single-instance = "2"
+zip = "5.1.1"

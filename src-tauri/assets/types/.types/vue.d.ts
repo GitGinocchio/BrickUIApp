@@ -12,15 +12,29 @@ export * from "./vue/csstype";
 export * from "./vue/shared";
 
 // Shim per i file .vue
-declare module "*.vue" {
-  import { DefineComponent } from "./vue/runtime-dom";
+declare module '*.vue' {
+  import { DefineComponent } from './vue/runtime-dom'
   const component: DefineComponent<
-    // Props
-    Record<string, any>,
-    // Emits
-    Record<string, any>,
-    // Slots
-    Record<string, any>
-  >;
-  export default component;
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    string, 
+    {},
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    {}, 
+    string, 
+    {}, 
+    boolean, 
+    {}, 
+    Element
+  >
+  export default component
 }

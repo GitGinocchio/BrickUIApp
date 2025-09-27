@@ -26,16 +26,6 @@
         "visible": true
       },
       {
-        "label" : "wallpaper",
-        "title" : "Brick UI [Wallpaper]",
-        "url" : "/wallpaper/index.html",
-        "skipTaskbar": true,
-        "fullscreen": true,
-        "devtools": true,
-        "visible" : false,
-        "focus" : true
-      },
-      {
         "label": "overlay",
         "title": "Brick UI [Overlay]",
         "url" : "/overlay/index.html",
@@ -135,6 +125,15 @@
     "targets": ["msi","nsis"],
     "resources" : [
       "./assets"
+    ],
+    "fileAssociations": [
+      { 
+        "ext": [".brick", ".brck", ".brk", ".bk"], 
+        "name" : "Brick", 
+        "description": "BrickUI widget", 
+        "mimeType": "application/zip",
+        "role": "Shell"
+      }
     ],
     "icon": [
       "icons/32x32.png",

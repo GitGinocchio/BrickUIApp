@@ -1,5 +1,6 @@
 pub mod plugins;
 pub mod settings;
+pub mod backup;
 
 use serde::de::DeserializeOwned;
 use std::fs;

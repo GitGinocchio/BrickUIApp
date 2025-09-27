@@ -2,7 +2,11 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["overlay", "main", "wallpaper"],
+  "windows": [
+    "overlay",
+    "main",
+    "wallpaper"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
@@ -21,23 +25,32 @@
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-ignore-cursor-events",
     "core:app:allow-default-window-icon",
+    "core:window:allow-set-cursor-visible",
+    "core:window:allow-set-cursor-grab",
     {
       "identifier": "fs:allow-app-read-recursive",
       "allow": [
-        { "path": "$RESOURCE/**" }
+        {
+          "path": "$RESOURCE/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-app-read-recursive",
       "allow": [
-        { "path": "$APPDATA/BrickUI/**" }
+        {
+          "path": "$APPDATA/BrickUI/**"
+        }
       ]
     },
     {
       "identifier": "fs:allow-app-write-recursive",
       "allow": [
-        { "path": "$APPDATA/BrickUI/**" }
+        {
+          "path": "$APPDATA/BrickUI/**"
+        }
       ]
-    }
+    },
+    "dialog:default"
   ]
 }

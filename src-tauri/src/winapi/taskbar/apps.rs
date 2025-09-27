@@ -1,19 +1,13 @@
-use std::{
-    collections::HashMap,
-    ffi::OsString,
-    os::windows::ffi::OsStringExt,
-    path::PathBuf,
-};
+use std::{collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf};
 use windows::{
-    Win32::{
-        Foundation::*,
-        System::Threading::*,
-        UI::{WindowsAndMessaging::*},
-    },
+    Win32::{Foundation::*, System::Threading::*, UI::WindowsAndMessaging::*},
     core::{BOOL, PWSTR},
 };
 
-use crate::winapi::{icons::get_exe_icon, resolve_lnk};
+use crate::winapi::{
+    icons::{IconsMap, get_icon},
+    resolve_lnk,
+};
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
@@ -75,28 +69,36 @@ pub struct App {
     exe: String,
     icon: Option<String>,
     titles: Vec<String>,
-    pinned: bool
+    pinned: bool,
 }
 
-fn collect_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize, pinned: Option<HashMap<String, App>>) -> HashMap<String, App> {
+fn collect_active_taskbar_apps(
+    icon_cache_dir: &PathBuf,
+    max_files: usize,
+    pinned: Option<HashMap<String, App>>,
+    icons_map: &mut IconsMap,
+) -> HashMap<String, App> {
     let mut results: HashMap<String, App> = pinned.unwrap_or_else(|| HashMap::new());
 
     struct EnumContext<'a> {
         max_files: usize,
         icon_cache_dir: &'a PathBuf,
         results: &'a mut HashMap<String, App>,
+        icons_map: &'a mut IconsMap,
     }
 
     let mut context = EnumContext {
         max_files: max_files,
         icon_cache_dir: icon_cache_dir,
         results: &mut results,
+        icons_map: icons_map,
     };
 
     unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
         let ctx = unsafe { &mut *(lparam.0 as *mut EnumContext) };
         let icon_cache_dir = ctx.icon_cache_dir;
         let results = &mut ctx.results;
+        let icons_map = &mut ctx.icons_map;
         let max_files = ctx.max_files;
 
         if unsafe { !IsWindowVisible(hwnd).as_bool() } {
@@ -121,11 +123,12 @@ fn collect_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize, pinne
             // Da aggiungere altri casi... (Anche Program Manager, vedi sopra)
             if exe_str.ends_with("TextInputHost.exe") {
                 return BOOL(1);
+            } else if exe_str.ends_with("C:\\Windows\\System32\\ApplicationFrameHost.exe") {
+                return BOOL(1);
             }
 
-            match get_exe_icon(&exe_path, icon_cache_dir, max_files) {
+            match get_icon(&exe_path, icon_cache_dir, icons_map, max_files) {
                 Ok(some_icon) => {
-                    
                     results
                         .entry(exe_str.clone())
                         .and_modify(|g| g.titles.push(title.clone()))
@@ -133,9 +136,9 @@ fn collect_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize, pinne
                             exe: exe_str.clone(),
                             icon: some_icon,
                             titles: vec![title.clone()],
-                            pinned: false
+                            pinned: false,
                         });
-                },
+                }
                 Err(e) => {
                     eprintln!("Error while obtaining the exe icon: {e}");
                 }
@@ -155,42 +158,54 @@ fn collect_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize, pinne
     results
 }
 
-fn collect_pinned_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> HashMap<String, App> {
+fn collect_pinned_taskbar_apps(
+    icon_cache_dir: &PathBuf,
+    config_dir: &PathBuf,
+    max_files: usize,
+    icons_map: &mut IconsMap,
+) -> HashMap<String, App> {
     let mut results: HashMap<String, App> = HashMap::new();
 
-    let pinned_dir = config_dir.join("Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar");
+    let pinned_dir =
+        config_dir.join("Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar");
 
     for entry in std::fs::read_dir(pinned_dir).unwrap() {
         let path = entry.unwrap().path();
         if path.extension().map(|e| e == "lnk").unwrap_or(false) {
             match resolve_lnk(&path) {
                 Ok(lnk) => {
-
                     let exe = if path.ends_with("File Explorer.lnk") {
                         "C:\\Windows\\explorer.exe".into()
                     } else {
                         match lnk.link_target() {
                             Some(exe) => exe,
-                            None => { continue; }
+                            None => {
+                                continue;
+                            }
                         }
                     };
 
                     let icon_location = match lnk.string_data().icon_location() {
                         Some(icon_location) => icon_location,
-                        None => &exe
+                        None => &exe,
                     };
 
-                    let icon = get_exe_icon(&PathBuf::from(icon_location), icon_cache_dir, max_files).ok().flatten();
+                    let icon = get_icon(
+                        &PathBuf::from(icon_location),
+                        icon_cache_dir,
+                        icons_map,
+                        max_files,
+                    )
+                    .ok()
+                    .flatten();
 
-                    results
-                        .entry(exe.clone())
-                        .or_insert(App {
-                            exe,
-                            icon,
-                            titles: vec![],
-                            pinned: true
-                        });
-                },
+                    results.entry(exe.clone()).or_insert(App {
+                        exe,
+                        icon,
+                        titles: vec![],
+                        pinned: true,
+                    });
+                }
                 Err(error) => {
                     eprintln!("Error while trying to resolve the lnk: {error}");
                 }
@@ -202,15 +217,36 @@ fn collect_pinned_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, m
     results
 }
 
-pub fn get_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> Vec<App> {
-    let results: HashMap<String, App> = collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files);
-    collect_active_taskbar_apps(icon_cache_dir, max_files, Some(results)).into_values().collect()
+pub fn get_taskbar_apps(
+    icon_cache_dir: &PathBuf,
+    config_dir: &PathBuf,
+    max_files: usize,
+    icons_map: &mut IconsMap,
+) -> Vec<App> {
+    let results: HashMap<String, App> =
+        collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map);
+    collect_active_taskbar_apps(icon_cache_dir, max_files, Some(results), icons_map)
+        .into_values()
+        .collect()
 }
 
-pub fn get_active_taskbar_apps(icon_cache_dir: &PathBuf, max_files: usize) -> Vec<App> {
-    collect_active_taskbar_apps(icon_cache_dir, max_files, None).into_values().collect()
+pub fn get_active_taskbar_apps(
+    icon_cache_dir: &PathBuf,
+    max_files: usize,
+    icons_map: &mut IconsMap,
+) -> Vec<App> {
+    collect_active_taskbar_apps(icon_cache_dir, max_files, None, icons_map)
+        .into_values()
+        .collect()
 }
 
-pub fn get_pinned_taskbar_apps(icon_cache_dir: &PathBuf, config_dir: &PathBuf, max_files: usize) -> Vec<App> {
-    collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files).into_values().collect()
+pub fn get_pinned_taskbar_apps(
+    icon_cache_dir: &PathBuf,
+    config_dir: &PathBuf,
+    max_files: usize,
+    icons_map: &mut IconsMap,
+) -> Vec<App> {
+    collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map)
+        .into_values()
+        .collect()
 }

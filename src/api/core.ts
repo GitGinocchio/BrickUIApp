@@ -8,7 +8,8 @@ const allowedCommands = new Set<string>([
   "get_active_taskbar_apps",
   "get_pinned_taskbar_apps",
   "open_start_menu",
-  "get_start_menu_favorites"
+  "get_start_menu_favorites",
+  "get_explorer_recents"
 ]);
 
 async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.InvokeOptions): Promise<any> {

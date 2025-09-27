@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch } from 'naive-ui';
+import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch, NDatePicker, NTimePicker } from 'naive-ui';
 import { computed, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';
@@ -94,7 +94,10 @@ const componentMap: Record<string, any> = {
   'IntArray': NDynamicTags,
   'FloatArray': NDynamicTags,
   'Color' : NColorPicker,
-  'Gradient' : GradientPicker
+  'Gradient' : GradientPicker,
+  'Date' : NDatePicker,
+  'Datetime' : NDatePicker,
+  'Time' : NTimePicker
 };
 
 const currentComponent = computed(() => componentMap[prop.prop_type] || NInput);
@@ -118,6 +121,7 @@ const componentProps = computed(() => {
         precision: prop.prop_type === 'Int' ? 0 : 2,
         min: prop.min,
         max: prop.max,
+        step: prop.step ? prop.step : (prop.prop_type === 'Float' ? 0.1 : 1),
         defaultValue: prop.default,
         placeholder: prop.default ? `${prop.default}` : 'Type a number...',
         clearable: true
@@ -166,6 +170,80 @@ const componentProps = computed(() => {
         "onUpdate:value" : (stops) => (prop.value = stops)
       };
 
+    case 'Date':
+    case "Datetime":
+    case "Time":
+      const allow_future = prop.allow_future;
+      const allow_past = prop.allow_past;
+
+      return {
+        type: prop.prop_type === 'Datetime' ? 'datetime' : 'date',
+        clearable: true,
+        defaultValue: prop.value,
+        "onUpdate:value": (value) => (prop.value = value),
+        isTimeDisabled: (current) => {
+          const date = new Date(current);
+          const now = new Date();
+
+          const isToday =
+            date.getFullYear() === now.getFullYear() &&
+            date.getMonth() === now.getMonth() &&
+            date.getDate() === now.getDate();
+
+          return {
+            isHourDisabled: (hour: number) => {
+              if (!isToday) return false;
+
+              if (!allow_past && allow_future) {
+                return hour < now.getHours();
+              }
+              if (!allow_future && allow_past) {
+                return hour > now.getHours();
+              }
+              return false;
+            },
+
+            isMinuteDisabled: (minute: number, hour: number) => {
+              if (!isToday) return false;
+
+              if (!allow_past && allow_future && hour === now.getHours()) {
+                return minute < now.getMinutes();
+              }
+              if (!allow_future && allow_past && hour === now.getHours()) {
+                return minute > now.getMinutes();
+              }
+              return false;
+            },
+
+            isSecondDisabled: (second: number, minute: number, hour: number) => {
+              if (!isToday) return false;
+
+              if (!allow_past && allow_future && hour === now.getHours() && minute === now.getMinutes()) {
+                return second < now.getSeconds();
+              }
+              if (!allow_future && allow_past && hour === now.getHours() && minute === now.getMinutes()) {
+                return second > now.getSeconds();
+              }
+              return false;
+            }
+          };
+        },
+        isDateDisabled: (ts: number) => {
+          const date = new Date(ts);
+          const now = new Date();
+          if (allow_future) now.setHours(now.getHours() - 24);
+
+          if (allow_future && date.getTime() >= now.getTime()) {
+            return false;
+          }
+          if (allow_past && date.getTime() <= now.getTime()) {
+            return false;
+          }
+
+          return true;
+        }
+      };
+
     default:
       return {};
   }
@@ -199,6 +277,11 @@ const modelValue = computed<any>({
 
       case 'Gradient':
         return prop.value ?? prop.default ?? [];
+
+      case "Date":
+      case "Datetime":
+      case "Time":
+        return prop.value ?? prop.default ?? null;
 
       default:
         return [];
@@ -254,6 +337,12 @@ const modelValue = computed<any>({
         break;
 
       case 'Bool':
+        value = newValue;
+        break;
+
+      case 'Date':
+      case 'Datetime':
+      case 'Time':
         value = newValue;
         break;
 
@@ -319,6 +408,12 @@ watch(modelValue, () => {
 
 ::deep(.n-popover__content) {
   display: flex;
+}
+
+.n-input-number,
+.n-date-picker,
+.n-time-picker {
+  width: 100%;
 }
 
 .prop-input-section {

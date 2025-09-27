@@ -7,6 +7,7 @@ use std::collections::HashMap;
 pub struct Plugins {
     #[serde(default, rename = "$schema", skip)]
     #[schemars(description = "The JSON Schema version or URI for this Plugins definition.")]
+    #[warn(dead_code)]
     schema: String,
 
     #[serde(default)]

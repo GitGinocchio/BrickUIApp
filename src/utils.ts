@@ -112,3 +112,16 @@ export function deepEqual(a: any, b: any): boolean {
 
   return keysA.every(key => deepEqual(a[key], b[key]));
 }
+
+export function waitUntil(cond: () => boolean, interval = 100): Promise<void> {
+  return new Promise(resolve => {
+    const check = () => {
+      if (cond()) {
+        resolve();
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+    check();
+  });
+}

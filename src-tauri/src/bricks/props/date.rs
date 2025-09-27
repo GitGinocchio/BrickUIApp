@@ -12,13 +12,11 @@ pub struct DatePropType {
     #[schemars(
         description = "Current date value of the property in the format `DD-MM` or `DD-MM-YYYY`. May be null if `default` is null."
     )]
-    #[schemars(regex(pattern = r"^[0-9]{2}-[0-9]{2}(-[0-9]{4})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
+    pub value: Option<u64>,
 
-    #[schemars(regex(pattern = r"^[0-9]{2}-[0-9]{2}(-[0-9]{4})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<String>,
+    pub default: Option<u64>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,
@@ -33,13 +31,11 @@ pub struct DateTimePropType {
     #[serde(flatten)]
     pub base: PropMeta,
 
-    #[schemars(regex(pattern = r"^[0-9]{2}-[0-9]{2}(-[0-9]{4})? [0-9]{2}:[0-9]{2}(:[0-9]{2})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
+    pub value: Option<u64>,
 
-    #[schemars(regex(pattern = r"^[0-9]{2}-[0-9]{2}(-[0-9]{4})? [0-9]{2}:[0-9]{2}(:[0-9]{2})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<String>,
+    pub default: Option<u64>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,
@@ -54,13 +50,11 @@ pub struct TimePropType {
     #[serde(flatten)]
     pub base: PropMeta,
 
-    #[schemars(regex(pattern = r"^[0-9]{2}:[0-9]{2}(:[0-9]{2})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
+    pub value: Option<u64>,
 
-    #[schemars(regex(pattern = r"^[0-9]{2}:[0-9]{2}(:[0-9]{2})?$"))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<String>,
+    pub default: Option<u64>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,

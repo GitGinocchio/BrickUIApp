@@ -2,7 +2,11 @@ pub mod brick;
 pub mod props;
 
 use fs_extra::dir::{CopyOptions, copy};
-use std::{fs, path::PathBuf};
+use zip::ZipArchive;
+use std::fs::{self, File};
+use std::io::{self, Read, Write};
+use std::path::PathBuf;
+use zip::write::SimpleFileOptions;
 
 use crate::bricks::brick::Brick;
 
@@ -128,30 +132,101 @@ pub fn save_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
 
 pub fn open_brick(path: &PathBuf, brick_name: String) -> Result<(), String> {
     let path = path.join("bricks").join(brick_name);
+    use std::os::windows::process::CommandExt;
 
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
+    std::process::Command::new("cmd")
+        .creation_flags(0x08000000)
+        .args(&["/C", "start", "/B", "", &path.to_string_lossy()])
+        .spawn()
+        .map_err(|e| e.to_string())?;
 
-        std::process::Command::new("cmd")
-            .creation_flags(0x08000000)
-            .args(&["/C", "start", "/B", "", &path.to_string_lossy()])
-            .spawn()
-            .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Aggiunge ricorsivamente una cartella allo zip
+fn add_directory_to_zip<W: Write + std::io::Seek>(
+    path: &PathBuf,
+    zip: &mut zip::ZipWriter<W>,
+    base_path: &PathBuf,
+    options: SimpleFileOptions,
+) -> zip::result::ZipResult<()> {
+    if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            add_directory_to_zip(&entry_path, zip, base_path, options)?;
+        }
+    } else {
+        // Calcola il percorso relativo rispetto alla cartella base
+        let name_in_zip = entry_relative_path(path, base_path);
+
+        zip.start_file(name_in_zip, options)?;
+        let mut f = File::open(path)?;
+        let mut buffer = Vec::new();
+        f.read_to_end(&mut buffer)?;
+        zip.write_all(&buffer)?;
     }
-    #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Restituisce il percorso relativo da inserire nello zip
+fn entry_relative_path<'a>(path: &'a PathBuf, base_path: &'a PathBuf) -> String {
+    path.strip_prefix(base_path)
+        .unwrap()
+        .to_string_lossy()
+        .replace("\\", "/") // importante per compatibilità ZIP su Windows
+}
+
+pub fn pack_brick(path: &PathBuf, brick_name: String, output_path: &PathBuf) -> Result<(), String> {
+    let brick_path = path.join("bricks").join(&brick_name);
+
+    let file = File::create(output_path)
+        .map_err(|e| format!("Error while creating .brick file: {e}"))?;
+
+    let mut zip = zip::ZipWriter::new(file);
+
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    add_directory_to_zip(&brick_path, &mut zip, &brick_path, options)
+        .map_err(|e| format!("Error while adding dir to zip: {e}"))?;
+
+    zip.finish()
+        .map_err(|e| format!("Error while ending zip creation: {e}"))?;
+
+    Ok(())
+}
+
+pub fn unpack_brick(input_path: &PathBuf, output_dir: &PathBuf) -> Result<(), String> {
+    let file = File::open(input_path)
+        .map_err(|e| format!("Error opening .brick file: {e}"))?;
+
+    let mut archive = ZipArchive::new(file)
+        .map_err(|e| format!("Error reading zip archive: {e}"))?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)
+            .map_err(|e| format!("Error accessing file in archive: {e}"))?;
+
+        let outpath = output_dir.join(file.name());
+
+        if file.name().ends_with('/') {
+            // È una directory
+            fs::create_dir_all(&outpath)
+                .map_err(|e| format!("Error creating directory {outpath:?}: {e}"))?;
+        } else {
+            // Assicurati che la cartella esista
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("Error creating parent dirs for {outpath:?}: {e}"))?;
+            }
+
+            let mut outfile = File::create(&outpath)
+                .map_err(|e| format!("Error creating file {outpath:?}: {e}"))?;
+
+            io::copy(&mut file, &mut outfile)
+                .map_err(|e| format!("Error writing to {outpath:?}: {e}"))?;
+        }
     }
-    #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
+
     Ok(())
 }

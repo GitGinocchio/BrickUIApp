@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use lnk::encoding::WINDOWS_1252;
-use lnk::ShellLink;
 
 use crate::winapi::resolve_lnk;
 
@@ -32,7 +30,8 @@ pub fn get_start_menu_favorites(app_data_dir: &PathBuf) -> Result<Vec<Favorites>
     let user_start_menu = app_data_dir.join("Microsoft\\Windows\\Start Menu\\Programs");
 
     // Questo non sembra funzionare
-    let common_start_menu = app_data_dir.join("..\\..\\..\\Default\\Microsoft\\Windows\\Start Menu\\Programs");
+    let common_start_menu =
+        app_data_dir.join("..\\..\\..\\Default\\Microsoft\\Windows\\Start Menu\\Programs");
 
     for dir in [common_start_menu, user_start_menu] {
         if dir.exists() {
@@ -63,7 +62,9 @@ fn scan_directory(dir: &Path, results: &mut Vec<Favorites>) -> Result<(), String
                     .collect(),
             }));
         } else if let Some(ext) = path.extension() {
-            if !ext.eq_ignore_ascii_case("lnk") { continue; }
+            if !ext.eq_ignore_ascii_case("lnk") {
+                continue;
+            }
 
             match resolve_lnk(&path) {
                 Ok(lnk) => {
@@ -72,15 +73,17 @@ fn scan_directory(dir: &Path, results: &mut Vec<Favorites>) -> Result<(), String
                     } else {
                         match lnk.link_target() {
                             Some(exe) => exe,
-                            None => { continue; }
+                            None => {
+                                continue;
+                            }
                         }
                     };
 
                     let icon_location = match lnk.string_data().icon_location() {
                         Some(icon_location) => icon_location,
-                        None => &exe
+                        None => &exe,
                     };
-                
+
                     results.push(Favorites::Favorite(Favorite {
                         name: path.file_stem().unwrap().to_string_lossy().to_string(),
                         path: exe.clone(),

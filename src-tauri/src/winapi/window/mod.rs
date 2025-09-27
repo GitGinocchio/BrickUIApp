@@ -1,16 +1,14 @@
+pub mod overlay;
+pub mod wallpaper;
+
 use std::ptr::null_mut;
 use windows::Win32::{
     Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
-    Graphics::Gdi::{
-        GetMonitorInfoA, MONITOR_DEFAULTTONEAREST, MONITORINFO,
-        MonitorFromPoint
-    },
+    Graphics::Gdi::{GetMonitorInfoA, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint},
     UI::WindowsAndMessaging::{
-        FindWindowA, FindWindowExA, GWL_STYLE,
-        GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST,
+        FindWindowA, FindWindowExA, GWL_STYLE, GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST,
         SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, SendMessageTimeoutA,
-        SetParent, SetWindowLongPtrW, SetWindowPos,
-        WS_CAPTION, WS_THICKFRAME,
+        SetParent, SetWindowLongPtrW, SetWindowPos, WS_CAPTION, WS_THICKFRAME,
     },
 };
 use windows::core::PCSTR;

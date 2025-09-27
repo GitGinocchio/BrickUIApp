@@ -1,230 +1,26 @@
 mod winapi;
+use crate::handlers::generate_handlers;
 use crate::winapi::events::start_event_listeners;
-use crate::winapi::set_snap_flyout;
-use crate::winapi::startmenu::favorites::Favorites;
-use crate::winapi::taskbar::apps::App;
-use crate::winapi::window::{remove_titlebar, set_as_wallpaper_background};
+use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
+use crate::winapi::window::remove_titlebar;
 
 mod bricks;
-use crate::bricks::brick::Brick;
 
 mod config;
-use crate::config::settings::{Settings, TaskBarBehavior};
+use crate::config::settings::{TaskBarBehavior};
 
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager, State, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 
 mod state;
 use state::BrickUIState;
 use tauri_plugin_autostart::MacosLauncher;
 
-#[tauri::command]
-fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
-    winapi::taskbar::show_taskbar()?;
-    winapi::taskbar::hide_taskbar(keep_taskbar_space)
-}
-
-#[tauri::command]
-fn show_taskbar() -> Result<(), String> {
-    winapi::taskbar::show_taskbar()
-}
-
-#[tauri::command]
-fn get_active_taskbar_apps(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
-) -> Result<Vec<App>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-    let icon_cache_path = path.join("cache").join("icons");
-
-    // Qui max_files andrebbe sostituito con un impostazione presa dal file settings
-    Ok(crate::winapi::taskbar::apps::get_active_taskbar_apps(&icon_cache_path, 50))
-}
-
-#[tauri::command]
-fn get_pinned_taskbar_apps(
-    app_handle: AppHandle,
-    state: State<'_, Arc<Mutex<BrickUIState>>>
-) -> Result<Vec<App>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-    let icon_cache_path = path.join("cache").join("icons");
-
-    let resolver = app_handle.path();
-    let config_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
-
-    Ok(crate::winapi::taskbar::apps::get_pinned_taskbar_apps(&icon_cache_path, &config_dir, 50))
-}
-
-#[tauri::command]
-fn get_taskbar_apps(
-    app_handle: AppHandle,
-    state: State<'_, Arc<Mutex<BrickUIState>>>
-) -> Result<Vec<App>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-    let icon_cache_path = path.join("cache").join("icons");
-
-    let resolver = app_handle.path();
-    let config_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
-
-    Ok(crate::winapi::taskbar::apps::get_taskbar_apps(&icon_cache_path, &config_dir, 50))
-}
-
-#[tauri::command]
-fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    Ok(state_guard.get_settings().clone())
-}
-
-#[tauri::command]
-fn save_settings(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
-    settings: Settings,
-) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    let current_settings = state_guard.get_mut_settings();
-    *current_settings = settings.clone();
-
-    crate::config::save_settings(&path, settings)
-}
-
-#[tauri::command]
-fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-
-    Ok(state_guard.get_bricks().to_vec())
-}
-
-#[tauri::command]
-fn get_brick_by_name(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
-    name: String,
-) -> Result<Option<Brick>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-
-    Ok(state_guard.get_brick_by_name(&name))
-}
-
-#[tauri::command]
-fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-
-    let path = state_guard.get_path();
-    let bricks = bricks::load_bricks(&path)?;
-
-    let bricks_return = bricks.clone();
-    *state_guard.get_mut_bricks() = bricks;
-
-    Ok(bricks_return)
-}
-
-#[tauri::command]
-fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-
-    let path = state_guard.get_path();
-
-    bricks::save_brick(&path, &brick)?;
-
-    // Aggiorna lo stato in memoria
-    if let Some(existing) = state_guard
-        .get_mut_bricks()
-        .iter_mut()
-        .find(|b| b.name == brick.name)
-    {
-        *existing = brick;
-    } else {
-        state_guard.get_mut_bricks().push(brick);
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-fn rename_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
-    old_name: String,
-    new_name: String,
-) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    bricks::rename_brick(&path, &old_name, &new_name)?;
-
-    if let Some(brick) = state_guard.bricks.iter_mut().find(|b| b.name == old_name) {
-        brick.name = new_name;
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    let new_brick = bricks::duplicate_brick(&path, brick)?;
-
-    state_guard.bricks.push(new_brick);
-
-    Ok(())
-}
-
-// Questo non serve a molto potrebbe essere sostituito con il plugin opener e basta
-#[tauri::command]
-fn open_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
-    brick_name: String,
-) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    bricks::open_brick(&path, brick_name)
-}
-
-#[tauri::command]
-fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    state_guard.bricks.retain(|b| b.name != brick.name);
-
-    bricks::delete_brick(&path, &brick)
-}
-
-#[tauri::command]
-fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    bricks::create_brick(&path, &brick)?;
-    state_guard.bricks.push(brick);
-
-    Ok(())
-}
-
-#[tauri::command]
-fn open_start_menu() -> Result<(), String> {
-    crate::winapi::startmenu::open_start_menu();
-
-    Ok(())
-}
-
-#[tauri::command]
-fn get_start_menu_favorites(app_handle: AppHandle) -> Result<Vec<Favorites>, String> {
-    let resolver = app_handle.path();
-    let app_data_dir = resolver.config_dir().map_err(|e| format!("error obtaining config dir: {e}"))?;
-
-    crate::winapi::startmenu::favorites::get_start_menu_favorites(&app_data_dir)
-}
+mod handlers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
-
     /*
     if let tauri::Pattern::Isolation { schema, .. } = context.pattern() {
         dbg!(schema);
@@ -232,13 +28,11 @@ pub fn run() {
     */
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None,
-        ))
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if let Some(webview_window) = app.get_webview_window("main") {
                 let _ = webview_window.unminimize();
 
@@ -248,39 +42,37 @@ pub fn run() {
 
                 let _ = webview_window.set_focus();
             } else {
-                eprintln!("no main window");
+                panic!("Can't get the main window");
             }
+
+            if let Some(slice) = args.get(1..) {
+                let bricks: Option<(&String, String)> = slice
+                    .iter()
+                    .filter(|f| f.ends_with(".brick") || 
+                                f.ends_with(".brk") ||
+                                f.ends_with(".brck") ||
+                                f.ends_with(".bk")
+                    )
+                    .map(|b| (b, b.split("\\")
+                                    .last()
+                                    .unwrap_or("Brick")
+                                    .split(".")
+                                    .next()
+                                    .unwrap_or("Brick")
+                                    .to_string())
+                    )
+                    .last();
+
+                println!("{bricks:?}");
+
+                app.emit_to("main", "open_brick", bricks)
+                    .expect("Error while sending 'opened_brick' event:");
+            }
+
+            //println!("{_args:?}, {_cwd:?}");
+
         }))
-        .invoke_handler(tauri::generate_handler![
-            // Taskbar
-            hide_taskbar,
-            show_taskbar,
-
-            // Taskbar / Apps
-            get_taskbar_apps,
-            get_active_taskbar_apps,
-            get_pinned_taskbar_apps,
-
-            // Start Menu
-            open_start_menu,
-
-            get_start_menu_favorites,
-
-            // Settings
-            get_settings,
-            save_settings,
-
-            // Bricks
-            get_bricks,
-            get_brick_by_name,
-            load_bricks,
-            duplicate_brick,
-            delete_brick,
-            rename_brick,
-            save_brick,
-            open_brick,
-            new_brick
-        ])
+        .invoke_handler(generate_handlers())
         .setup(|app| {
             let resolver = app.app_handle().path();
             let resource_path = resolver.resource_dir()?;
@@ -302,17 +94,15 @@ pub fn run() {
             let overlayw = app.get_window("overlay").unwrap();
             remove_titlebar(&overlayw);
 
-            let wallpaperwv = app.get_webview("wallpaper").unwrap();
-            let wallpaperw = app.get_window("wallpaper").unwrap();
-            let hwnd = wallpaperw
-                .hwnd()
-                .map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
-            set_as_wallpaper_background(hwnd)?;
+            //let wallpaperwv = app.get_webview("wallpaper").unwrap();
+            //let wallpaperw = app.get_window("wallpaper").unwrap();
+            //let hwnd = wallpaperw
+                //.hwnd()
+                //.map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
+            //set_as_wallpaper_background_all_monitors(hwnd)?;
 
             //wallpaperwv.open_devtools();
-
-            set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
-
+            //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
             start_event_listeners(app.handle().clone())?;
 
             Ok(())
@@ -383,9 +173,11 @@ pub fn run() {
                     };
                 }
 
+                /*
                 set_snap_flyout(true)
                     .map_err(|e| format!("Errore set_snap_flyout: {e}"))
                     .expect("");
+                */
 
                 app_handle.exit(0);
             }

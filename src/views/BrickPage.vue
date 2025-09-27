@@ -94,7 +94,7 @@
     </div>
     
     <!-- Confirm Delete Modal -->
-    <ConfirmModal
+    <GenericModal
       v-model:show="deleteModalShow"
       :message="deleteModalMessage"
       :title="deleteModalTitle"
@@ -123,7 +123,7 @@ import { computed, onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useI18n } from 'vue-i18n';
 import { Blocks, Cuboid, BadgeCheck, Text, Pencil, PencilOff, Cog, CirclePlus, ChevronDown, ChevronUp, Wifi, Shield } from 'lucide-vue-next';
-import ConfirmModal from '../components/modals/ConfirmModal.vue';
+import GenericModal from '../components/modals/GenericModal.vue';
 import PropModal from '../components/modals/PropModal.vue';
 import BrickProp from '../components/BrickProp.vue';
 import Header from '../components/Header.vue';
@@ -373,10 +373,6 @@ async function deleteBrick() {
 
 :deep(.n-form-item-feedback-wrapper) {
   min-height: 0;
-}
-
-:deep(.n-input-number) {
-  width: 100%;
 }
 
 :deep(

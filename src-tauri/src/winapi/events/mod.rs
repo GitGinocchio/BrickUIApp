@@ -3,9 +3,7 @@ mod mouse;
 mod window;
 
 use crate::{
-    config::settings::TaskBarBehavior,
-    state::BrickUIState,
-    winapi::{set_snap_flyout, taskbar::hide_taskbar},
+    config::settings::TaskBarBehavior, state::BrickUIState, winapi::taskbar::hide_taskbar,
 };
 
 use crossbeam::channel;
@@ -87,7 +85,7 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
             match event {
                 GlobalEvent::MouseMove { x, y } => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_moved", (x, y));
-                    let _ = app_handle.emit_to("wallpaper", "global_mouse_moved", (x, y));
+                    //let _ = app_handle.emit_to("wallpaper", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown { x, y, button } => {
                     let _ = app_handle.emit_to("overlay", "global_mouse_pressed", (x, y, button));

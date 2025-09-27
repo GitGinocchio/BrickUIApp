@@ -16,4 +16,8 @@ pub struct NumericPropType<T: Default + PartialOrd> {
     #[schemars(description = "Maximum allowed value (inclusive).")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     max: Option<T>,
+
+    #[schemars(description = "Step value.")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    step: Option<T>,
 }

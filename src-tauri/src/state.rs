@@ -5,6 +5,7 @@ use std::{fs, path::PathBuf};
 use crate::{
     bricks::brick::Brick,
     config::{load_from_yaml, plugins::Plugins, settings::Settings},
+    winapi::icons::IconsMap,
 };
 use serde::Serialize;
 
@@ -63,22 +64,23 @@ fn generate_schemas_if_missing(path: &PathBuf) -> std::io::Result<()> {
 fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     write_template_if_missing::<Settings>(path, "settings.yml")?;
     write_template_if_missing::<Plugins>(path, "plugins.yml")?;
+    write_template_if_missing::<IconsMap>(&path.join("cache").join("icons"), "icons.map.yml")?;
 
     Ok(())
 }
 
 fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<(), String> {
-    if path.join("bricks").join(".types").exists() {
+    /*if path.join("bricks").join(".types").exists() {
         return Ok(());
-    }
+    }*/
 
     // Opzioni di copia
     let mut options = CopyOptions::new();
-    options.overwrite = false; // sovrascrive i file se esistono
+    options.overwrite = true; // sovrascrive i file se esistono
     options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
     options.content_only = true;
     options.skip_exist = true;
-    options.depth = 3;
+    options.depth = 0;
 
     copy(
         resource_path.join("assets").join("types"),
@@ -93,10 +95,12 @@ fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<
 //pub struct BrickUIState<R: Runtime> {
 #[derive(Clone)]
 pub struct BrickUIState {
+    #[warn(dead_code)]
     pub resource_path: PathBuf,
     pub path: PathBuf,
     pub settings: Settings,
     pub bricks: Vec<Brick>, //overlay: Overlay<R>
+    pub icons_map: IconsMap,
 }
 
 //impl<R: Runtime> BrickUIState<R> {
@@ -121,11 +125,16 @@ impl BrickUIState {
         let settings = load_from_yaml::<Settings>(&path.join("settings.yml"))
             .expect("Errore durante il caricamento dei settings");
 
+        let icons_map =
+            load_from_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
+                .expect("Errore durante il caricamento dell'icon map");
+
         Self {
             resource_path: resource_path.clone(),
             path: path.clone(),
             settings: settings,
             bricks: vec![], //overlay: overlay
+            icons_map: icons_map,
         }
     }
 
@@ -151,6 +160,14 @@ impl BrickUIState {
 
     pub fn get_mut_settings(&mut self) -> &mut Settings {
         &mut self.settings
+    }
+
+    pub fn get_icons_map(&self) -> &IconsMap {
+        &self.icons_map
+    }
+
+    pub fn get_mut_icons_map(&mut self) -> &mut IconsMap {
+        &mut self.icons_map
     }
 
     /*
