@@ -1,17 +1,15 @@
 pub mod apps;
 
 use windows::{
-    Win32::{
+    core::{Error as WinError, PCSTR}, Win32::{
         Foundation::LPARAM,
         UI::{
-            Shell::{ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA, SHAppBarMessage},
+            Shell::{SHAppBarMessage, ABM_GETSTATE, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA},
             WindowsAndMessaging::{
-                FindWindowA, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW, SWP_NOACTIVATE,
-                SWP_NOMOVE, SWP_NOSIZE, SetWindowPos, ShowWindow,
+                FindWindowA, SetWindowPos, ShowWindow, HWND_BOTTOM, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_SHOW
             },
         },
-    },
-    core::{Error as WinError, PCSTR},
+    }
 };
 
 pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
@@ -93,4 +91,19 @@ pub fn show_taskbar() -> Result<(), String> {
 
         Ok(())
     }
+}
+
+pub fn is_taskbar_autohide() -> bool {
+    let mut appbar_data = APPBARDATA {
+        cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+        ..Default::default()
+    };
+    
+    let state = unsafe { SHAppBarMessage(ABM_GETSTATE, &mut appbar_data) };
+
+    if state == 0 {
+        return false;
+    }
+
+    (state & ABS_AUTOHIDE as usize) != 0
 }

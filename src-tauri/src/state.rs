@@ -4,7 +4,7 @@ use std::{fs, path::PathBuf};
 
 use crate::{
     bricks::brick::Brick,
-    config::{load_from_yaml, plugins::Plugins, settings::Settings},
+    config::{backup::Backup, load_from_yaml, plugins::Plugins, settings::Settings},
     winapi::icons::IconsMap,
 };
 use serde::Serialize;
@@ -57,6 +57,7 @@ fn generate_schemas_if_missing(path: &PathBuf) -> std::io::Result<()> {
     write_schema_if_missing::<Settings>(path, "settings.schema.json")?;
     write_schema_if_missing::<Plugins>(path, "plugins.schema.json")?;
     write_schema_if_missing::<Brick>(path, "brick.schema.json")?;
+    write_schema_if_missing::<Backup>(path, "backup.schema.json")?;
 
     Ok(())
 }
@@ -65,6 +66,7 @@ fn generate_templates_if_missing(path: &PathBuf) -> std::io::Result<()> {
     write_template_if_missing::<Settings>(path, "settings.yml")?;
     write_template_if_missing::<Plugins>(path, "plugins.yml")?;
     write_template_if_missing::<IconsMap>(&path.join("cache").join("icons"), "icons.map.yml")?;
+    write_template_if_missing::<Backup>(&path, "backup.yml")?;
 
     Ok(())
 }
@@ -95,19 +97,20 @@ fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<
 //pub struct BrickUIState<R: Runtime> {
 #[derive(Clone)]
 pub struct BrickUIState {
-    #[warn(dead_code)]
-    pub resource_path: PathBuf,
-    pub path: PathBuf,
-    pub settings: Settings,
-    pub bricks: Vec<Brick>, //overlay: Overlay<R>
-    pub icons_map: IconsMap,
+    resource_path: PathBuf,
+    path: PathBuf,
+    settings: Settings,
+    backup: Backup,
+    bricks: Vec<Brick>, //overlay: Overlay<R>
+    icons_map: IconsMap,
 }
 
 //impl<R: Runtime> BrickUIState<R> {
 impl BrickUIState {
     //pub fn new(path: &PathBuf, overlay: Overlay<R>) -> Self {
     pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Self {
-        fs::create_dir_all(&path).expect("Errore nella creazione della directory di dati");
+        fs::create_dir_all(&path)
+            .expect("Errore nella creazione della directory di dati");
         fs::create_dir_all(&path.join("bricks"))
             .expect("Errore nella creazione della directory per i widgets");
         fs::create_dir_all(&path.join("walls"))
@@ -117,29 +120,38 @@ impl BrickUIState {
         fs::create_dir_all(&path.join("cache").join("icons"))
             .expect("Errore nella creazione della directory per la cache");
 
-        generate_schemas_if_missing(path).expect("Errore durante la creazione degli schemas");
-        generate_templates_if_missing(path).expect("Errore durante la creazione dei template");
+        generate_schemas_if_missing(path)
+            .expect("Errore durante la creazione degli schemas");
+        generate_templates_if_missing(path)
+            .expect("Errore durante la creazione dei template");
         generate_types_if_missing(resource_path, path)
             .expect("Errore durante la creazione dei tipi");
 
         let settings = load_from_yaml::<Settings>(&path.join("settings.yml"))
             .expect("Errore durante il caricamento dei settings");
 
-        let icons_map =
-            load_from_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
-                .expect("Errore durante il caricamento dell'icon map");
+        let icons_map = load_from_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
+            .expect("Errore durante il caricamento dell'icon map");
+
+        let backup = load_from_yaml::<Backup>(&path.join("backup.yml"))
+            .expect("Errore durante il caricamento del file backup");
 
         Self {
             resource_path: resource_path.clone(),
             path: path.clone(),
             settings: settings,
+            backup: backup,
             bricks: vec![], //overlay: overlay
             icons_map: icons_map,
         }
     }
 
-    pub fn get_path(&self) -> PathBuf {
-        return self.path.clone();
+    pub fn get_path(&self) -> &PathBuf {
+        &self.path
+    }
+    
+    pub fn get_resource_path(&self) -> &PathBuf {
+        &self.resource_path
     }
 
     pub fn get_bricks(&self) -> &[Brick] {
@@ -160,6 +172,14 @@ impl BrickUIState {
 
     pub fn get_mut_settings(&mut self) -> &mut Settings {
         &mut self.settings
+    }
+
+    pub fn get_backup(&self) -> &Backup {
+        &self.backup
+    }
+
+    pub fn get_mut_backup(&mut self) -> &mut Backup {
+        &mut self.backup
     }
 
     pub fn get_icons_map(&self) -> &IconsMap {

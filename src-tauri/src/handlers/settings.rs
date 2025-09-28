@@ -18,10 +18,13 @@ pub fn save_settings(
     settings: Settings,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
 
-    let current_settings = state_guard.get_mut_settings();
-    *current_settings = settings.clone();
+    {
+        let current_settings = state_guard.get_mut_settings();
+        *current_settings = settings.clone();
+    }
+
+    let path = state_guard.get_path();
 
     crate::config::save_settings(&path, settings)
 }

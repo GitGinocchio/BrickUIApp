@@ -1,6 +1,5 @@
 import * as core from '@tauri-apps/api/core';
 import { normalizePath } from '../utils/normUtils';
-import { catchBrickError } from '../utils/errors';
 
 const allowedCommands = new Set<string>([
   "get_bricks",
@@ -9,7 +8,9 @@ const allowedCommands = new Set<string>([
   "get_pinned_taskbar_apps",
   "open_start_menu",
   "get_start_menu_favorites",
-  "get_explorer_recents"
+  "get_explorer_recents",
+  "hide_all_cursors",
+  "restore_all_cursors"
 ]);
 
 async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.InvokeOptions): Promise<any> {

@@ -1,7 +1,68 @@
 use std::collections::HashMap;
+use schemars::JsonSchema;
+use serde::{Serialize, Deserialize};
 use winreg::enums::*;
 use winreg::RegKey;
 use windows::Win32::UI::WindowsAndMessaging::{SystemParametersInfoW, SPI_SETCURSORS};
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, JsonSchema)]
+pub enum CursorType {
+    Arrow,
+    Hand,
+    AppStarting,
+    Wait,
+    IBeam,
+    Crosshair,
+    Help,
+    No,
+    NWPen,
+    SizeAll,
+    SizeNESW,
+    SizeNS,
+    SizeNWSE,
+    SizeWE,
+    UpArrow
+}
+
+impl CursorType {
+    pub const ALL: [CursorType; 15] = [
+        CursorType::Arrow,
+        CursorType::Hand,
+        CursorType::AppStarting,
+        CursorType::Wait,
+        CursorType::IBeam,
+        CursorType::Crosshair,
+        CursorType::Help,
+        CursorType::No,
+        CursorType::NWPen,
+        CursorType::SizeAll,
+        CursorType::SizeNESW,
+        CursorType::SizeNS,
+        CursorType::SizeNWSE,
+        CursorType::SizeWE,
+        CursorType::UpArrow,
+    ];
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CursorType::Arrow => "Arrow",
+            CursorType::Hand => "Hand",
+            CursorType::AppStarting => "AppStarting",
+            CursorType::Wait => "Wait",
+            CursorType::IBeam => "IBeam",
+            CursorType::Crosshair => "Crosshair",
+            CursorType::Help => "Help",
+            CursorType::No => "No",
+            CursorType::NWPen => "NWPen",
+            CursorType::SizeAll => "SizeAll",
+            CursorType::SizeNESW => "SizeNESW",
+            CursorType::SizeNS => "SizeNS",
+            CursorType::SizeNWSE => "SizeNWSE",
+            CursorType::SizeWE => "SizeWE",
+            CursorType::UpArrow => "UpArrow",
+        }
+    }
+}
 
 /// Applica le modifiche scritte nel registro
 fn apply_cursor_changes() -> Result<(), String> {
@@ -18,18 +79,14 @@ fn apply_cursor_changes() -> Result<(), String> {
 }
 
 /// Salva i cursori correnti
-fn backup_cursors() -> HashMap<String, String> {
+pub fn backup_cursors() -> HashMap<CursorType, String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key = hkcu.open_subkey("Control Panel\\Cursors").unwrap();
 
     let mut cursors = HashMap::new();
-    for name in [
-        "Arrow", "Hand", "AppStarting", "Wait", "IBeam",
-        "Crosshair", "Help", "No", "NWPen", "SizeAll",
-        "SizeNESW", "SizeNS", "SizeNWSE", "SizeWE", "UpArrow",
-    ] {
-        if let Ok(value) = key.get_value::<String, _>(name) {
-            cursors.insert(name.to_string(), value);
+    for name in CursorType::ALL {
+        if let Ok(value) = key.get_value::<String, _>(name.as_str()) {
+            cursors.insert(name, value);
         }
     }
     cursors
@@ -42,12 +99,8 @@ pub fn hide_cursors(transparent_cur: &str) -> Result<(), String> {
         .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
         .unwrap();
 
-    for name in [
-        "Arrow", "Hand", "AppStarting", "Wait", "IBeam",
-        "Crosshair", "Help", "No", "NWPen", "SizeAll",
-        "SizeNESW", "SizeNS", "SizeNWSE", "SizeWE", "UpArrow",
-    ] {
-        key.set_value(name, &transparent_cur).unwrap();
+    for name in CursorType::ALL {
+        key.set_value(name.as_str(), &transparent_cur).unwrap();
     }
 
     apply_cursor_changes()?;
@@ -60,14 +113,14 @@ pub fn hide_cursors(transparent_cur: &str) -> Result<(), String> {
 // pub fn set_cursor(...) -> Result<(), String> {}
 
 /// Ripristina i cursori originali
-pub fn restore_cursors(backup: &HashMap<String, String>) -> Result<(), String> {
+pub fn restore_cursors(backup: &HashMap<CursorType, String>) -> Result<(), String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key = hkcu
         .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
         .unwrap();
 
     for (name, value) in backup {
-        key.set_value(name, value).unwrap();
+        key.set_value(name.as_str(), value).unwrap();
     }
 
     apply_cursor_changes()?;

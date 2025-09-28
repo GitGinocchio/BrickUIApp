@@ -1,14 +1,3 @@
-mod winapi;
-use crate::handlers::generate_handlers;
-use crate::winapi::events::start_event_listeners;
-use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
-use crate::winapi::window::remove_titlebar;
-
-mod bricks;
-
-mod config;
-use crate::config::settings::{TaskBarBehavior};
-
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -16,7 +5,19 @@ mod state;
 use state::BrickUIState;
 use tauri_plugin_autostart::MacosLauncher;
 
+mod winapi;
+use crate::winapi::cursor::restore_cursors;
+use crate::winapi::events::start_event_listeners;
+use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
+use crate::winapi::window::remove_titlebar;
+
+mod config;
+use crate::config::settings::{TaskBarBehavior};
+
+mod bricks;
+
 mod handlers;
+use crate::handlers::generate_handlers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -118,6 +119,7 @@ pub fn run() {
                     Err(e) => panic!("{e}"),
                 };
                 let settings = state_guard.get_settings();
+                let backup = state_guard.get_backup();
 
                 if settings.systemtray.enabled
                     && settings.systemtray.hidetaskbaricon
@@ -126,27 +128,23 @@ pub fn run() {
                     api.prevent_close();
                     window
                         .hide()
-                        .map_err(|e| format!("Error while trying to hide the main window: {e}"))
-                        .expect("");
+                        .expect("Error while trying to hide the main window:");
                     return;
                 };
 
                 window
                     .hide()
-                    .map_err(|e| format!("Error while trying to hide the main window: {e}"))
-                    .expect("");
+                    .expect("Error while trying to hide the main window:");
 
                 if let Some(window) = app_handle.get_window("overlay")
                     && window.is_closable().is_ok()
                 {
                     window
                         .hide()
-                        .map_err(|e| format!("Error while trying to hide the overlay window: {e}"))
-                        .expect("");
+                        .expect("Error while trying to hide the overlay window:");
                     window
                         .close()
-                        .map_err(|e| format!("Error while trying to close the overlay window: {e}"))
-                        .unwrap();
+                        .expect("Error while trying to close the overlay window:");
                 }
 
                 if let Some(window) = app_handle.get_window("wallpaper")
@@ -154,24 +152,18 @@ pub fn run() {
                 {
                     window
                         .hide()
-                        .map_err(|e| {
-                            format!("Error while trying to hide the wallpaper window: {e}")
-                        })
-                        .expect("");
+                        .expect("Error while trying to hide the wallpaper window:");
                     window
                         .close()
-                        .map_err(|e| {
-                            format!("Error while trying to close the wallpaper window: {e}")
-                        })
-                        .unwrap();
+                        .expect("Error while trying to close the wallpaper window:");
                 }
 
                 if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                    match show_taskbar() {
-                        Err(e) => eprintln!("Errore nel mostrare la taskbar: {e:?}"),
-                        _ => (),
-                    };
+                    show_taskbar().expect("Errore nel mostrare la taskbar:");
                 }
+
+                restore_cursors(&backup.cursors)
+                    .expect("Errore nel riportare i cursori allo stato originale");
 
                 /*
                 set_snap_flyout(true)

@@ -70,7 +70,9 @@ pub fn rename_brick(
 
     bricks::rename_brick(&path, &old_name, &new_name)?;
 
-    if let Some(brick) = state_guard.bricks.iter_mut().find(|b| b.name == old_name) {
+    let bricks = state_guard.get_mut_bricks();
+
+    if let Some(brick) = bricks.iter_mut().find(|b| b.name == old_name) {
         brick.name = new_name;
     }
 
@@ -84,7 +86,8 @@ pub fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick)
 
     let new_brick = bricks::duplicate_brick(&path, brick)?;
 
-    state_guard.bricks.push(new_brick);
+    let bricks = state_guard.get_mut_bricks();
+    bricks.push(new_brick);
 
     Ok(())
 }
@@ -104,11 +107,15 @@ pub fn open_brick(
 #[tauri::command]
 pub fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
     let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+
     let path = state_guard.get_path();
 
-    state_guard.bricks.retain(|b| b.name != brick.name);
+    bricks::delete_brick(&path, &brick)?;
 
-    bricks::delete_brick(&path, &brick)
+    let bricks = state_guard.get_mut_bricks();
+    bricks.retain(|b| b.name != brick.name);
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -117,7 +124,9 @@ pub fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Re
     let path = state_guard.get_path();
 
     bricks::create_brick(&path, &brick)?;
-    state_guard.bricks.push(brick);
+
+    let bricks = state_guard.get_mut_bricks();
+    bricks.push(brick);
 
     Ok(())
 }

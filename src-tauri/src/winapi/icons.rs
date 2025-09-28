@@ -34,6 +34,8 @@ use windows::{
     core::{PCWSTR, PWSTR},
 };
 
+use crate::config::save_yaml;
+
 // In questo modo viene calcolato solo una volta l'hash del contenuto di un icona
 // In base al percorso del file si puo' ottenere l'hash del contenuto (che e' anche il nome del file)
 // In questo modo abbiamo un singolo file per ogni icona diversa
@@ -54,12 +56,6 @@ fn default_schema() -> String {
 pub struct IconEntry {
     hash: String,
     created_at: String,
-}
-
-// Salva su YAML
-fn save_icon_map(path: &PathBuf, map: &IconsMap) -> Result<(), String> {
-    let data = serde_yaml::to_string(map).unwrap();
-    std::fs::write(path, data).map_err(|e| format!("Error while writing file {path:?}: {e}"))
 }
 
 pub fn get_default_icon(path: &str) -> Option<HICON> {
@@ -310,7 +306,7 @@ pub fn get_icon(
         },
     );
 
-    save_icon_map(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
+    save_yaml(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
 
     unsafe {
         DeleteObject(icon_info.hbmColor.into())
