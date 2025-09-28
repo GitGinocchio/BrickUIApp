@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use crate::config::settings::Settings;
 
-pub fn load_from_yaml<T>(path: &PathBuf) -> Result<T, String>
+pub fn load_yaml<T>(path: &PathBuf) -> Result<T, String>
 where
     T: DeserializeOwned,
 {

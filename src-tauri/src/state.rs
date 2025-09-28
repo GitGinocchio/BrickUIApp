@@ -4,7 +4,7 @@ use std::{fs, path::PathBuf};
 
 use crate::{
     bricks::brick::Brick,
-    config::{backup::Backup, load_from_yaml, plugins::Plugins, settings::Settings},
+    config::{backup::Backup, load_yaml, plugins::Plugins, settings::Settings},
     winapi::icons::IconsMap,
 };
 use serde::Serialize;
@@ -127,13 +127,13 @@ impl BrickUIState {
         generate_types_if_missing(resource_path, path)
             .expect("Errore durante la creazione dei tipi");
 
-        let settings = load_from_yaml::<Settings>(&path.join("settings.yml"))
+        let settings = load_yaml::<Settings>(&path.join("settings.yml"))
             .expect("Errore durante il caricamento dei settings");
 
-        let icons_map = load_from_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
+        let icons_map = load_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
             .expect("Errore durante il caricamento dell'icon map");
 
-        let backup = load_from_yaml::<Backup>(&path.join("backup.yml"))
+        let backup = load_yaml::<Backup>(&path.join("backup.yml"))
             .expect("Errore durante il caricamento del file backup");
 
         Self {
