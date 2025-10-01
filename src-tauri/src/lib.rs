@@ -10,6 +10,7 @@ use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
 use crate::winapi::window::remove_titlebar;
+use crate::winapi::Rect;
 
 mod config;
 use crate::config::settings::{TaskBarBehavior};
@@ -18,6 +19,7 @@ mod bricks;
 
 mod handlers;
 use crate::handlers::generate_handlers;
+use crate::winapi::workarea::set_workarea_for_all_monitors;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -105,7 +107,7 @@ pub fn run() {
             //wallpaperwv.open_devtools();
             //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
             start_event_listeners(app.handle().clone())?;
-
+            
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -170,6 +172,9 @@ pub fn run() {
                     .map_err(|e| format!("Errore set_snap_flyout: {e}"))
                     .expect("");
                 */
+
+                set_workarea_for_all_monitors(Rect { right: 0, left: 0, top: 0, bottom: 0 })
+                    .expect("Errore durante il reset dei margini della workarea");
 
                 app_handle.exit(0);
             }

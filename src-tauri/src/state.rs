@@ -1,11 +1,11 @@
 use fs_extra::dir::{CopyOptions, copy};
 use schemars::{JsonSchema, schema_for};
-use std::{fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup, load_yaml, plugins::Plugins, settings::Settings},
-    winapi::icons::IconsMap,
+    winapi::{icons::IconsMap, monitor::Monitor},
 };
 use serde::Serialize;
 
@@ -103,6 +103,7 @@ pub struct BrickUIState {
     backup: Backup,
     bricks: Vec<Brick>, //overlay: Overlay<R>
     icons_map: IconsMap,
+    monitors: HashMap<isize, Monitor>
 }
 
 //impl<R: Runtime> BrickUIState<R> {
@@ -143,6 +144,7 @@ impl BrickUIState {
             backup: backup,
             bricks: vec![], //overlay: overlay
             icons_map: icons_map,
+            monitors: HashMap::new()
         }
     }
 

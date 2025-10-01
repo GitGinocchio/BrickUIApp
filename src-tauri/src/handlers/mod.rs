@@ -16,6 +16,12 @@ use startmenu::*;
 mod cursor;
 use cursor::*;
 
+mod window;
+use window::*;
+
+mod workarea;
+use workarea::*;
+
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         // Taskbar
@@ -35,6 +41,10 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         // Cursor
         hide_all_cursors,
         restore_all_cursors,
+
+        // Window / Workarea
+        set_monitor_workarea,
+        set_workarea_for_all_monitors,
 
         // Settings
         get_settings,

@@ -4,13 +4,24 @@ use windows::{
     core::{Error as WinError, PCSTR}, Win32::{
         Foundation::LPARAM,
         UI::{
-            Shell::{SHAppBarMessage, ABM_GETSTATE, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA},
+            Shell::{SHAppBarMessage, ABM_GETSTATE, ABM_GETTASKBARPOS, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA},
             WindowsAndMessaging::{
                 FindWindowA, SetWindowPos, ShowWindow, HWND_BOTTOM, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_SHOW
             },
         },
     }
 };
+
+use crate::winapi::Rect;
+
+pub fn get_taskbar_rect() -> Option<Rect> {
+    let mut data = APPBARDATA {
+        cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+        ..Default::default()
+    };
+    let res = unsafe { SHAppBarMessage(ABM_GETTASKBARPOS, &mut data) };
+    if res != 0 { Some(data.rc.into()) } else { None }
+}
 
 pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
     unsafe {

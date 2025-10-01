@@ -23,6 +23,8 @@ pub enum GlobalEvent {
     KeyDown(String),
     KeyUp(String),
 
+    WindowCreated { hwnd: usize },
+    WindowDestroyed { hwnd: usize },
     WindowEnteredFullscreen { hwnd: usize },
     WindowExitedFullscreen { hwnd: usize },
 }
@@ -104,10 +106,12 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
                 }
                 GlobalEvent::WindowEnteredFullscreen { hwnd } => {
                     //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
-
+                    println!("Window entered fullscreen!");
                     let _ = app_handle.emit_to("overlay", "window_entered_fullscreen", hwnd);
                 }
                 GlobalEvent::WindowExitedFullscreen { hwnd } => {
+                    println!("Window exited fullscreen!");
+
                     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
                     let state_guard = state
                         .lock()
@@ -123,6 +127,9 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
                     //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
 
                     let _ = app_handle.emit_to("overlay", "window_exited_fullscreen", hwnd);
+                }
+                event => {
+                    eprintln!("Evento non riconosciuto: {event:?}");
                 }
             }
         }
