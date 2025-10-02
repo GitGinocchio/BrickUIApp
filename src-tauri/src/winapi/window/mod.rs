@@ -1,17 +1,159 @@
 pub mod overlay;
 pub mod wallpaper;
 
-use std::ptr::null_mut;
-use windows::Win32::{
+use std::{ptr::null_mut, sync::{Arc, Mutex}};
+use serde::{Deserialize, Serialize};
+use windows::{core::BOOL, Win32::{
     Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
-    Graphics::Gdi::{GetMonitorInfoA, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint},
+    Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST},
     UI::WindowsAndMessaging::{
-        FindWindowA, FindWindowExA, GWL_STYLE, GetWindowLongPtrW, GetWindowRect, HWND_TOPMOST,
-        SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, SendMessageTimeoutA,
-        SetParent, SetWindowLongPtrW, SetWindowPos, WS_CAPTION, WS_THICKFRAME,
+        EnumWindows, FindWindowA, FindWindowExA, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible, IsZoomed, SendMessageTimeoutA, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, HWND_TOPMOST, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, WS_CAPTION, WS_THICKFRAME
     },
-};
+}};
 use windows::core::PCSTR;
+
+use crate::winapi::{monitor::Monitor, Rect};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Window {
+    pub hwnd: isize,
+    pub title: String,
+    pub is_visible: bool,
+    pub is_maximized: bool,
+    pub rect: Option<Rect>,
+    pub monitor: Option<Monitor>
+}
+
+impl Window {
+    pub fn set_rect(&self, rect: &Rect) -> Result<(), String> {
+        if self.hwnd == 0 {
+            return Err(windows::core::Error::from_win32().message());
+        }
+
+        unsafe {
+            let hwnd = HWND(self.hwnd as *mut _);
+
+            // Usa direttamente i campi left/top/right/bottom del tuo Rect
+            SetWindowPos(
+                hwnd,
+                None,
+                rect.left,
+                rect.top,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+                SWP_NOZORDER | SWP_NOACTIVATE,
+            ).map_err(|e| format!("Error setting window position: {e}"))?;
+        }
+
+        Ok(())
+    }
+}
+
+unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
+    let windows_vec: &Mutex<Vec<Window>> = unsafe { &*(lparam.0 as *const Mutex<Vec<Window>>) };
+
+    let is_visible = unsafe { IsWindowVisible(hwnd).as_bool() };
+    let is_maximized = unsafe { IsZoomed(hwnd).as_bool() };
+
+    // Titolo finestra
+    let length = unsafe { GetWindowTextLengthW(hwnd) };
+    let mut title = String::new();
+    if length > 0 {
+        let mut buffer = vec![0u16; (length + 1) as usize];
+        let read_len = unsafe { GetWindowTextW(hwnd, &mut buffer) };
+        title = String::from_utf16_lossy(&buffer[..read_len as usize]);
+    }
+
+    // Rettangolo finestra
+    let mut rect: RECT = RECT::default();
+    let rect_opt = if unsafe { GetWindowRect(hwnd, &mut rect).is_ok() } {
+        Some(rect.into())
+    } else {
+        None
+    };
+
+    // Monitor associato
+    let hmon = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
+    let mut monitor_info = MONITORINFOEXW::default();
+    monitor_info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+
+    let monitor = if unsafe { GetMonitorInfoW(hmon, &mut monitor_info as *mut _ as *mut _).as_bool() } {
+        let device_name = String::from_utf16_lossy(
+            &monitor_info.szDevice
+                .iter()
+                .take_while(|&&c| c != 0) // filtro fino allo zero terminatore
+                .cloned()                  // <-- copia i valori, non i riferimenti
+                .collect::<Vec<u16>>(),
+        );
+
+        Some(Monitor {
+            hmonitor: hmon.0 as isize,
+            is_primary: (monitor_info.monitorInfo.dwFlags & 1) != 0,
+            rect: monitor_info.monitorInfo.rcMonitor.into(),
+            workarea: monitor_info.monitorInfo.rcWork.into(),
+            device_name,
+        })
+    } else {
+        None
+    };
+
+    let window = Window {
+        hwnd: hwnd.0 as isize,
+        title,
+        is_visible,
+        is_maximized,
+        rect: rect_opt,
+        monitor: monitor
+    };
+
+    if let Ok(mut vec) = windows_vec.lock() {
+        vec.push(window);
+    }
+
+    true.into()
+}
+
+pub fn get_maximized_windows() -> Result<Vec<Window>, String> {
+    let all = get_all_windows()?;
+    Ok(all
+        .into_iter()
+        .filter(|w| w.is_visible && w.is_maximized)
+        .collect()
+    )
+}
+
+pub fn get_maximized_window_for_monitor(monitor: &Monitor) -> Result<Option<Window>, String> {
+    let windows = get_maximized_windows()?;
+
+    for w in windows {
+        if let Some(m) = &w.monitor {
+            if m.hmonitor == monitor.hmonitor {
+                return Ok(Some(w));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+pub fn get_all_windows() -> Result<Vec<Window>, String> {
+    let windows_vec: Arc<Mutex<Vec<Window>>> = Arc::new(Mutex::new(Vec::new()));
+
+    // Passiamo il puntatore diretto alla Mutex, senza clone Arc extra
+    let ptr = Arc::as_ptr(&windows_vec);
+
+    unsafe {
+        EnumWindows(
+            Some(enum_windows_proc),
+            LPARAM(ptr as isize),
+        ).map_err(|e| format!("Error during the windows enumeration:{e}"))?;
+    }
+
+    let result = windows_vec.lock().unwrap().clone();
+    Ok(result)
+}
+
+
 
 fn force_window_style_refresh(hwnd: HWND) {
     unsafe {

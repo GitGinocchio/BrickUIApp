@@ -47,6 +47,28 @@ impl From<Rect> for RECT {
     }
 }
 
+impl From<&RECT> for Rect {
+    fn from(r: &RECT) -> Self {
+        Self {
+            left: r.left,
+            top: r.top,
+            right: r.right,
+            bottom: r.bottom,
+        }
+    }
+}
+
+impl From<&Rect> for RECT {
+    fn from(r: &Rect) -> Self {
+        RECT {
+            left: r.left,
+            top: r.top,
+            right: r.right,
+            bottom: r.bottom,
+        }
+    }
+}
+
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
     let shortcut = ShellLink::open(lnk, WINDOWS_1252).unwrap();
     Ok(shortcut)

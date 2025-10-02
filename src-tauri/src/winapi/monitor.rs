@@ -1,15 +1,55 @@
+use std::{ffi::OsString, os::windows::ffi::OsStringExt};
+
 use serde::{Deserialize, Serialize};
-use windows::{core::BOOL, Win32::{Foundation::{LPARAM, POINT, RECT}, Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, MonitorFromPoint, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_FROM_FLAGS}}};
+use windows::{core::BOOL, Win32::{Foundation::{LPARAM, POINT, RECT}, Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, MonitorFromPoint, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_FROM_FLAGS}, UI::WindowsAndMessaging::MONITORINFOF_PRIMARY}};
 
 use crate::winapi::Rect;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Monitor {
     pub is_primary: bool,
-    pub monitor: Rect,
-    pub work: Rect,
+    pub rect: Rect,
+    pub workarea: Rect,
     pub device_name: String,
     pub hmonitor: isize
+}
+
+impl TryFrom<HMONITOR> for Monitor {
+    type Error = String;
+
+    fn try_from(hmonitor: HMONITOR) -> Result<Self, String> {
+        unsafe {
+            let mut info = MONITORINFOEXW::default();
+            info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+
+            if GetMonitorInfoW(hmonitor, &mut info as *mut _ as *mut _).as_bool() {
+                let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+                let device_name = OsString::from_wide(&info.szDevice[..len])
+                    .to_string_lossy()
+                    .to_string();
+
+                Ok(Monitor {
+                    is_primary: info.monitorInfo.dwFlags & MONITORINFOF_PRIMARY != 0,
+                    rect: Rect {
+                        left: info.monitorInfo.rcMonitor.left,
+                        top: info.monitorInfo.rcMonitor.top,
+                        right: info.monitorInfo.rcMonitor.right,
+                        bottom: info.monitorInfo.rcMonitor.bottom,
+                    },
+                    workarea: Rect {
+                        left: info.monitorInfo.rcWork.left,
+                        top: info.monitorInfo.rcWork.top,
+                        right: info.monitorInfo.rcWork.right,
+                        bottom: info.monitorInfo.rcWork.bottom,
+                    },
+                    device_name,
+                    hmonitor: hmonitor.0 as isize,
+                })
+            } else {
+                Err(windows::core::Error::from_win32().message())
+            }
+        }
+    }
 }
 
 enum MonitorTarget {
@@ -52,8 +92,8 @@ unsafe extern "system" fn enum_monitors_proc(
 
     let monitor = Monitor {
         is_primary,
-        monitor: mi.rcMonitor.into(),
-        work: mi.rcWork.into(),
+        rect: mi.rcMonitor.into(),
+        workarea: mi.rcWork.into(),
         device_name,
         hmonitor: hmonitor.0 as isize,
     };
@@ -154,8 +194,8 @@ pub fn get_monitor_from_point(x: i32, y: i32) -> Result<Monitor, String> {
 
         Ok(Monitor {
             is_primary,
-            monitor: mi.rcMonitor.into(),
-            work: mi.rcWork.into(),
+            rect: mi.rcMonitor.into(),
+            workarea: mi.rcWork.into(),
             device_name,
             hmonitor: hmon.0 as isize,
         })

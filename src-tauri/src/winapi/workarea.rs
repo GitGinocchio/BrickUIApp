@@ -3,6 +3,7 @@ use windows::Win32::Foundation::RECT;
 
 use crate::winapi::monitor::{get_all_monitors, get_primary_monitor, Monitor};
 use crate::winapi::taskbar::{get_taskbar_rect, is_taskbar_autohide};
+use crate::winapi::window::get_maximized_window_for_monitor;
 use crate::winapi::Rect;
 
 
@@ -46,6 +47,12 @@ fn notify_changes(monitor: &Monitor, rect: &mut RECT) -> Result<(), String> {
         .map_err(|e| format!("Error while updating work area for {}: {e}", monitor.device_name))?;
     }
 
+    let rect: Rect = (*rect).into();
+
+    if let Some(window) = get_maximized_window_for_monitor(monitor)? {
+        window.set_rect(&rect)?;
+    }
+
     // 4. Notifica tutte le finestre
     /*
     unsafe {
@@ -70,10 +77,10 @@ pub fn set_workarea_for_all_monitors(margins: Rect) -> Result<(), String> {
 
     for monitor in monitors {
         let rect = RECT {
-            left: monitor.monitor.left + margins.left as i32,
-            top: monitor.monitor.top + margins.top as i32,
-            right: monitor.monitor.right - margins.right as i32,
-            bottom: monitor.monitor.bottom - margins.bottom as i32,
+            left: monitor.rect.left + margins.left as i32,
+            top: monitor.rect.top + margins.top as i32,
+            right: monitor.rect.right - margins.right as i32,
+            bottom: monitor.rect.bottom - margins.bottom as i32,
         };
 
         notify_changes(&monitor, &mut rect.into())?;
@@ -89,10 +96,10 @@ pub fn set_monitor_workarea(margins: Rect, monitor: Option<Monitor>) -> Result<(
     };
 
     let mut rect = RECT {
-        left: monitor.monitor.left + margins.left as i32,
-        top: monitor.monitor.top + margins.top as i32,
-        right: monitor.monitor.right - margins.right as i32,
-        bottom: monitor.monitor.bottom - margins.bottom as i32,
+        left: monitor.rect.left + margins.left as i32,
+        top: monitor.rect.top + margins.top as i32,
+        right: monitor.rect.right - margins.right as i32,
+        bottom: monitor.rect.bottom - margins.bottom as i32,
     };
 
     notify_changes(&monitor, &mut rect)?;
