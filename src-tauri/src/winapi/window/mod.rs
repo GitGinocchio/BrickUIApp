@@ -12,7 +12,7 @@ use windows::{core::BOOL, Win32::{
 }};
 use windows::core::PCSTR;
 
-use crate::winapi::{monitor::Monitor, Rect};
+use crate::winapi::{monitor::Monitor, rect::Rect};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
@@ -33,7 +33,6 @@ impl Window {
         unsafe {
             let hwnd = HWND(self.hwnd as *mut _);
 
-            // Usa direttamente i campi left/top/right/bottom del tuo Rect
             SetWindowPos(
                 hwnd,
                 None,
@@ -136,6 +135,22 @@ pub fn get_maximized_window_for_monitor(monitor: &Monitor) -> Result<Option<Wind
     Ok(None)
 }
 
+pub fn get_windows_in_monitor(monitor: &Monitor) -> Result<Vec<Window>, String> {
+    let all = get_all_windows()?;
+
+    Ok(all
+        .into_iter()
+        .filter(|w| {
+            if let Some(m) = &w.monitor {
+                m.hmonitor == monitor.hmonitor
+            } else {
+                false
+            }
+        })
+        .collect()
+    )
+}
+
 pub fn get_all_windows() -> Result<Vec<Window>, String> {
     let windows_vec: Arc<Mutex<Vec<Window>>> = Arc::new(Mutex::new(Vec::new()));
 
@@ -152,7 +167,6 @@ pub fn get_all_windows() -> Result<Vec<Window>, String> {
     let result = windows_vec.lock().unwrap().clone();
     Ok(result)
 }
-
 
 
 fn force_window_style_refresh(hwnd: HWND) {

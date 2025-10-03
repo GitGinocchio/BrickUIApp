@@ -6,11 +6,12 @@ use state::BrickUIState;
 use tauri_plugin_autostart::MacosLauncher;
 
 mod winapi;
+use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
 use crate::winapi::window::remove_titlebar;
-use crate::winapi::Rect;
+use crate::winapi::rect::Rect;
 
 mod config;
 use crate::config::settings::{TaskBarBehavior};
@@ -19,7 +20,7 @@ mod bricks;
 
 mod handlers;
 use crate::handlers::generate_handlers;
-use crate::winapi::workarea::set_workarea_for_all_monitors;
+use crate::winapi::monitor::workarea::set_workarea_for_all_monitors;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -77,6 +78,8 @@ pub fn run() {
         }))
         .invoke_handler(generate_handlers())
         .setup(|app| {
+            initialize_com()?;
+
             let resolver = app.app_handle().path();
             let resource_path = resolver.resource_dir()?;
             let path = resolver.app_data_dir()?;
@@ -173,8 +176,10 @@ pub fn run() {
                     .expect("");
                 */
 
-                set_workarea_for_all_monitors(Rect { right: 0, left: 0, top: 0, bottom: 0 })
+                set_workarea_for_all_monitors(&Rect::default().into())
                     .expect("Errore durante il reset dei margini della workarea");
+
+                uninitialize_com();
 
                 app_handle.exit(0);
             }

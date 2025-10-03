@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use tauri::{AppHandle, State};
+use tauri::State;
 
 use crate::state::BrickUIState;
 

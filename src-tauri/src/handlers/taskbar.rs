@@ -79,3 +79,8 @@ pub fn get_taskbar_apps(
         icons_map,
     ))
 }
+
+#[tauri::command]
+pub fn is_taskbar_autohide() -> bool {
+    crate::winapi::taskbar::is_taskbar_autohide()
+}

@@ -78,7 +78,7 @@ pub fn get_explorer_recents(
             let lnk = match resolve_lnk(&path) {
                 Ok(lnk) => lnk,
                 Err(e) => {
-                    eprintln!("Errro while resolving lnk: {e}");
+                    eprintln!("Error while resolving lnk: {e}");
                     continue;
                 }
             };

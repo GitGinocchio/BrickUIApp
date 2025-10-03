@@ -12,7 +12,7 @@ use windows::{
     }
 };
 
-use crate::winapi::Rect;
+use crate::winapi::rect::Rect;
 
 pub fn get_taskbar_rect() -> Option<Rect> {
     let mut data = APPBARDATA {

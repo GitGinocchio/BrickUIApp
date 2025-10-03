@@ -51,12 +51,22 @@ pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     Ok(bricks)
 }
 
-pub fn create_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
-    save_brick(path, brick)?;
+pub fn create_brick(path: &PathBuf, res_path: &PathBuf, brick: &Brick) -> Result<(), String> {
+    let src = res_path.join("assets").join("brick-template");
+    let dst = path.join("bricks").join(brick.name.as_str());
 
-    let brick_data_dir = path.join("bricks").join(brick.name.as_str()).join("data");
-    fs::create_dir_all(brick_data_dir)
-        .map_err(|e| format!("Failed to create brick data dir: {e}"))?;
+    let mut options = CopyOptions::new();
+    options.overwrite = true; // sovrascrive i file se esistono
+    options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
+    options.content_only = false;
+
+    copy(src, &dst, &options)
+        .map_err(|e| format!("Errore durante la duplicazione del brick: {e}"))?;
+
+    fs::create_dir_all(&dst.join("components")).map_err(|e| format!("Error creating dirs: {e}"))?;
+    fs::create_dir_all(&dst.join("data")).map_err(|e| format!("Error creating dirs: {e}"))?;
+
+    save_brick(path, brick)?;
 
     Ok(())
 }

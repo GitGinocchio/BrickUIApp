@@ -3,22 +3,22 @@
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
-    "typeRoots": ["./.types"],
+    "typeRoots": ["./../.types"],
     "composite" : true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "paths" : {
-      "core": ["./.types/core"],
-      "vue" : ["./.types/vue"],
-      "event" : ["./.types/event"]
+      "core": ["./../.types/core"],
+      "vue" : ["./../.types/vue"],
+      "event" : ["./../.types/event"]
     }
   },
   "include": [
-    "./.types/**/*.js",
-    "./.types/**/*.ts", 
-    "./.types/**/*.tsx",
-    "./.types/**/*.d.ts",
+    "./../.types/**/*.js",
+    "./../.types/**/*.ts", 
+    "./../.types/**/*.tsx",
+    "./../.types/**/*.d.ts",
     "./**/*.d.ts",
     "./**/*.vue"
   ]

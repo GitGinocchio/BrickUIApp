@@ -10,7 +10,7 @@ import { NButton, useNotification } from 'naive-ui';
 import { handleClickThrough, simulateFakeMousePressed } from '../utils/mouseClickThrough';
 import { initLoader, toggleBrick, updateBrick } from '../loader';
 import { invoke } from '@tauri-apps/api/core';
-import { Brick } from 'interfaces/brick';
+import { Brick, Prop } from 'interfaces/brick';
 import { Settings } from 'interfaces/settings';
 
 const settings = inject("settings") as Ref<Settings>;
@@ -26,9 +26,7 @@ const bricks = ref<Array<Brick>>();
 listen<[number, number, string]>('global_mouse_pressed', async (event) => simulateFakeMousePressed(event));
 listen<[number, number]>('global_mouse_moved', async (event) => handleClickThrough(event, currentWindow));
 listen<{ brick: Brick }>('toggle-brick', async (event) => await toggleBrick(event.payload.brick));
-listen<{ name: string, prop_name: string, prop_value: string }>('update-brick', async (event) => {
-  updateBrick(event.payload.name, event.payload.prop_name, event.payload.prop_value);
-});
+listen<{ name: string, prop: Prop }>('update-brick', async (event) => updateBrick(event.payload.name, event.payload.prop));
 
 async function onBrickError(
   error: Error, 
@@ -88,6 +86,7 @@ async function onBrickWarn(
 ) {
   let brickName: string;
   let brickAuthor: string;
+  if (!instance) return;
   if ('$options' in instance) {
     brickName = instance.$options.__brickContext.name;
     brickAuthor = instance.$options.__brickContext.author;

@@ -6,7 +6,9 @@ pub mod startmenu;
 pub mod taskbar;
 pub mod window;
 pub mod monitor;
-pub mod workarea;
+pub mod desktop;
+pub mod rect;
+pub mod com;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
@@ -16,58 +18,6 @@ use std::path::PathBuf;
 use std::ptr::null_mut;
 use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
 use windows::core::PCSTR;
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct Rect {
-    pub left: i32, 
-    pub right: i32,
-    pub top: i32,
-    pub bottom: i32
-}
-
-impl From<RECT> for Rect {
-    fn from(r: RECT) -> Self {
-        Self {
-            left: r.left,
-            top: r.top,
-            right: r.right,
-            bottom: r.bottom,
-        }
-    }
-}
-
-impl From<Rect> for RECT {
-    fn from(r: Rect) -> Self {
-        RECT {
-            left: r.left,
-            top: r.top,
-            right: r.right,
-            bottom: r.bottom,
-        }
-    }
-}
-
-impl From<&RECT> for Rect {
-    fn from(r: &RECT) -> Self {
-        Self {
-            left: r.left,
-            top: r.top,
-            right: r.right,
-            bottom: r.bottom,
-        }
-    }
-}
-
-impl From<&Rect> for RECT {
-    fn from(r: &Rect) -> Self {
-        RECT {
-            left: r.left,
-            top: r.top,
-            right: r.right,
-            bottom: r.bottom,
-        }
-    }
-}
 
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
     let shortcut = ShellLink::open(lnk, WINDOWS_1252).unwrap();

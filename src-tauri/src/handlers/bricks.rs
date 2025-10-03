@@ -122,8 +122,9 @@ pub fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) ->
 pub fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
     let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
     let path = state_guard.get_path();
+    let res_path = state_guard.get_resource_path();
 
-    bricks::create_brick(&path, &brick)?;
+    bricks::create_brick(&path, &res_path, &brick)?;
 
     let bricks = state_guard.get_mut_bricks();
     bricks.push(brick);

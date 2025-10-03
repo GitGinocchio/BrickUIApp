@@ -229,11 +229,7 @@ async function onPropValueChanged(prop: Prop) {
 
   if (updateTimeout) clearTimeout(updateTimeout);
   updateTimeout = setTimeout(async () => {
-    await emitTo("overlay", "update-brick", { 
-      name: brick.value.name, 
-      prop_name: prop.prop_name, 
-      prop_value: prop.value 
-    });
+    await emitTo("overlay", "update-brick", { name: brick.value.name, prop: prop });
     updateTimeout = null;
   }, 50);
 

@@ -102,8 +102,7 @@ pub struct BrickUIState {
     settings: Settings,
     backup: Backup,
     bricks: Vec<Brick>, //overlay: Overlay<R>
-    icons_map: IconsMap,
-    monitors: HashMap<isize, Monitor>
+    icons_map: IconsMap
 }
 
 //impl<R: Runtime> BrickUIState<R> {
@@ -143,8 +142,7 @@ impl BrickUIState {
             settings: settings,
             backup: backup,
             bricks: vec![], //overlay: overlay
-            icons_map: icons_map,
-            monitors: HashMap::new()
+            icons_map: icons_map
         }
     }
 

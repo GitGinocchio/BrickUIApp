@@ -1,25 +1,34 @@
-import { Prop } from "interfaces/brick";
+import { Prop, PropType } from "interfaces/brick";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { appDataDir as getAppDataDir } from "@tauri-apps/api/path";
 
 export const appDataDir = await getAppDataDir();
 
+export function formatPropValue(prop: Prop): any {
+  let value: any;
+
+  // Se il prop e' un select e il massimo di scelte e' una, passiamo solo l'unica scelta
+  // al posto di un array con una scelta
+  if (Array.isArray(prop.value) && prop.prop_type === 'Select' && prop.value.length == 1 && prop.max === 1) {
+    value = prop.value[0]
+  }
+  else if (Array.isArray(prop.value) && prop.value.length > 0) {
+    value = prop.value;
+  }
+  else if (Array.isArray(prop.value)) {
+    value = prop.default;
+  }
+  else {
+    value = prop.value;
+  }
+
+  return value;
+}
+
 export function formatProps(props: Prop[]): Record<string, any> {
   return Object.fromEntries(
-    props.map(p => {
-      let value;
-
-      if (Array.isArray(p.value) && p.value.length > 0) {
-        value = p.value;
-      }
-      else if (Array.isArray(p.value)) {
-        value = p.default;
-      }
-      else {
-        value = p.value;
-      }
-
-      return [p.prop_name, value]
+    props.map((p: Prop) => {
+      return [p.prop_name, formatPropValue(p)]
     })
   );
 }

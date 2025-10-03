@@ -1,10 +1,10 @@
 import { h, createApp } from "vue";
 import { bricksState, disableBrick, getBrickFromState, setBrickState } from "./state";
 import { addBrickToCache, getBrickFromCache } from "./cache";
-import { Brick } from "interfaces/brick";
+import { Brick, Prop } from "interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
-import { appDataDir, normalizePath } from "./utils";
+import { appDataDir, formatPropValue, normalizePath } from "./utils";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { catchBrickError } from "../utils/errors";
@@ -63,9 +63,9 @@ export async function toggleBrick(brick : Brick) {
   else disableBrick(brick.name);
 }
 
-export async function updateBrick(name : string, prop_name : string, prop_value : any) {
+export async function updateBrick(name : string, prop: Prop) {
   const brick = getBrickFromState(name);
-  if (brick) brick.props[prop_name] = prop_value;
+  if (brick) brick.props[prop.prop_name] = formatPropValue(prop);
 }
 
 export async function initLoader(

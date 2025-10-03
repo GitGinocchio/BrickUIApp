@@ -3,7 +3,9 @@ use std::{ffi::OsString, os::windows::ffi::OsStringExt};
 use serde::{Deserialize, Serialize};
 use windows::{core::BOOL, Win32::{Foundation::{LPARAM, POINT, RECT}, Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, MonitorFromPoint, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_FROM_FLAGS}, UI::WindowsAndMessaging::MONITORINFOF_PRIMARY}};
 
-use crate::winapi::Rect;
+use crate::winapi::rect::{OptionalRect, Rect};
+
+pub mod workarea;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Monitor {

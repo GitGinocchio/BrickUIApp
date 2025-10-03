@@ -19,6 +19,9 @@ use cursor::*;
 mod window;
 use window::*;
 
+mod monitor;
+use monitor::*;
+
 mod workarea;
 use workarea::*;
 
@@ -27,6 +30,9 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         // Taskbar
         show_taskbar,
         hide_taskbar,
+        is_taskbar_autohide,
+
+        // Taskbar / Apps
         get_active_taskbar_apps,
         get_pinned_taskbar_apps,
         get_taskbar_apps,
@@ -42,9 +48,21 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         hide_all_cursors,
         restore_all_cursors,
 
-        // Window / Workarea
+        // Window
+        get_maximized_window_for_monitor,
+        get_maximized_windows,
+        get_windows_in_monitor,
+        get_all_windows,
+
+        // Workarea
         set_monitor_workarea,
         set_workarea_for_all_monitors,
+
+        // Monitor
+        get_all_monitors,
+        get_monitor_from_point,
+        get_primary_monitor,
+        get_monitor,
 
         // Settings
         get_settings,
