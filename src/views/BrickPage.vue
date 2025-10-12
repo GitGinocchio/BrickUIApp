@@ -1,7 +1,6 @@
 <template>
   <div class="container" v-if="brick">
-    <div class="thumbnail">
-    </div>
+    <div class="thumbnail" :style="{backgroundImage: brick.banner ? `url(${brick.banner})`: `url('../assets/images/banner-brick-iso.svg')` }"></div>
     <Header :sections="sections" class="header">
       <template #actions>
         <div style="display: flex; align-items:center; gap: 1rem;">
@@ -328,10 +327,9 @@ async function deleteBrick() {
 .thumbnail {
   width: 100%;
   height: 35vh;
-  background-image: url('https://picsum.photos/1920/1080');
   background-size: cover;
   background-position: center;
-  opacity: 0.2;
+  opacity: 0.3;
   z-index: 0;
 }
 
