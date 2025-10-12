@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+
+  <defs>
+    <!-- Cubo isometrico -->
+    <symbol id="cube" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#CB4154" 
+stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cuboid-icon lucide-cuboid">
+    <path d="m21.12 6.4-6.05-4.06a2 2 0 0 0-2.17-.05L2.95 8.41a2 2 0 0 0-.95 1.7v5.82a2 2 0 0 0 .88 1.66l6.05 4.07a2 
+2 0 0 0 2.17.05l9.95-6.12a2 2 0 0 0 .95-1.7V8.06a2 2 0 0 0-.88-1.66Z"/>
+<path d="M10 22v-8L2.25 9.15"/><path d="m10 14 11.77-6.87"/>
+    </symbol>
+
+    <!-- Pattern isometrico animato -->
+    <pattern id="isoPattern" patternUnits="userSpaceOnUse" width="50" height="45">
+      <!-- Prima riga -->
+      <use href="#cube" x="0" y="0" width="24" height="24" />
+      <use href="#cube" x="70" y="0" width="24" height="24" />
+      <use href="#cube" x="100" y="0" width="24" height="24" />
+      <!-- Seconda riga (sfalsata) -->
+      <use href="#cube" x="25" y="21.5" width="24" height="24" />
+      <use href="#cube" x="75" y="21.5" width="24" height="24" />
+      <use href="#cube" x="125" y="21.5" width="24" height="24" />
+      <!-- Animazione del movimento -->
+      <animateTransform
+        attributeName="patternTransform"
+        type="translate"
+        from="0 0"
+        to="50 45"
+        dur="10s"
+        repeatCount="indefinite" />
+    </pattern>
+  </defs>
+
+  <!-- Rettangolo riempito col pattern -->
+  <rect width="100%" height="100%" fill="url(#isoPattern)" />
+</svg>
