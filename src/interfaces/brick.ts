@@ -24,6 +24,9 @@ export interface Brick {
   /** Author or creator of the Brick. */
   author: string;
 
+  /** Brick banner */
+  banner?: string;
+
   /** Semantic version of the Brick as [major, minor, patch]. */
   version: [number, number, number];
 
