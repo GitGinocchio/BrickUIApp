@@ -7,26 +7,40 @@
     <div class="login-register-container">
       <div class="description-container">
         <h2>Welcome to BrickUI!</h2>
+        <div class="divider"></div>
         <p class="subtitle">
-          Build your path by placing new bricks or continue from where you left off.
+          Build your path by placing new bricks or continue from <br> where you left off.
         </p>
       </div>
 
-      <n-button strong round size="large" style="background-color: #cb4153ff;" class="register-button" tertiary>
+      <div class="buttons-container">
+        <n-button strong round size="large" style="background-color: #cb4153ff;" class="register-button" tertiary @click="goToRegister">
         Register
       </n-button>
 
-      <div class="divider">or</div>
+      <div class="or">or</div>
 
-      <n-button strong size="medium" style="background-color: #333;" class="login-button" tertiary>
+      <n-button strong size="medium" style="background-color: #333;" class="login-button" tertiary  @click="goToLogin">
         Log In
       </n-button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { NButton } from 'naive-ui';
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const goToRegister = () => {
+  router.push('/register')
+}
+
+const goToLogin = () => {
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -79,19 +93,18 @@ import { NButton } from 'naive-ui';
   color: #aaa;
 }
 
+.buttons-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .register-button,
 .login-button {
   width: 100%;
   padding: 1.2rem;
   font-size: 1.1rem;
   text-align: center;
-}
-
-.register-button{
-  max-width: 14rem;
-}
-
-.login-button{
   max-width: 9rem;
 }
 
@@ -99,16 +112,21 @@ import { NButton } from 'naive-ui';
   display: flex;
   align-items: center;
   text-align: center;
+  border: 1px solid #777;
+  opacity: 0.4;
+  width: 100%;
+  margin: 0.5rem 0;
+  gap: 0.20rem;
+}
+
+.or{
+  display: flex;
+  align-items: center;
+  text-align: center;
   color: #777;
   width: 100%;
   margin: 0.5rem 0;
+  margin: 1rem;
 }
 
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid #444;
-  margin: 0 0.5rem;
-}
 </style>
