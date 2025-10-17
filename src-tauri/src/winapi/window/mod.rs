@@ -236,9 +236,6 @@ pub fn remove_titlebar(hwnd: HWND) {
 /// Imposta la finestra come topmost, sopra anche alla taskbar
 pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
     unsafe {
-        // Verifica lo stile corrente
-        let ex_style_before = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-
         // Imposta gli stili
         let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
         SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_TOPMOST.0 as isize);
