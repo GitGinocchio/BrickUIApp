@@ -29,7 +29,7 @@ pub enum GlobalEvent {
     WindowExitedFullscreen { hwnd: usize },
 }
 
-pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+pub fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
     let (tx, rx) = channel::unbounded();
 
     let app_handle_copy = app_handle.clone();
@@ -113,15 +113,17 @@ pub fn start_event_listeners<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Res
                     println!("Window exited fullscreen!");
 
                     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
-                    let state_guard = state
-                        .lock()
-                        .map_err(|e| format!("Mutex poisoned: {e}"))
-                        .unwrap();
-                    let settings = state_guard.get_settings();
 
-                    if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                        hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill)
+                    let settings = {
+                        let state_guard = state
+                            .lock()
+                            .map_err(|e| format!("Mutex poisoned: {e}"))
                             .unwrap();
+                        state_guard.get_settings().clone()
+                    };
+
+                    if settings.taskbar.behavior != TaskBarBehavior::Show {
+                        hide_taskbar(&app_handle).unwrap();
                     }
 
                     //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();

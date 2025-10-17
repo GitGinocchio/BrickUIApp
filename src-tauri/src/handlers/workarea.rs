@@ -1,13 +1,11 @@
-use crate::winapi::{monitor::Monitor, rect::OptionalRect};
-
-
+use crate::winapi::{monitor::Monitor, rect::{OptionalRect, Rect}};
 
 #[tauri::command]
-pub fn set_monitor_workarea(margins: OptionalRect, monitor: Option<Monitor>) -> Result<(), String> {
-    crate::winapi::monitor::workarea::set_monitor_workarea(&margins, monitor.as_ref())
+pub fn set_workarea_margins(margins: OptionalRect, monitor: Option<Monitor>) -> Result<Rect, String> {
+    crate::winapi::monitor::workarea::set_workarea_margins(&margins, monitor.as_ref())
 }
 
 #[tauri::command]
-pub fn set_workarea_for_all_monitors(margins: OptionalRect) -> Result<(), String> {
-    crate::winapi::monitor::workarea::set_workarea_for_all_monitors(&margins)
+pub fn set_workareas_margins(margins: OptionalRect) -> Result<(), String> {
+    crate::winapi::monitor::workarea::set_workareas_margins(&margins)
 }

@@ -1,12 +1,11 @@
-
 /** Top-level application settings. */
 export interface Settings {
   /** The JSON Schema version or URI for this Settings definition. */
   $schema?: string; // optional because of #[serde(default), rename = "$schema"]
 
-  language: Language,
+  language: Language;
 
-  theme: Theme,
+  theme: Theme;
 
   /** Notification settings. */
   notifications: Notifications; // optional because of #[serde(default)]
@@ -19,23 +18,16 @@ export interface Settings {
   autostart: boolean;
 
   /** System tray icon settings */
-  systemtray: SystemTray,
+  systemtray: SystemTray;
 }
 
-export const languages = [
-  'it',
-  'en'
-] as const;
+export const languages = ["it", "en"] as const;
 
-export type Language = typeof languages[number];
+export type Language = (typeof languages)[number];
 
-export const themes = [
-  'dark',
-  'light',
-  'system'
-] as const;
+export const themes = ["dark", "light", "system"] as const;
 
-export type Theme = typeof themes[number];
+export type Theme = (typeof themes)[number];
 
 /** Possible positions for notifications on screen. */
 export const notificationPositions = [
@@ -44,11 +36,11 @@ export const notificationPositions = [
   "top-right",
   "bottom",
   "bottom-left",
-  "bottom-right"
-] as const
+  "bottom-right",
+] as const;
 
 // 👉 il tipo si ricava automaticamente dall'array
-export type NotificationPosition = typeof notificationPositions[number]
+export type NotificationPosition = (typeof notificationPositions)[number];
 
 /** Configuration for notifications display. */
 export interface Notifications {
@@ -58,33 +50,29 @@ export interface Notifications {
 
 export interface SystemTray {
   /** Determines whether enable or not the system tray icon */
-  enabled: boolean,
+  enabled: boolean;
 
   /** The main window taskbar icon will be hidden when minimizing the window (only available if system tray icon is enabled) */
-  hidetaskbaricon: boolean
+  hidetaskbaricon: boolean;
 }
 
-export const taskBarBehaviors = [
-  "hide",
-  "hide-and-fill",
-  "windows-default"
-] as const
+export const taskBarBehaviors = ["hide", "show"] as const;
 
-export type TaskBarBehavior = typeof taskBarBehaviors[number]
+export type TaskBarBehavior = (typeof taskBarBehaviors)[number];
 
 export interface Taskbar {
-  behavior: TaskBarBehavior
+  behavior: TaskBarBehavior;
 }
 
 export const startMenuBehaviors = [
   "disable-ctrl-esc",
   "disable-win",
   "disable-both",
-  "windows-default"
-] as const
+  "windows-default",
+] as const;
 
-export type StartMenuBehavior = typeof startMenuBehaviors[number]
+export type StartMenuBehavior = (typeof startMenuBehaviors)[number];
 
 export interface StartMenu {
-  behavior: StartMenuBehavior
+  behavior: StartMenuBehavior;
 }

@@ -140,12 +140,7 @@ onMounted(async () => {
   bricks.value = await invoke<Brick[]>("load_bricks", {});
 
   watch(() => settings.value.taskbar.behavior, async (value) => {
-    if (value === 'hide' || value === 'hide-and-fill') {
-      await invoke("hide_taskbar", { keepTaskbarSpace : value !== 'hide-and-fill'});
-    }
-    else {
-      await invoke("show_taskbar");
-    }
+    await invoke(value === 'hide' ? "hide_taskbar" : "show_taskbar");
   });
 
   await currentWindow.hide();

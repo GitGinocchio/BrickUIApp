@@ -1,3 +1,8 @@
+use tauri::PhysicalSize;
+use tauri::PhysicalPosition;
+use tauri::Size;
+use crate::winapi::monitor::get_primary_monitor;
+use crate::winapi::window::set_window_topmost;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -9,7 +14,7 @@ mod winapi;
 use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
-use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
+use crate::winapi::taskbar::{hide_taskbar, reset_taskbar, show_taskbar};
 use crate::winapi::window::remove_titlebar;
 use crate::winapi::rect::Rect;
 
@@ -20,7 +25,7 @@ mod bricks;
 
 mod handlers;
 use crate::handlers::generate_handlers;
-use crate::winapi::monitor::workarea::set_workarea_for_all_monitors;
+use crate::winapi::monitor::workarea::reset_workareas;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -52,7 +57,7 @@ pub fn run() {
             if let Some(slice) = args.get(1..) {
                 let bricks: Option<(&String, String)> = slice
                     .iter()
-                    .filter(|f| f.ends_with(".brick") || 
+                    .filter(|f| f.ends_with(".brick") ||
                                 f.ends_with(".brk") ||
                                 f.ends_with(".brck") ||
                                 f.ends_with(".bk")
@@ -74,31 +79,38 @@ pub fn run() {
             }
 
             //println!("{_args:?}, {_cwd:?}");
-
         }))
         .invoke_handler(generate_handlers())
         .setup(|app| {
             initialize_com()?;
 
-            let resolver = app.app_handle().path();
+            let app_handle = app.app_handle();
+            let resolver = app_handle.path();
             let resource_path = resolver.resource_dir()?;
             let path = resolver.app_data_dir()?;
 
-            let state = BrickUIState::new(&path, &resource_path);
+            let state = BrickUIState::new(&path, &resource_path)?;
             app.manage(Arc::new(Mutex::new(state)));
 
             let state = app.state::<Arc<Mutex<BrickUIState>>>();
-            let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
 
-            let settings = state_guard.get_settings().clone();
-
-            if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                show_taskbar()?;
-                hide_taskbar(settings.taskbar.behavior != TaskBarBehavior::HideAndFill)?;
-            }
+            let settings = {
+                let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
+                state_guard.get_settings().clone()
+            };
 
             let overlayw = app.get_window("overlay").unwrap();
-            remove_titlebar(&overlayw);
+            let hwnd = overlayw
+                .hwnd()
+                .map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
+            remove_titlebar(hwnd);
+
+            if settings.taskbar.behavior == TaskBarBehavior::Show {
+                show_taskbar(app_handle)?;
+            }
+            else {
+                hide_taskbar(app_handle)?;
+            }
 
             //let wallpaperwv = app.get_webview("wallpaper").unwrap();
             //let wallpaperw = app.get_window("wallpaper").unwrap();
@@ -110,7 +122,7 @@ pub fn run() {
             //wallpaperwv.open_devtools();
             //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
             start_event_listeners(app.handle().clone())?;
-            
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -119,10 +131,12 @@ pub fn run() {
             {
                 let app_handle = window.app_handle();
                 let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+
                 let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
                     Ok(guard) => guard,
                     Err(e) => panic!("{e}"),
                 };
+
                 let settings = state_guard.get_settings();
                 let backup = state_guard.get_backup();
 
@@ -163,12 +177,13 @@ pub fn run() {
                         .expect("Error while trying to close the wallpaper window:");
                 }
 
-                if settings.taskbar.behavior != TaskBarBehavior::WindowsDefault {
-                    show_taskbar().expect("Errore nel mostrare la taskbar:");
+                reset_workareas().expect("Error while trying to reset the workareas");
+
+                if settings.taskbar.behavior != TaskBarBehavior::Show {
+                    reset_taskbar().expect("Error while trying to reset the taskbar state:");
                 }
 
-                restore_cursors(&backup.cursors)
-                    .expect("Errore nel riportare i cursori allo stato originale");
+                restore_cursors(&backup.cursors).expect("Errore nel riportare i cursori allo stato originale");
 
                 /*
                 set_snap_flyout(true)
@@ -176,11 +191,9 @@ pub fn run() {
                     .expect("");
                 */
 
-                set_workarea_for_all_monitors(&Rect::default().into())
-                    .expect("Errore durante il reset dei margini della workarea");
-
                 uninitialize_com();
 
+                app_handle.cleanup_before_exit();
                 app_handle.exit(0);
             }
         })

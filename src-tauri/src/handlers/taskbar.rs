@@ -6,14 +6,17 @@ use crate::{state::BrickUIState, winapi::{self, taskbar::apps::App}};
 
 
 #[tauri::command]
-pub fn hide_taskbar(keep_taskbar_space: bool) -> Result<(), String> {
-    winapi::taskbar::show_taskbar()?;
-    winapi::taskbar::hide_taskbar(keep_taskbar_space)
+pub fn hide_taskbar(
+    app_handle: AppHandle
+) -> Result<(), String> {
+    winapi::taskbar::hide_taskbar(&app_handle)
 }
 
 #[tauri::command]
-pub fn show_taskbar() -> Result<(), String> {
-    winapi::taskbar::show_taskbar()
+pub fn show_taskbar(
+    app_handle: AppHandle
+) -> Result<(), String> {
+    winapi::taskbar::show_taskbar(&app_handle)
 }
 
 #[tauri::command]

@@ -7,12 +7,12 @@ use windows::{core::BOOL, Win32::{
     Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
     Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST},
     UI::WindowsAndMessaging::{
-        EnumWindows, FindWindowA, FindWindowExA, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible, IsZoomed, SendMessageTimeoutA, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, HWND_TOPMOST, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, WS_CAPTION, WS_THICKFRAME
+        EnumWindows, FindWindowA, FindWindowExA, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible, IsZoomed, SendMessageTimeoutA, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_EX_TOPMOST, WS_THICKFRAME
     },
 }};
 use windows::core::PCSTR;
 
-use crate::winapi::{monitor::Monitor, rect::Rect};
+use crate::winapi::{monitor::{get_monitor_friendly_name, get_monitor_from_hwnd, get_monitor_from_point, Monitor}, rect::Rect};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
@@ -25,6 +25,43 @@ pub struct Window {
 }
 
 impl Window {
+    pub fn from_hwnd(hwnd: isize) -> Result<Self, String> {
+        unsafe {
+            let win_hwnd = HWND(hwnd as *mut _);
+
+            let length = GetWindowTextLengthW(win_hwnd);
+            let mut buffer = vec![0u16; (length + 1) as usize];
+            let title_len = GetWindowTextW(win_hwnd, &mut buffer);
+            let title = String::from_utf16_lossy(&buffer[..title_len as usize]);
+
+            let is_visible = IsWindowVisible(win_hwnd).as_bool();
+            let is_maximized = IsZoomed(win_hwnd).as_bool();
+
+            let mut rect: RECT = RECT::default();
+            let rect_opt = if GetWindowRect(win_hwnd, &mut rect).is_ok() {
+                Some(Rect {
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                })
+            } else {
+                None
+            };
+
+            let monitor = get_monitor_from_hwnd(hwnd)?;
+
+            Ok(Window {
+                hwnd: hwnd,
+                title,
+                is_visible,
+                is_maximized,
+                rect: rect_opt,
+                monitor: Some(monitor),
+            })
+        }
+    }
+
     pub fn set_rect(&self, rect: &Rect) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err(windows::core::Error::from_win32().message());
@@ -85,12 +122,15 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL 
                 .collect::<Vec<u16>>(),
         );
 
+        let friendly_name = get_monitor_friendly_name(&device_name);
+
         Some(Monitor {
             hmonitor: hmon.0 as isize,
             is_primary: (monitor_info.monitorInfo.dwFlags & 1) != 0,
             rect: monitor_info.monitorInfo.rcMonitor.into(),
             workarea: monitor_info.monitorInfo.rcWork.into(),
             device_name,
+            friendly_name
         })
     } else {
         None
@@ -168,30 +208,23 @@ pub fn get_all_windows() -> Result<Vec<Window>, String> {
     Ok(result)
 }
 
-
 fn force_window_style_refresh(hwnd: HWND) {
     unsafe {
-        let mut rect = RECT::default();
-        let _ = GetWindowRect(hwnd, &mut rect);
-        let width = rect.right - rect.left;
-        let height = rect.bottom - rect.top;
-
         let _ = SetWindowPos(
             hwnd,
-            Some(HWND_TOPMOST),
-            rect.left,
-            rect.top,
-            width,
-            height,
-            SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+            None,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
         );
     }
 }
 
 // Rendere il metodo generico che prende un HWND
-pub fn remove_titlebar(window: &tauri::Window) {
+pub fn remove_titlebar(hwnd: HWND) {
     unsafe {
-        let hwnd = window.hwnd().unwrap() as HWND;
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
         let new_style = style & !(WS_CAPTION.0 as isize) & !(WS_THICKFRAME.0 as isize);
 
@@ -199,6 +232,41 @@ pub fn remove_titlebar(window: &tauri::Window) {
         force_window_style_refresh(hwnd); // forza il redraw senza titlebar
     }
 }
+
+/// Imposta la finestra come topmost, sopra anche alla taskbar
+pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
+    unsafe {
+        // Verifica lo stile corrente
+        let ex_style_before = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        println!("ExStyle PRIMA: 0x{:X}", ex_style_before);
+
+        // Imposta gli stili
+        let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_TOPMOST.0 as isize);
+
+        // Imposta lo z-order
+        SetWindowPos(
+            hwnd,
+            Some(HWND_TOPMOST),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+        )
+        .map_err(|e| format!("Errore durante l'impostazione della finestra come topmost: {e}"))?;
+
+        // Forza il refresh degli stili
+        force_window_style_refresh(hwnd);
+
+        // Verifica lo stile dopo
+        let ex_style_after = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        println!("ExStyle DOPO: 0x{:X}", ex_style_after);
+        println!("WS_EX_TOPMOST flag: 0x{:X}", WS_EX_TOPMOST.0);
+    }
+    Ok(())
+}
+
 
 pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
     let mut workerw = HWND(null_mut());

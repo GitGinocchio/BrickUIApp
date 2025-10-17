@@ -55,8 +55,8 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         get_all_windows,
 
         // Workarea
-        set_monitor_workarea,
-        set_workarea_for_all_monitors,
+        set_workarea_margins,
+        set_workareas_margins,
 
         // Monitor
         get_all_monitors,

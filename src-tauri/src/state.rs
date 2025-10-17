@@ -1,11 +1,11 @@
 use fs_extra::dir::{CopyOptions, copy};
 use schemars::{JsonSchema, schema_for};
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup, load_yaml, plugins::Plugins, settings::Settings},
-    winapi::{icons::IconsMap, monitor::Monitor},
+    winapi::{icons::IconsMap, monitor::{get_all_monitors, Monitor}},
 };
 use serde::Serialize;
 
@@ -94,62 +94,59 @@ fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) -> Result<
     Ok(())
 }
 
-//pub struct BrickUIState<R: Runtime> {
 #[derive(Clone)]
 pub struct BrickUIState {
     resource_path: PathBuf,
     path: PathBuf,
     settings: Settings,
     backup: Backup,
-    bricks: Vec<Brick>, //overlay: Overlay<R>
+    bricks: Vec<Brick>,
     icons_map: IconsMap
 }
 
-//impl<R: Runtime> BrickUIState<R> {
 impl BrickUIState {
-    //pub fn new(path: &PathBuf, overlay: Overlay<R>) -> Self {
-    pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Self {
-        fs::create_dir_all(&path)
-            .expect("Errore nella creazione della directory di dati");
-        fs::create_dir_all(&path.join("bricks"))
-            .expect("Errore nella creazione della directory per i widgets");
-        fs::create_dir_all(&path.join("walls"))
-            .expect("Errore nella creazione della directory per i widgets");
-        fs::create_dir_all(&path.join(".schemas"))
-            .expect("Errore nella creazione della directory per gli schemas");
-        fs::create_dir_all(&path.join("cache").join("icons"))
-            .expect("Errore nella creazione della directory per la cache");
+    pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
+        fs::create_dir_all(path)
+            .map_err(|e| format!("Errore nella creazione della directory di dati: {e}"))?;
+        fs::create_dir_all(path.join("bricks"))
+            .map_err(|e| format!("Errore nella creazione della directory per i widgets (bricks): {e}"))?;
+        fs::create_dir_all(path.join("walls"))
+            .map_err(|e| format!("Errore nella creazione della directory per i widgets (walls): {e}"))?;
+        fs::create_dir_all(path.join(".schemas"))
+            .map_err(|e| format!("Errore nella creazione della directory per gli schemas: {e}"))?;
+        fs::create_dir_all(path.join("cache").join("icons"))
+            .map_err(|e| format!("Errore nella creazione della directory per la cache: {e}"))?;
 
         generate_schemas_if_missing(path)
-            .expect("Errore durante la creazione degli schemas");
+            .map_err(|e| format!("Errore durante la creazione degli schemas: {e}"))?;
         generate_templates_if_missing(path)
-            .expect("Errore durante la creazione dei template");
+            .map_err(|e| format!("Errore durante la creazione dei template: {e}"))?;
         generate_types_if_missing(resource_path, path)
-            .expect("Errore durante la creazione dei tipi");
+            .map_err(|e| format!("Errore durante la creazione dei tipi: {e}"))?;
 
         let settings = load_yaml::<Settings>(&path.join("settings.yml"))
-            .expect("Errore durante il caricamento dei settings");
+            .map_err(|e| format!("Errore durante il caricamento dei settings: {e}"))?;
 
         let icons_map = load_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
-            .expect("Errore durante il caricamento dell'icon map");
+            .map_err(|e| format!("Errore durante il caricamento dell'icon map: {e}"))?;
 
         let backup = load_yaml::<Backup>(&path.join("backup.yml"))
-            .expect("Errore durante il caricamento del file backup");
+            .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
 
-        Self {
+        Ok(Self {
             resource_path: resource_path.clone(),
             path: path.clone(),
-            settings: settings,
-            backup: backup,
-            bricks: vec![], //overlay: overlay
-            icons_map: icons_map
-        }
+            settings,
+            backup,
+            bricks: vec![],
+            icons_map,
+        })
     }
 
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    
+
     pub fn get_resource_path(&self) -> &PathBuf {
         &self.resource_path
     }

@@ -170,22 +170,18 @@ impl Default for TaskBar {
 #[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Taskbar behavior.")]
 pub enum TaskBarBehavior {
-    #[schemars(description = "Taskbar is hidden but the reserved space remains.")]
+    #[schemars(description = "Taskbar is hidden and the space is used by apps and bricks.")]
     #[serde(rename = "hide")]
     Hide,
 
-    #[schemars(description = "Taskbar is hidden and the space is used by apps and bricks.")]
-    #[serde(rename = "hide-and-fill")]
-    HideAndFill,
-
     #[schemars(description = "Use Windows default taskbar behavior.")]
-    #[serde(rename = "windows-default")]
-    WindowsDefault,
+    #[serde(rename = "show")]
+    Show,
 }
 
 impl Default for TaskBarBehavior {
     fn default() -> Self {
-        TaskBarBehavior::WindowsDefault
+        TaskBarBehavior::Show
     }
 }
 

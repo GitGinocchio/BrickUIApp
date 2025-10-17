@@ -1,9 +1,11 @@
+use std::ops::{Add, Sub};
+
 use serde::{Deserialize, Serialize};
 use windows::Win32::Foundation::RECT;
 
 
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Rect {
     pub left: i32, 
     pub right: i32,
@@ -110,8 +112,6 @@ impl From<&Rect> for RECT {
         }
     }
 }
-
-
 
 impl From<RECT> for OptionalRect {
     fn from(r: RECT) -> Self {
