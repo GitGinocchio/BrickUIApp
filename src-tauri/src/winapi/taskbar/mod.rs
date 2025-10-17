@@ -106,8 +106,8 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
 
     let _ = unsafe { ShowWindow(taskbar, SW_HIDE) };
 
-    if workarea.bottom > pmonitor.rect.bottom - tbrect.height() {
-        workarea.bottom -= tbrect.height();
+    if workarea.bottom >= pmonitor.rect.bottom - tbrect.height() {
+        workarea.bottom = pmonitor.rect.bottom;
     }
     pmonitor.set_workarea(&workarea)?;
 
