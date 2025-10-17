@@ -238,7 +238,6 @@ pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
     unsafe {
         // Verifica lo stile corrente
         let ex_style_before = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-        println!("ExStyle PRIMA: 0x{:X}", ex_style_before);
 
         // Imposta gli stili
         let ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
@@ -258,11 +257,6 @@ pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
 
         // Forza il refresh degli stili
         force_window_style_refresh(hwnd);
-
-        // Verifica lo stile dopo
-        let ex_style_after = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-        println!("ExStyle DOPO: 0x{:X}", ex_style_after);
-        println!("WS_EX_TOPMOST flag: 0x{:X}", WS_EX_TOPMOST.0);
     }
     Ok(())
 }
