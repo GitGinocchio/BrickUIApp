@@ -7,8 +7,7 @@ use std::{
     collections::HashMap,
     fs,
     os::windows::ffi::OsStrExt,
-    path::{Path, PathBuf},
-    time::SystemTime,
+    path::{Path, PathBuf}
 };
 use windows::Win32::UI::Shell::{
     SHGSI_ICON, SHGetStockIconInfo, SHSTOCKICONINFO, SIID_DOCNOASSOC, SIID_FOLDER,

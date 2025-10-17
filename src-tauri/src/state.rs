@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup, load_yaml, plugins::Plugins, settings::Settings},
-    winapi::{icons::IconsMap, monitor::{get_all_monitors, Monitor}},
+    winapi::icons::IconsMap,
 };
 use serde::Serialize;
 

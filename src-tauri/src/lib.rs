@@ -1,8 +1,3 @@
-use tauri::PhysicalSize;
-use tauri::PhysicalPosition;
-use tauri::Size;
-use crate::winapi::monitor::get_primary_monitor;
-use crate::winapi::window::set_window_topmost;
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, WindowEvent};
 
@@ -16,7 +11,6 @@ use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::taskbar::{hide_taskbar, reset_taskbar, show_taskbar};
 use crate::winapi::window::remove_titlebar;
-use crate::winapi::rect::Rect;
 
 mod config;
 use crate::config::settings::{TaskBarBehavior};
