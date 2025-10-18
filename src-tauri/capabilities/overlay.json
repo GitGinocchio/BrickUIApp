@@ -1,40 +1,32 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": [
-    "overlay",
-    "main",
-    "wallpaper"
-  ],
+  "$schema": "../gen/schemas/windows-schema.json",
+  "identifier": "overlay",
+  "description": "Capability for the overlay window",
+  "windows": ["overlay"],
   "permissions": [
     "core:default",
     "opener:default",
+    "dialog:default",
+
     "autostart:allow-disable",
     "autostart:allow-enable",
     "autostart:allow-is-enabled",
+
     "core:window:allow-close",
     "core:window:allow-hide",
     "core:window:allow-show",
     "core:window:allow-set-size",
     "core:window:allow-set-focus",
     "core:window:allow-set-position",
-    "core:event:allow-listen",
     "core:window:allow-minimize",
     "core:window:allow-maximize",
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-ignore-cursor-events",
-    "core:app:allow-default-window-icon",
     "core:window:allow-set-cursor-visible",
     "core:window:allow-set-cursor-grab",
-    {
-      "identifier": "fs:allow-app-read-recursive",
-      "allow": [
-        {
-          "path": "$RESOURCE/**"
-        }
-      ]
-    },
+
+    "core:event:allow-listen",
+    "core:app:allow-default-window-icon",
     {
       "identifier": "fs:allow-app-read-recursive",
       "allow": [
@@ -50,7 +42,6 @@
           "path": "$APPDATA/BrickUI/**"
         }
       ]
-    },
-    "dialog:default"
+    }
   ]
 }

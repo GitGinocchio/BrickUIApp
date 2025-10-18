@@ -1,12 +1,20 @@
 <template>
   <div class="container" v-if="brick">
-    <div class="thumbnail" :style="{backgroundImage: brick.banner ? `url(${brick.banner})`: `url('../assets/images/banner-brick-iso.svg')` }"></div>
+    <div
+      class="thumbnail"
+      :style="{ backgroundImage: `url(${backgroundUrl})` }"
+    ></div>
     <Header :sections="sections" class="header">
       <template #actions>
-        <div style="display: flex; align-items:center; gap: 1rem;">
-          <n-switch style="margin: 0;" size="large" v-model:value="brick.enabled" @update:value="onToggle" />
+        <div style="display: flex; align-items: center; gap: 1rem">
+          <n-switch
+            style="margin: 0"
+            size="large"
+            v-model:value="brick.enabled"
+            @update:value="onToggle"
+          />
           <n-tag round :bordered="false" type="info">
-            v. {{ brick.version.join('.') }}
+            v. {{ brick.version.join(".") }}
             <template #icon>
               <BadgeCheck />
             </template>
@@ -23,9 +31,14 @@
           <template #header>
             <div class="collapse-item-header">
               <div>Description</div>
-              <n-button @click.stop="onEditDescription" text circle size="medium">
-                <Pencil v-if="!descriptionEditMode" :size="16"/>
-                <PencilOff v-else :size="16"/>
+              <n-button
+                @click.stop="onEditDescription"
+                text
+                circle
+                size="medium"
+              >
+                <Pencil v-if="!descriptionEditMode" :size="16" />
+                <PencilOff v-else :size="16" />
               </n-button>
             </div>
           </template>
@@ -35,10 +48,18 @@
             type="textarea"
             placeholder="Type your brick's description"
           />
-          <p v-else-if="renderedDescription.length > 0" v-html="renderedDescription" class="description"></p>
+          <p
+            v-else-if="renderedDescription.length > 0"
+            v-html="renderedDescription"
+            class="description"
+          ></p>
           <p v-else>This brick has no description</p>
         </n-collapse-item>
-        <n-collapse-item title="Props" name="props" class="properties-container">
+        <n-collapse-item
+          title="Props"
+          name="props"
+          class="properties-container"
+        >
           <template #arrow>
             <Cog #arrow />
           </template>
@@ -46,26 +67,46 @@
             <div class="collapse-item-header">
               <div>Props</div>
               <n-button @click.stop="onEditPropMode" text circle size="medium">
-                <Pencil v-if="!propsEditMode" :size="16"/>
-                <PencilOff v-else :size="16"/>
+                <Pencil v-if="!propsEditMode" :size="16" />
+                <PencilOff v-else :size="16" />
               </n-button>
             </div>
           </template>
-          <div class="movable" v-for="(prop, index) in brick.props" :key="prop.prop_name">
+          <div
+            class="movable"
+            v-for="(prop, index) in brick.props"
+            :key="prop.prop_name"
+          >
             <span v-if="propsEditMode" class="arrows">
-              <ChevronUp v-if="index !== 0" @click="onMovePropUp(prop)" :size="16" />
-              <ChevronDown v-if="index < brick.props.length - 1" @click="onMovePropDown(prop)" :size="16" />
+              <ChevronUp
+                v-if="index !== 0"
+                @click="onMovePropUp(prop)"
+                :size="16"
+              />
+              <ChevronDown
+                v-if="index < brick.props.length - 1"
+                @click="onMovePropDown(prop)"
+                :size="16"
+              />
             </span>
-            <BrickProp 
+            <BrickProp
               :prop="prop"
-              :edit-mode="propsEditMode" 
-              @update:prop="onPropValueChanged" 
+              :edit-mode="propsEditMode"
+              @update:prop="onPropValueChanged"
               @edit:prop="onEditProp"
               @delete:prop="onDeleteProp"
             />
           </div>
-          <div v-if="brick.props.length == 0"><p>This brick has no props!</p></div>
-          <n-button size="small" v-if="propsEditMode" class="add-prop" @click="onNewProp"><CirclePlus :size="16"/>Add</n-button>
+          <div v-if="brick.props.length == 0">
+            <p>This brick has no props!</p>
+          </div>
+          <n-button
+            size="small"
+            v-if="propsEditMode"
+            class="add-prop"
+            @click="onNewProp"
+            ><CirclePlus :size="16" />Add</n-button
+          >
         </n-collapse-item>
         <n-collapse-item title="Emits" name="emits" class="emits-container">
           <template #arrow>
@@ -78,7 +119,11 @@
           -->
           <p>Work in progress :P</p>
         </n-collapse-item>
-        <n-collapse-item title="Permissions" name="permissions" class="emits-container">
+        <n-collapse-item
+          title="Permissions"
+          name="permissions"
+          class="emits-container"
+        >
           <template #arrow>
             <Shield />
           </template>
@@ -91,7 +136,7 @@
         </n-collapse-item>
       </n-collapse>
     </div>
-    
+
     <!-- Confirm Delete Modal -->
     <GenericModal
       v-model:show="deleteModalShow"
@@ -117,19 +162,32 @@
 </template>
 
 <script setup lang="ts">
-import { NCollapse, NCollapseItem, NButton, NSwitch, NInput } from 'naive-ui';
-import { computed, onMounted, ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import { useI18n } from 'vue-i18n';
-import { Blocks, Cuboid, BadgeCheck, Text, Pencil, PencilOff, Cog, CirclePlus, ChevronDown, ChevronUp, Wifi, Shield } from 'lucide-vue-next';
-import GenericModal from '../components/modals/GenericModal.vue';
-import PropModal from '../components/modals/PropModal.vue';
-import BrickProp from '../components/BrickProp.vue';
-import Header from '../components/Header.vue';
-import { Brick, Prop } from '../interfaces/brick';
-import { useRouter } from 'vue-router';
-import MarkdownIt from 'markdown-it';
-import { emit, emitTo } from '@tauri-apps/api/event';
+import { NCollapse, NCollapseItem, NButton, NSwitch, NInput } from "naive-ui";
+import { computed, onMounted, ref, watchEffect } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "vue-i18n";
+import {
+  Blocks,
+  Cuboid,
+  BadgeCheck,
+  Text,
+  Pencil,
+  PencilOff,
+  Cog,
+  CirclePlus,
+  ChevronDown,
+  ChevronUp,
+  Wifi,
+  Shield,
+} from "lucide-vue-next";
+import GenericModal from "../components/modals/GenericModal.vue";
+import PropModal from "../components/modals/PropModal.vue";
+import BrickProp from "../components/BrickProp.vue";
+import Header from "../components/Header.vue";
+import { Brick, Prop } from "../interfaces/brick";
+import { useRouter } from "vue-router";
+import MarkdownIt from "markdown-it";
+import { emit, emitTo } from "@tauri-apps/api/event";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -140,15 +198,41 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 const props = defineProps({
   name: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
+
 const brick = ref<Brick>(null);
 const sections = computed(() => {
   return [
-    { icon: Blocks, label: t('bricks'), onclick: () => router.push('/bricks') },
-    { icon: brick.value?.icon, defaultIcon: Cuboid, label: props.name }
-  ]
+    { icon: Blocks, label: t("bricks"), onclick: () => router.push("/bricks") },
+    { icon: brick.value?.icon, defaultIcon: Cuboid, label: props.name },
+  ];
+});
+
+const defaultBanner = new URL(
+  "../assets/images/banner-brick-iso.svg",
+  import.meta.url
+).href;
+const backgroundUrl = ref(defaultBanner);
+
+watchEffect(() => {
+  if (!brick.value?.banner) {
+    backgroundUrl.value = defaultBanner;
+    return;
+  }
+
+  // Precarica l’immagine
+  const img = new Image();
+  img.src = brick.value?.banner;
+
+  img.onload = () => {
+    backgroundUrl.value = brick.value?.banner;
+  };
+  img.onerror = () => {
+    console.error(`Error loading banner image for brick: ${brick.value?.name}`);
+    backgroundUrl.value = defaultBanner;
+  };
 });
 
 onMounted(async () => {
@@ -156,12 +240,12 @@ onMounted(async () => {
 });
 
 /* Delete Modal */
-const deleteModalTitle = ref<string>('');
-const deleteModalMessage = ref<string>('');
+const deleteModalTitle = ref<string>("");
+const deleteModalMessage = ref<string>("");
 const deleteModalShow = ref<boolean>(false);
-const deleteModalOnConfirm = ref<() => void|null>();
-const deleteModalOnDecline = ref<() => void|null>();
-const propToDelete = ref<Prop|null>(null);
+const deleteModalOnConfirm = ref<() => void | null>();
+const deleteModalOnDecline = ref<() => void | null>();
+const propToDelete = ref<Prop | null>(null);
 
 /* Description */
 
@@ -186,8 +270,8 @@ async function onEditDescription(_event: Event) {
 const propsEditMode = ref<boolean>(false);
 const propModalShow = ref<boolean>(false);
 const propModalEditMode = ref<boolean>(false);
-const targetProp = ref<Prop|null>(null);
-const initialProp = ref<Prop|null>(null);
+const targetProp = ref<Prop | null>(null);
+const initialProp = ref<Prop | null>(null);
 
 function onNewProp() {
   targetProp.value = { prop_type: "String", prop_name: "", description: null };
@@ -213,7 +297,9 @@ async function onDeleteProp(prop: Prop) {
 }
 
 async function deleteProp() {
-  const index = brick.value.props.findIndex(p => p.prop_name === propToDelete.value.prop_name);
+  const index = brick.value.props.findIndex(
+    (p) => p.prop_name === propToDelete.value.prop_name
+  );
   brick.value.props.splice(index, 1);
 
   await invoke("save_brick", { brick: brick.value });
@@ -222,13 +308,18 @@ async function deleteProp() {
 
 async function onPropValueChanged(prop: Prop) {
   console.log(`Prop update: ${prop}`);
-  const index = brick.value.props.findIndex(p => p.prop_name === prop.prop_name);
+  const index = brick.value.props.findIndex(
+    (p) => p.prop_name === prop.prop_name
+  );
   if (index !== -1) brick.value.props[index] = prop;
   else brick.value.props.push(prop);
 
   if (updateTimeout) clearTimeout(updateTimeout);
   updateTimeout = setTimeout(async () => {
-    await emitTo("overlay", "update-brick", { name: brick.value.name, prop: prop });
+    await emitTo("overlay", "update-brick", {
+      name: brick.value.name,
+      prop: prop,
+    });
     updateTimeout = null;
   }, 50);
 
@@ -242,20 +333,19 @@ async function onPropValueChanged(prop: Prop) {
 
 async function onPropEditFinished(before: Prop, clone?: boolean) {
   if (propModalEditMode.value) {
-    const index = brick.value.props.findIndex(p => p.prop_name === before.prop_name);
+    const index = brick.value.props.findIndex(
+      (p) => p.prop_name === before.prop_name
+    );
 
     if (index !== -1 && clone) {
       targetProp.value.prop_name = `${before.prop_name}-copy`;
       brick.value.props.splice(index + 1, 0, targetProp.value);
-    }
-    else if (index !== -1) {
+    } else if (index !== -1) {
       brick.value.props[index] = targetProp.value;
-    }
-    else {
+    } else {
       brick.value.props.push(targetProp.value);
     }
-  } 
-  else {
+  } else {
     brick.value.props.push(targetProp.value);
   }
 
@@ -265,8 +355,8 @@ async function onPropEditFinished(before: Prop, clone?: boolean) {
 
 /* Brick actions */
 async function onEditPropMode(_event: Event) {
-  propsEditMode.value = !propsEditMode.value
-  
+  propsEditMode.value = !propsEditMode.value;
+
   if (propsEditMode.value && !expanded.value.includes("props")) {
     expanded.value.length = 0;
     expanded.value.push("props");
@@ -284,23 +374,27 @@ async function onOpenBrick() {
 }
 
 async function onMovePropUp(prop: Prop) {
-  const index = brick.value.props.findIndex(p => p.prop_name === prop.prop_name)
+  const index = brick.value.props.findIndex(
+    (p) => p.prop_name === prop.prop_name
+  );
   if (index > 0) {
     // scambia con l'elemento precedente
-    const tmp = brick.value.props[index - 1]
-    brick.value.props[index - 1] = brick.value.props[index]
-    brick.value.props[index] = tmp
+    const tmp = brick.value.props[index - 1];
+    brick.value.props[index - 1] = brick.value.props[index];
+    brick.value.props[index] = tmp;
   }
 
   await invoke("save_brick", { brick: brick.value });
 }
 
 async function onMovePropDown(prop: Prop) {
-  const index = brick.value.props.findIndex(p => p.prop_name === prop.prop_name)
+  const index = brick.value.props.findIndex(
+    (p) => p.prop_name === prop.prop_name
+  );
   if (index >= 0 && index < brick.value.props.length - 1) {
-    const tmp = brick.value.props[index + 1]
-    brick.value.props[index + 1] = brick.value.props[index]
-    brick.value.props[index] = tmp
+    const tmp = brick.value.props[index + 1];
+    brick.value.props[index + 1] = brick.value.props[index];
+    brick.value.props[index] = tmp;
   }
 
   await invoke("save_brick", { brick: brick.value });
@@ -361,7 +455,12 @@ async function deleteBrick() {
   padding-bottom: 0.5rem !important;
 }
 
-:deep(.n-collapse .n-collapse-item .n-collapse-item__content-wrapper .n-collapse-item__content-inner) {
+:deep(
+    .n-collapse
+      .n-collapse-item
+      .n-collapse-item__content-wrapper
+      .n-collapse-item__content-inner
+  ) {
   padding-top: 0;
 }
 
@@ -370,10 +469,11 @@ async function deleteBrick() {
 }
 
 :deep(
-  .n-collapse 
-  .n-collapse-item.n-collapse-item--active 
-  .n-collapse-item__header.n-collapse-item__header--active 
-  .n-collapse-item-arrow) {
+    .n-collapse
+      .n-collapse-item.n-collapse-item--active
+      .n-collapse-item__header.n-collapse-item__header--active
+      .n-collapse-item-arrow
+  ) {
   transform: none !important;
 }
 

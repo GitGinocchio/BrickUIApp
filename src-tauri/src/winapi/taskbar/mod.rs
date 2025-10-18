@@ -36,12 +36,12 @@ pub fn reset_taskbar() -> Result<(), String> {
         // Riporta la taskbar al suo posto
         SetWindowPos(
             taskbar,
-            None,
+            Some(HWND_TOPMOST),
             0,
             0,
             0,
             0,
-            SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE,
+            SWP_NOSIZE | SWP_NOMOVE,
         )
         .map_err(|e| e.to_string())?;
 

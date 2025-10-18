@@ -1,5 +1,10 @@
-import { h, createApp } from "vue";
-import { bricksState, disableBrick, getBrickFromState, setBrickState } from "./state";
+import { h, createApp, Fragment } from "vue";
+import {
+  bricksState,
+  disableBrick,
+  getBrickFromState,
+  setBrickState,
+} from "./state";
 import { addBrickToCache, getBrickFromCache } from "./cache";
 import { Brick, Prop } from "interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
@@ -8,6 +13,7 @@ import { appDataDir, formatPropValue, normalizePath } from "./utils";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { catchBrickError } from "../utils/errors";
+import { initBrickWatcher } from "./watcher";
 
 export const app = createApp({
   render() {
@@ -24,28 +30,43 @@ export const app = createApp({
 
       nodes.push(h(component, { key: name, ...state.props }));
     }
-    return h('div', nodes);
-  }
+    return h(Fragment, nodes);
+  },
 });
 
-export async function loadBrickComponent(brick: Brick) {
+export async function loadBrickComponent(brick: Brick, force: boolean = false) {
   let component = getBrickFromCache(brick.name);
 
-  const path = normalizePath(`./bricks/${brick.name}/brick.vue`, { root: appDataDir }, false);
+  const path = normalizePath(
+    `./bricks/${brick.name}/brick.vue`,
+    { root: appDataDir },
+    false
+  );
 
-  if (!component) {
+  if (!component || force) {
     const moduleCache = createModuleCache({
       path: convertFileSrc(path),
       name: brick.name,
     });
 
     try {
-      const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, { baseDir: BaseDirectory.AppData });
-      const module = await loadVueModuleToCJS(source, path, path, moduleCache, brick);
+      const source = await readTextFile(`./bricks/${brick.name}/brick.vue`, {
+        baseDir: BaseDirectory.AppData,
+      });
+      const module = await loadVueModuleToCJS(
+        source,
+        path,
+        path,
+        moduleCache,
+        brick
+      );
       component = module.default;
-    }
-    catch (error) {
-      catchBrickError(error, { name: brick.name, author: brick.author }, "importing");
+    } catch (error) {
+      catchBrickError(
+        error,
+        { name: brick.name, author: brick.author },
+        "importing"
+      );
       return Promise.resolve();
     }
 
@@ -55,7 +76,7 @@ export async function loadBrickComponent(brick: Brick) {
   setBrickState(brick);
 }
 
-export async function toggleBrick(brick : Brick) {
+export async function toggleBrick(brick: Brick) {
   const state = getBrickFromState(brick.name);
 
   if (!state) await loadBrickComponent(brick);
@@ -63,17 +84,21 @@ export async function toggleBrick(brick : Brick) {
   else disableBrick(brick.name);
 }
 
-export async function updateBrick(name : string, prop: Prop) {
+export async function updateBrickProp(name: string, prop: Prop) {
   const brick = getBrickFromState(name);
   if (brick) brick.props[prop.prop_name] = formatPropValue(prop);
 }
 
+export async function reloadBrick(brick: Brick) {
+  await loadBrickComponent(brick, true);
+}
+
 export async function initLoader(
-  bricks: Brick[], 
-  errorHandler: (error, instance, info) => {}, 
+  bricks: Brick[],
+  errorHandler: (error, instance, info) => {},
   warnHandler: (message, instance, trace) => {}
 ) {
-  app.mount('#overlay');
+  app.mount("#overlay");
 
   app.config.errorHandler = errorHandler;
   app.config.warnHandler = warnHandler;
@@ -81,4 +106,6 @@ export async function initLoader(
   for (const brick of bricks) {
     if (brick.enabled) await loadBrickComponent(brick);
   }
+
+  await initBrickWatcher();
 }

@@ -5,13 +5,14 @@
 <script setup lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { ComponentPublicInstance, h, inject, onMounted, Ref, ref } from "vue";
-import { NButton, useNotification } from "naive-ui";
+import { inject, onMounted, Ref, ref } from "vue";
+import { useNotification } from "naive-ui";
 import {
   handleClickThrough,
   simulateFakeMousePressed,
 } from "../utils/mouseClickThrough";
-import { initLoader, toggleBrick, updateBrick } from "../loader";
+import { initLoader, toggleBrick, updateBrickProp } from "../loader";
+import { onBrickError, onBrickWarn } from "./errors";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick, Prop } from "interfaces/brick";
 import { Settings } from "interfaces/settings";
@@ -38,122 +39,10 @@ listen<{ brick: Brick }>(
   "toggle-brick",
   async (event) => await toggleBrick(event.payload.brick)
 );
-listen<{ name: string; prop: Prop }>("update-brick", async (event) =>
-  updateBrick(event.payload.name, event.payload.prop)
+listen<{ name: string; prop: Prop }>(
+  "update-brick",
+  async (event) => await updateBrickProp(event.payload.name, event.payload.prop)
 );
-
-async function onBrickError(
-  error: Error,
-  instance: ComponentPublicInstance | { name: string; author: string },
-  info: string
-) {
-  console.log(error, instance, info);
-  if (!instance) return;
-  if ("type" in instance) return;
-  let brickName: string;
-  let brickAuthor: string;
-
-  if ("$options" in instance) {
-    while ("$options" in instance && !("__brickContext" in instance.$options)) {
-      instance = instance.$parent;
-    }
-    brickName = instance.$options?.__brickContext?.name;
-    brickAuthor = instance.$options?.__brickContext?.author;
-  } else if ("name" in instance && "author" in instance) {
-    brickName = instance.name;
-    brickAuthor = instance.author;
-  }
-
-  notification.error({
-    // @ts-ignore
-    title: `Error ${info ? `in ${info}` : ""} — brick "${brickName}"${
-      brickAuthor !== "undefined" ? ` by ${brickAuthor}` : ""
-    }`,
-    content: () => {
-      return h(
-        "code",
-        {
-          style: {
-            whiteSpace: "pre-wrap",
-            fontSize: "12px",
-            color: "#FFFFFF85",
-          },
-        },
-        `${error.message}\n${error.cause ?? ""}`
-      );
-    },
-    action: () => {
-      return h(
-        NButton,
-        {
-          style: { color: "white" },
-          onClick: async () => {
-            // @ts-ignore
-            await invoke("open_brick", { brickName: brickName });
-          },
-        },
-        {
-          default: () => "Open Brick",
-        }
-      );
-    },
-    keepAliveOnHover: true,
-    duration: 10000,
-  });
-}
-
-async function onBrickWarn(
-  message: string,
-  instance: ComponentPublicInstance | { name: string; author: string },
-  _trace: string
-) {
-  let brickName: string;
-  let brickAuthor: string;
-  if (!instance) return;
-  if ("$options" in instance) {
-    brickName = instance.$options.__brickContext.name;
-    brickAuthor = instance.$options.__brickContext.author;
-  } else if ("name" in instance && "author" in instance) {
-    brickName = instance.name;
-    brickAuthor = instance.author;
-  }
-
-  notification.error({
-    title: `Warn in brick "${brickName}"${
-      brickAuthor !== "undefined" ? ` by ${brickAuthor}` : ""
-    }`,
-    content: () => {
-      return h(
-        "code",
-        {
-          style: {
-            whiteSpace: "pre-wrap",
-            fontSize: "12px",
-            color: "#FFFFFF85",
-          },
-        },
-        `${message}`
-      );
-    },
-    action: () => {
-      return h(
-        NButton,
-        {
-          style: { color: "white" },
-          onClick: async () => {
-            // @ts-ignore
-            await invoke("open_brick", { brickName: brickName });
-          },
-        },
-        {
-          default: () => "Open Brick",
-        }
-      );
-    },
-    keepAliveOnHover: true,
-    duration: 10000,
-  });
-}
 
 onMounted(async () => {
   try {
@@ -162,7 +51,11 @@ onMounted(async () => {
 
     bricks.value = await invoke("get_bricks");
 
-    await initLoader(bricks.value, onBrickError, onBrickWarn);
+    await initLoader(
+      bricks.value,
+      async (...args) => await onBrickError(notification, ...args),
+      async (...args) => await onBrickWarn(notification, ...args)
+    );
 
     notification.success({
       title: "Bricks loaded successfully!",
@@ -196,15 +89,6 @@ onMounted(async () => {
     });
     isReady.value = false;
   }
-
-  if (overlay.value && overlay.value.children.length === 0) {
-    notification.warning({
-      title: "No bricks were found",
-      description: "You should create a brick first!",
-      keepAliveOnHover: true,
-      closable: true,
-    });
-  }
 });
 
 listen<Settings>("changed-settings", async (event) => {
@@ -216,17 +100,6 @@ listen<Settings>("changed-settings", async (event) => {
     });
     lastNotificationPosition.value = event.payload.notifications.position;
   }
-
-  /*
-  if (event.payload.taskbar.behavior !== lastTaskBarBehavior.value) {
-    lastTaskBarBehavior.value = event.payload.taskbar.behavior;
-    await currentWindow.maximize();
-    await currentWindow.setSize(
-      new LogicalSize(window.outerWidth, window.outerHeight)
-    );
-    await currentWindow.setPosition(new LogicalPosition(0, 0));
-  }
-  */
 });
 </script>
 

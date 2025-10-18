@@ -20,7 +20,7 @@ incremental = true # Compile your binary in smaller steps.
 [profile.release]
 codegen-units = 1 # Allows LLVM to perform better optimization.
 lto = true # Enables link-time-optimizations.
-opt-level = "s" # Prioritizes small binary size. Use `3` if you prefer speed.
+opt-level = 3 # Prioritizes small binary size (`"s"`). Use `3` if you prefer speed.
 panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
@@ -28,9 +28,9 @@ strip = true # Ensures debug symbols are removed.
 tauri-build = { version = "2.4.0", features = [ "codegen" ] }
 
 [dependencies]
-tauri = { version = "2.8.4", features = [ 
-    "protocol-asset", 
-    "unstable", 
+tauri = { version = "2.8.4", features = [
+    "protocol-asset",
+    "unstable",
     "tray-icon",
     "image-png"
 ] }
@@ -38,15 +38,15 @@ tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2.5.0"
-tauri-plugin-fs = "2.4.2"
+tauri-plugin-fs = { version = "2.4.2", features = ["watch"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.143"
 serde_yaml = "0.9.34"
 schemars = "1.0.4"
 
 windows = { version = "0.61.3", features = [
-    "Win32_UI_WindowsAndMessaging", 
-    "Win32_Foundation", 
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
     "Win32_System_Threading",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Com",
