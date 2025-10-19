@@ -1,166 +1,322 @@
 <template>
   <div class="register-container">
-
     <div class="register-content">
-
       <div class="welcome-message">
         <h1>Welcome UIBricker</h1>
-        <svg xmlns="http://www.w3.org/2000/svg" color="#fff" width="60" height="60" viewBox="0 0 2836 2836">
-  <g class="waving-arm" style="transform-origin: 1418px 1180px;">
-    <path fill="currentColor" d="M 726.617188 795.121094 C 807.160156 1065.660156 1102.410156 1429.160156 1395.878906 1435.691406 C 1627 1440.839844 1881.441406 1429.890625 2096.679688 1436.351562 C 2333.070312 1443.449219 2442.609375 1566.738281 2438.5 1801.160156 C 2437.269531 2032.800781 2437.539062 2145.070312 2438.339844 2215.792969 C 2439.648438 2333.515625 2438.28125 2396.183594 2306.988281 2398.226562 C 1714.449219 2393.847656 1293.640625 2399.820312 1293.640625 2399.820312 C 1148.929688 2388.652344 1151.238281 2332.441406 1151.078125 2215.59375 C 1150.789062 2007.3125 1151.339844 1889.734375 1151.339844 1889.734375 C 1149.910156 1777.21875 1114.078125 1752.609375 1025.96875 1697.390625 C 711.972656 1500.628906 568.355469 1306.21875 409.953125 886.519531 C 329.988281 674.550781 668.515625 573.890625 726.617188 795.121094 Z"/>
-  </g>
-  <circle fill="currentColor" cx="1697.73" cy="873.61" r="437.84"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" color="#fff" width="50" height="50" viewBox="0 0 2836 2836">
+          <g class="waving-arm" style="transform-origin: 1418px 1180px;">
+            <path fill="currentColor" d="M726.6 795.1c80.5 270.5 375.8 634 669.3 640.6 231.1 5.1 485.5-5.9 700.7.6 236.4 7.1 345.9 130.4 341.8 364.9-1.2 231.6-0.9 343.9-0.1 414.6 1.3 117.7-0.1 180.3-131.3 182.3-592.6-4.4-1013.4 1.6-1013.4 1.6-144.7-11.1-142.4-67.3-142.6-184.2-0.3-208.3 0.2-325.9 0.2-325.9-1.4-112.5-37.2-137.1-125.4-192.4C712 1500.6 568.4 1306.2 410 886.5c-80-212 258.6-312.6 316.6-91.4z"/>
+          </g>
+          <circle fill="currentColor" cx="1697.73" cy="873.61" r="437.84"/>
+        </svg>
       </div>
 
-      <p class="little-descr">lovely to see you here! <br>Register and be part of our family</p>
+      <p class="little-descr">
+        lovely to see you here! <br />
+        Register and be part of our family
+      </p>
 
+      <!-- FORM NAIVE UI -->
       <div class="form-container">
-        <form>
-          <input type="text" placeholder="Username" class="input-field" required/>
+        <NForm
+          :model="form"
+          :rules="rules"
+          ref="formRef"
+          label-placement="top"
+          require-mark-placement="right-hanging"
+        >
+          <!-- USERNAME -->
+          <NFormItem label="Username" path="username">
+            <NInput
+              v-model:value="form.username"
+              placeholder="Enter your username"
+              type="text"
+              size="large"
+            />
+          </NFormItem>
 
-          <input type="email" placeholder="Email" class="input-field" required/>
+          <!-- EMAIL -->
+          <NFormItem label="Email" path="email">
+            <NInput
+              v-model:value="form.email"
+              placeholder="Enter your email"
+              type="text"
+              size="large"
+            />
+          </NFormItem>
 
-          <input type="password" placeholder="Password" class="input-field" required/>
+          <!-- PASSWORD -->
+          <NFormItem label="Password" path="password">
+            <NInput
+              v-model:value="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="Enter your password"
+              size="large"
+            >
+              <template #suffix>
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  @click="showPassword = !showPassword"
+                >
+                  <span v-if="showPassword">
+                    <!-- Occhi aperti -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 48 24" fill="none"
+                         stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" />
+                      <circle cx="10" cy="12" r="2.2" fill="white" />
+                      <line x1="10" y1="6" x2="10" y2="3" />
+                      <line x1="6" y1="7.5" x2="4" y2="5.5" />
+                      <line x1="14" y1="7.5" x2="16" y2="5.5" />
+                      <path d="M26 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" />
+                      <circle cx="34" cy="12" r="2.2" fill="white" />
+                      <line x1="34" y1="6" x2="34" y2="3" />
+                      <line x1="30" y1="7.5" x2="28" y2="5.5" />
+                      <line x1="38" y1="7.5" x2="40" y2="5.5" />
+                    </svg>
+                  </span>
+                  <span v-else>
+                    <!-- Occhi chiusi -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 48 24" fill="none"
+                         stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12q8-6 16 0" />
+                      <line x1="10" y1="6" x2="10" y2="3" />
+                      <line x1="6" y1="7.5" x2="4" y2="5.5" />
+                      <line x1="14" y1="7.5" x2="16" y2="5.5" />
+                      <path d="M26 12q8-6 16 0" />
+                      <line x1="34" y1="6" x2="34" y2="3" />
+                      <line x1="30" y1="7.5" x2="28" y2="5.5" />
+                      <line x1="38" y1="7.5" x2="40" y2="5.5" />
+                    </svg>
+                  </span>
+                </button>
+              </template>
+            </NInput>
+          </NFormItem>
 
-          <input type="password" placeholder="Confirm Password" class="input-field" required/>
+          <!-- CONFIRM PASSWORD -->
+          <NFormItem label="Confirm Password" path="confirmPassword">
+            <NInput
+              v-model:value="form.confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              placeholder="Confirm your password"
+              size="large"
+            >
+              <template #suffix>
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                >
+                  <span v-if="showConfirmPassword">
+                    <!-- Occhi aperti -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 48 24" fill="none"
+                         stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" />
+                      <circle cx="10" cy="12" r="2.2" fill="white" />
+                      <line x1="10" y1="6" x2="10" y2="3" />
+                      <line x1="6" y1="7.5" x2="4" y2="5.5" />
+                      <line x1="14" y1="7.5" x2="16" y2="5.5" />
+                      <path d="M26 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" />
+                      <circle cx="34" cy="12" r="2.2" fill="white" />
+                      <line x1="34" y1="6" x2="34" y2="3" />
+                      <line x1="30" y1="7.5" x2="28" y2="5.5" />
+                      <line x1="38" y1="7.5" x2="40" y2="5.5" />
+                    </svg>
+                  </span>
+                  <span v-else>
+                    <!-- Occhi chiusi -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="20" viewBox="0 0 48 24" fill="none"
+                         stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12q8-6 16 0" />
+                      <line x1="10" y1="6" x2="10" y2="3" />
+                      <line x1="6" y1="7.5" x2="4" y2="5.5" />
+                      <line x1="14" y1="7.5" x2="16" y2="5.5" />
+                      <path d="M26 12q8-6 16 0" />
+                      <line x1="34" y1="6" x2="34" y2="3" />
+                      <line x1="30" y1="7.5" x2="28" y2="5.5" />
+                      <line x1="38" y1="7.5" x2="40" y2="5.5" />
+                    </svg>
+                  </span>
+                </button>
+              </template>
+            </NInput>
+          </NFormItem>
 
-          <NButton type="primary" class="register-button">Register</NButton>
-        </form>
+          <!-- BOTTONE REGISTER -->
+          <NButton
+            type="primary"
+            block
+            strong
+            size="large"
+            @click="handleSubmit"
+          >
+            Register
+          </NButton>
+        </NForm>
       </div>
-
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { NButton } from 'naive-ui';
+import { ref } from 'vue'
+import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule } from 'naive-ui'
 
+const form = ref({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
+})
+
+const formRef = ref<FormInst | null>(null)
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const validatePasswordMatch = (rule: FormItemRule, value: string): boolean | Error => {
+  if (value !== form.value.password) {
+    return new Error('Passwords do not match')
+  }
+  return true
+}
+
+const rules: FormRules = {
+  username: [
+    { required: true, message: 'Username is required', trigger: ['blur', 'input'] },
+    { min: 3, message: 'Username must be at least 3 characters', trigger: 'input' },
+    { max: 20, message: 'Username must be less than 20 characters', trigger: 'input' }
+  ],
+  email: [
+    { required: true, message: 'Email is required', trigger: ['blur', 'input'] },
+    { type: 'email', message: 'Invalid email format', trigger: ['blur', 'input'] }
+  ],
+  password: [
+    { required: true, message: 'Password is required', trigger: ['blur', 'input'] },
+    { min: 8, message: 'Password must be at least 8 characters', trigger: 'input' },
+    { max: 128, message: 'Password too long', trigger: 'input' }
+  ],
+  confirmPassword: [
+    { required: true, message: 'Please confirm your password', trigger: ['blur', 'input'] },
+    { validator: validatePasswordMatch, trigger: ['blur', 'input'] }
+  ]
+}
+
+const handleSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+    console.log('Valid form:', form.value)
+    // TODO: registration logic
+  } catch (err) {
+    console.warn('Invalid form:', err)
+  }
+}
 </script>
 
 <style scoped>
-
-.register-container { 
+.register-container {
   border-radius: 20px;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: #23232c;
-  height: 75vh;
-  width: 30vw;
-  min-width: 400px;
-}
-
-.register-content{
-  display: flex;
-  flex-direction: column;
-  margin: 20px 35px 0 35px;
-  height: 100%;
-  color: white;
-}
-
-
-.little-descr{
-  font-size: 14px;
-  margin-top: -20px;
-  color: #cfc9c9;
-  opacity: 0.56;
-}
-
-.welcome-message{
-  display: flex;
-  align-items: center;
-  align-content: center;
-  gap: 10px;
-}
-
-.form-container{
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-.form-container {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  position: relative;
-  top: 8%;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #e0e0e0;
-  margin: 0;
-}
-
-.input-field {
-  width: 100%;
-  padding: 12px 16px;
-  background-color: #2e2e38;
-  border: 1px solid #3a3a44;
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  padding: 30px 35px;
+  width: 90%;
+  max-width: 420px;
   box-sizing: border-box;
 }
 
-.input-field::placeholder {
-  color: #7a7a82;
+.register-content {
+  display: flex;
+  flex-direction: column;
+  color: white;
 }
 
-.input-field:focus {
-  outline: none;
-  border-color: #5a7cf8;
-  background-color: #32323d;
-  box-shadow: 0 0 0 3px rgba(90, 124, 248, 0.1);
+.welcome-message {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
 }
 
-.input-field:hover {
-  border-color: #4a4a54;
-}
-
-.register-button {
-  margin-top: 10px;
-  width: 100%;
-  height: 44px;
-  font-size: 15px;
+.welcome-message h1 {
+  font-size: 24px;
+  margin: 0;
   font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
-/* Scrollbar personalizzata */
-.register-content::-webkit-scrollbar {
-  width: 6px;
+.little-descr {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #cfc9c9;
+  opacity: 0.7;
+  margin: 0 0 25px 0;
 }
 
-.register-content::-webkit-scrollbar-track {
+.form-container {
+  width: 100%;
+}
+
+.form-container :deep(.n-form-item) {
+  margin-bottom: 16px;
+}
+
+.form-container :deep(.n-form-item-label) {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.form-container :deep(.n-input) {
+  height: 48px;
+}
+
+.form-container :deep(.n-input .n-input__input-el) {
+  padding-top: 2px;
+}
+
+.form-container :deep(.n-input .n-input-wrapper) {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.form-container .n-button {
+  margin-top: 8px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.toggle-btn {
   background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-right: -4px;
 }
 
-.register-content::-webkit-scrollbar-thumb {
-  background: #3a3a44;
-  border-radius: 3px;
+.toggle-btn svg {
+  pointer-events: none;
+  display: block;
 }
 
-.register-content::-webkit-scrollbar-thumb:hover {
-  background: #4a4a54;
+@media (max-width: 768px) {
+  .register-container {
+    padding: 30px 25px;
+    width: 95%;
+  }
+  
+  .welcome-message h1 {
+    font-size: 20px;
+  }
+  
+  .welcome-message svg {
+    width: 40px;
+    height: 40px;
+  }
 }
-
 </style>
