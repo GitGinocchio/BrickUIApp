@@ -23,118 +23,112 @@
       </template>
     </Header>
     <div class="content">
-      <n-collapse accordion v-model:expanded-names="expanded">
-        <n-collapse-item title="Description" name="description">
-          <template #arrow>
-            <Text />
+      <n-tabs type="line" v-model:value="activeTab" animated>
+        <n-tab-pane name="description">
+          <template #tab>
+            <div class="tab-header">
+              <Text :size="16" />
+              <span>Description</span>
+            </div>
           </template>
-          <template #header>
-            <div class="collapse-item-header">
-              <div>Description</div>
-              <n-button
-                @click.stop="onEditDescription"
-                text
-                circle
-                size="medium"
-              >
+          <div class="tab-content">
+            <div class="tab-actions">
+              <n-button @click="onEditDescription" text circle size="medium">
                 <Pencil v-if="!descriptionEditMode" :size="16" />
                 <PencilOff v-else :size="16" />
               </n-button>
             </div>
+            <n-input
+              v-if="descriptionEditMode"
+              v-model:value="brick.description"
+              type="textarea"
+              placeholder="Type your brick's description"
+            />
+            <p
+              v-else-if="renderedDescription.length > 0"
+              v-html="renderedDescription"
+              class="description"
+            ></p>
+            <p v-else>This brick has no description</p>
+          </div>
+        </n-tab-pane>
+
+        <n-tab-pane name="props" class="properties-container">
+          <template #tab>
+            <div class="tab-header">
+              <Cog :size="16" />
+              <span>Props</span>
+            </div>
           </template>
-          <n-input
-            v-if="descriptionEditMode"
-            v-model:value="brick.description"
-            type="textarea"
-            placeholder="Type your brick's description"
-          />
-          <p
-            v-else-if="renderedDescription.length > 0"
-            v-html="renderedDescription"
-            class="description"
-          ></p>
-          <p v-else>This brick has no description</p>
-        </n-collapse-item>
-        <n-collapse-item
-          title="Props"
-          name="props"
-          class="properties-container"
-        >
-          <template #arrow>
-            <Cog #arrow />
-          </template>
-          <template #header>
-            <div class="collapse-item-header">
-              <div>Props</div>
-              <n-button @click.stop="onEditPropMode" text circle size="medium">
+          <div class="tab-content">
+            <div class="tab-actions">
+              <n-button @click="onEditPropMode" text circle size="medium">
                 <Pencil v-if="!propsEditMode" :size="16" />
                 <PencilOff v-else :size="16" />
               </n-button>
             </div>
-          </template>
-          <div
-            class="movable"
-            v-for="(prop, index) in brick.props"
-            :key="prop.prop_name"
-          >
-            <span v-if="propsEditMode" class="arrows">
-              <ChevronUp
-                v-if="index !== 0"
-                @click="onMovePropUp(prop)"
-                :size="16"
+            <div
+              class="movable"
+              v-for="(prop, index) in brick.props"
+              :key="prop.prop_name"
+            >
+              <span v-if="propsEditMode" class="arrows">
+                <ChevronUp
+                  v-if="index !== 0"
+                  @click="onMovePropUp(prop)"
+                  :size="16"
+                />
+                <ChevronDown
+                  v-if="index < brick.props.length - 1"
+                  @click="onMovePropDown(prop)"
+                  :size="16"
+                />
+              </span>
+              <BrickProp
+                :prop="prop"
+                :edit-mode="propsEditMode"
+                @update:prop="onPropValueChanged"
+                @edit:prop="onEditProp"
+                @delete:prop="onDeleteProp"
               />
-              <ChevronDown
-                v-if="index < brick.props.length - 1"
-                @click="onMovePropDown(prop)"
-                :size="16"
-              />
-            </span>
-            <BrickProp
-              :prop="prop"
-              :edit-mode="propsEditMode"
-              @update:prop="onPropValueChanged"
-              @edit:prop="onEditProp"
-              @delete:prop="onDeleteProp"
-            />
+            </div>
+            <div v-if="brick.props.length == 0">
+              <p>This brick has no props!</p>
+            </div>
+            <n-button
+              size="small"
+              v-if="propsEditMode"
+              class="add-prop"
+              @click="onNewProp"
+              ><CirclePlus :size="16" />Add</n-button
+            >
           </div>
-          <div v-if="brick.props.length == 0">
-            <p>This brick has no props!</p>
-          </div>
-          <n-button
-            size="small"
-            v-if="propsEditMode"
-            class="add-prop"
-            @click="onNewProp"
-            ><CirclePlus :size="16" />Add</n-button
-          >
-        </n-collapse-item>
-        <n-collapse-item title="Emits" name="emits" class="emits-container">
-          <template #arrow>
-            <Wifi />
-          </template>
-          <!--
-          <div v-for="prop in brick.props" :key="prop.prop_name">
+        </n-tab-pane>
 
-          </div>
-          -->
-          <p>Work in progress :P</p>
-        </n-collapse-item>
-        <n-collapse-item
-          title="Permissions"
-          name="permissions"
-          class="emits-container"
-        >
-          <template #arrow>
-            <Shield />
+        <n-tab-pane name="emits" class="emits-container">
+          <template #tab>
+            <div class="tab-header">
+              <Wifi :size="16" />
+              <span>Emits</span>
+            </div>
           </template>
-          <!--
-          <div v-for="prop in brick.props" :key="prop.prop_name">
-
+          <div class="tab-content">
+            <p>Work in progress :P</p>
           </div>
-          -->
-          <p>Work in progress :P</p>
-        </n-collapse-item>
-      </n-collapse>
+        </n-tab-pane>
+
+        <n-tab-pane name="permissions" class="permissions-container">
+          <template #tab>
+            <div class="tab-header">
+              <Shield :size="16" />
+              <span>Permissions</span>
+            </div>
+          </template>
+          <div class="tab-content">
+            <p>Work in progress :P</p>
+          </div>
+        </n-tab-pane>
+      </n-tabs>
     </div>
 
     <!-- Confirm Delete Modal -->
@@ -162,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { NCollapse, NCollapseItem, NButton, NSwitch, NInput } from "naive-ui";
+import { NTabs, NTabPane, NButton, NSwitch, NInput, NTag } from "naive-ui";
 import { computed, onMounted, ref, watchEffect } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "vue-i18n";
@@ -191,7 +185,7 @@ import { emit, emitTo } from "@tauri-apps/api/event";
 
 const { t } = useI18n();
 const router = useRouter();
-const expanded = ref<Array<string>>([]);
+const activeTab = ref<string>("description");
 let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -222,7 +216,7 @@ watchEffect(() => {
     return;
   }
 
-  // Precarica l’immagine
+  // Precarica l'immagine
   const img = new Image();
   img.src = brick.value?.banner;
 
@@ -252,12 +246,11 @@ const propToDelete = ref<Prop | null>(null);
 const md = new MarkdownIt();
 const renderedDescription = computed(() => md.render(brick.value.description));
 const descriptionEditMode = ref<boolean>(false);
-async function onEditDescription(_event: Event) {
+async function onEditDescription(_event?: Event) {
   descriptionEditMode.value = !descriptionEditMode.value;
 
-  if (descriptionEditMode.value && !expanded.value.includes("description")) {
-    expanded.value.length = 0;
-    expanded.value.push("description");
+  if (descriptionEditMode.value && activeTab.value !== "description") {
+    activeTab.value = "description";
   }
 
   if (!descriptionEditMode.value) {
@@ -354,12 +347,11 @@ async function onPropEditFinished(before: Prop, clone?: boolean) {
 }
 
 /* Brick actions */
-async function onEditPropMode(_event: Event) {
+async function onEditPropMode(_event?: Event) {
   propsEditMode.value = !propsEditMode.value;
 
-  if (propsEditMode.value && !expanded.value.includes("props")) {
-    expanded.value.length = 0;
-    expanded.value.push("props");
+  if (propsEditMode.value && activeTab.value !== "props") {
+    activeTab.value = "props";
   }
 }
 
@@ -397,7 +389,7 @@ async function onMovePropDown(prop: Prop) {
     brick.value.props[index] = tmp;
   }
 
-  await invoke("save_brick", { brick: brick.value });
+  await invoke("save_brick", { brick: brick });
 }
 
 async function deleteBrick() {
@@ -455,40 +447,26 @@ async function deleteBrick() {
   padding-bottom: 0.5rem !important;
 }
 
-:deep(
-    .n-collapse
-      .n-collapse-item
-      .n-collapse-item__content-wrapper
-      .n-collapse-item__content-inner
-  ) {
-  padding-top: 0;
-}
-
 :deep(.n-form-item-feedback-wrapper) {
   min-height: 0;
 }
 
-:deep(
-    .n-collapse
-      .n-collapse-item.n-collapse-item--active
-      .n-collapse-item__header.n-collapse-item__header--active
-      .n-collapse-item-arrow
-  ) {
-  transform: none !important;
+.tab-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.collapse-item-header {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  width: 100%;
+.tab-content {
+  position: relative;
+  padding: 1rem 0;
 }
 
-.collapse-item-header div {
-  gap: 0.25rem;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
+.tab-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .movable {
@@ -498,7 +476,6 @@ async function deleteBrick() {
 
 .arrows {
   cursor: pointer;
-  /* margin-right: 8px; */
   font-size: 18px;
   display: flex;
   flex-direction: column;
