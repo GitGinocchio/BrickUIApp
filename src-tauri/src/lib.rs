@@ -10,7 +10,7 @@ use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
 use crate::winapi::taskbar::{hide_taskbar, reset_taskbar, show_taskbar};
-use crate::winapi::window::remove_titlebar;
+use crate::winapi::window::{remove_titlebar, set_window_topmost};
 
 mod config;
 use crate::config::settings::{TaskBarBehavior};
@@ -92,12 +92,6 @@ pub fn run() {
                 let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
                 state_guard.get_settings().clone()
             };
-
-            let overlayw = app.get_window("overlay").unwrap();
-            let hwnd = overlayw
-                .hwnd()
-                .map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
-            remove_titlebar(hwnd);
 
             if settings.taskbar.behavior == TaskBarBehavior::Show {
                 show_taskbar(app_handle)?;
