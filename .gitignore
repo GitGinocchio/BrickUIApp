@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 /src-tauri/gen
 /target
+.github/copilot-instructions.md

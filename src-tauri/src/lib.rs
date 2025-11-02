@@ -1,5 +1,6 @@
-use std::sync::{Arc, Mutex};
-use tauri::{Emitter, Manager, WindowEvent};
+use tokio::sync::Mutex;
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, Manager, Window, WindowEvent};
 
 mod state;
 use state::BrickUIState;
@@ -30,7 +31,34 @@ pub fn run() {
     }
     */
 
+    // Aggiungi i plugin dopo l'inizializzazione dello stato
     tauri::Builder::default()
+        .setup(|app| {
+            initialize_com()?;
+
+            let app_handle = app.app_handle();
+            let resolver = app_handle.path();
+            let resource_path = resolver.resource_dir()?;
+            let path = resolver.app_data_dir()?;
+
+            let state = BrickUIState::new(&path, &resource_path)?;
+            let settings = state.get_settings().clone();
+            app.manage(Arc::new(Mutex::new(state)));
+
+            // Mostra o nascondi taskbar secondo settings
+            if settings.taskbar.behavior == TaskBarBehavior::Show {
+                show_taskbar(&app_handle).expect("Errore mostrando la taskbar:")
+            } else {
+                hide_taskbar(&app_handle).expect("Errore nascondendo la taskbar:");
+            }
+
+            // Avvia event listeners async
+            tauri::async_runtime::block_on(async {
+                start_event_listeners(app_handle.clone()).await
+            })?;
+
+            Ok(())
+        })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_opener::init())
@@ -75,112 +103,47 @@ pub fn run() {
             //println!("{_args:?}, {_cwd:?}");
         }))
         .invoke_handler(generate_handlers())
-        .setup(|app| {
-            initialize_com()?;
-
-            let app_handle = app.app_handle();
-            let resolver = app_handle.path();
-            let resource_path = resolver.resource_dir()?;
-            let path = resolver.app_data_dir()?;
-
-            let state = BrickUIState::new(&path, &resource_path)?;
-            app.manage(Arc::new(Mutex::new(state)));
-
-            let state = app.state::<Arc<Mutex<BrickUIState>>>();
-
-            let settings = {
-                let state_guard = state.lock().map_err(|e| format!("errore lock: {e}"))?;
-                state_guard.get_settings().clone()
-            };
-
-            if settings.taskbar.behavior == TaskBarBehavior::Show {
-                show_taskbar(app_handle)?;
-            }
-            else {
-                hide_taskbar(app_handle)?;
-            }
-
-            //let wallpaperwv = app.get_webview("wallpaper").unwrap();
-            //let wallpaperw = app.get_window("wallpaper").unwrap();
-            //let hwnd = wallpaperw
-                //.hwnd()
-                //.map_err(|e| format!("Errore durante l'ottenimento dell'HWND: {e}"))?;
-            //set_as_wallpaper_background_all_monitors(hwnd)?;
-
-            //wallpaperwv.open_devtools();
-            //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}"))?;
-            start_event_listeners(app.handle().clone())?;
-
-            Ok(())
-        })
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && window.label() == "main"
-            {
+            if let WindowEvent::CloseRequested { api, .. } = event && window.label() == "main" {
+                api.prevent_close();
+
                 let app_handle = window.app_handle();
-                let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+                let window_label = window.label().to_string();
+                let state = app_handle.state::<Arc<Mutex<BrickUIState>>>().clone();
 
-                let state_guard = match state.lock().map_err(|e| format!("errore lock: {e}")) {
-                    Ok(guard) => guard,
-                    Err(e) => panic!("{e}"),
-                };
-
-                let settings = state_guard.get_settings();
-                let backup = state_guard.get_backup();
-
-                if settings.systemtray.enabled
-                    && settings.systemtray.hidetaskbaricon
-                    && let Ok(true) = window.is_visible()
-                {
-                    api.prevent_close();
-                    window
-                        .hide()
-                        .expect("Error while trying to hide the main window:");
-                    return;
-                };
-
-                window
-                    .hide()
-                    .expect("Error while trying to hide the main window:");
-
-                if let Some(window) = app_handle.get_window("overlay")
-                    && window.is_closable().is_ok()
-                {
-                    window
-                        .hide()
-                        .expect("Error while trying to hide the overlay window:");
-                    window
-                        .close()
-                        .expect("Error while trying to close the overlay window:");
+                let (settings, backup) = tauri::async_runtime::block_on(async {
+                    let state_guard = state.lock().await;
+                    (state_guard.get_settings().clone(), state_guard.get_backup().clone())
+                });
+                
+                if settings.systemtray.enabled && settings.systemtray.hidetaskbaricon {
+                    if let Some(window) = app_handle.get_window(&window_label) {
+                        window.hide().expect("Error hiding main window:");
+                        return;
+                    }
                 }
 
-                if let Some(window) = app_handle.get_window("wallpaper")
-                    && window.is_closable().is_ok()
-                {
-                    window
-                        .hide()
-                        .expect("Error while trying to hide the wallpaper window:");
-                    window
-                        .close()
-                        .expect("Error while trying to close the wallpaper window:");
+                if let Some(window) = app_handle.get_window(&window_label) {
+                    window.hide().expect("Error hiding main window:");
                 }
 
-                reset_workareas().expect("Error while trying to reset the workareas");
+                if let Some(overlay) = app_handle.get_window("overlay") {
+                    overlay.hide().expect("Error hiding overlay window:");
+                    overlay.close().expect("Error closing overlay window:");
+                }
 
+                if let Some(wallpaper) = app_handle.get_window("wallpaper") {
+                    wallpaper.hide().expect("Error hiding wallpaper window:");
+                    wallpaper.close().expect("Error closing wallpaper window:");
+                }
+
+                reset_workareas().unwrap();
                 if settings.taskbar.behavior != TaskBarBehavior::Show {
-                    reset_taskbar().expect("Error while trying to reset the taskbar state:");
+                    reset_taskbar().expect("Error restoring taskbar:");
                 }
 
-                restore_cursors(&backup.cursors).expect("Errore nel riportare i cursori allo stato originale");
-
-                /*
-                set_snap_flyout(true)
-                    .map_err(|e| format!("Errore set_snap_flyout: {e}"))
-                    .expect("");
-                */
-
+                restore_cursors(&backup.cursors).expect("Error restoring cursors:");
                 uninitialize_com();
-
                 app_handle.cleanup_before_exit();
                 app_handle.exit(0);
             }

@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
-    fs,
     os::windows::ffi::OsStrExt,
-    path::{Path, PathBuf}
+    path::{Path, PathBuf}, sync::Arc
 };
+use tokio::sync::Mutex;
 use windows::Win32::UI::Shell::{
     SHGSI_ICON, SHGetStockIconInfo, SHSTOCKICONINFO, SIID_DOCNOASSOC, SIID_FOLDER,
 };
@@ -44,7 +44,7 @@ pub struct IconsMap {
     #[schemars(description = "The JSON Schema version or URI for this Settings definition.")]
     pub schema: String,
 
-    entries: HashMap<String, IconEntry>,
+    pub entries: HashMap<String, IconEntry>,
 }
 
 fn default_schema() -> String {
@@ -72,9 +72,9 @@ pub fn get_default_icon(path: &str) -> Option<HICON> {
             let drive_type = unsafe { GetDriveTypeW(PWSTR(wide.as_ptr() as *mut _)) };
             match drive_type {
                 DRIVE_CDROM => SIID_DRIVECD,
-                DRIVE_REMOVABLE => SIID_DRIVEREMOVE,
-                DRIVE_REMOTE => SIID_DRIVENET,
-                DRIVE_RAMDISK => SIID_DRIVERAM,
+                _DRIVE_REMOVABLE => SIID_DRIVEREMOVE,
+                _DRIVE_REMOTE => SIID_DRIVENET,
+                _DRIVE_RAMDISK => SIID_DRIVERAM,
                 _ => SIID_DRIVEFIXED,
             }
         } else if path.to_lowercase().contains("$recycle.bin") {
@@ -118,38 +118,130 @@ pub fn get_icon(
     file_path: &PathBuf,
     icon_cache_dir: &PathBuf,
     icons_map: &mut IconsMap,
-    max_files: usize,
+    max_files: usize
 ) -> Result<Option<String>, String> {
-    // Se l'immagine e' gia' presente nel file icons.map.yml ritorniamo il percorso corretto dell'immagine
-    // Qui bisogna aggiornare la data di ultimo accesso
-    if let Some(entry) = icons_map
-        .entries
-        .get_mut(&file_path.to_string_lossy().to_string())
-    {
+    // Controllo cache esistente
+    if let Some(entry) = icons_map.entries.get_mut(&file_path.to_string_lossy().to_string()) {
         let cached_icon_path = icon_cache_dir.join(format!("{}.png", entry.hash));
-        //entry.last_access = now.to_rfc3339();
-
-        //save_icon_map(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
-
         if cached_icon_path.exists() {
             return Ok(Some(cached_icon_path.to_string_lossy().to_string()));
         }
     }
 
-    // Converte in UTF-16
-    let path_utf16: Vec<u16> = file_path.as_os_str().encode_wide().chain(Some(0)).collect();
+    // Estrai l’icona in memoria
+    let png_bytes = match extract_icon_png_bytes(file_path) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("Failed to extract icon for {:?}: {}", file_path, e);
+            return Ok(None);
+        }
+    };
 
+    // Calcola hash per caching
+    let mut hasher = Sha256::new();
+    hasher.update(&png_bytes);
+    let hash = format!("{:x}", hasher.finalize());
+    let icon_path = icon_cache_dir.join(format!("{hash}.png"));
+
+    std::fs::create_dir_all(icon_cache_dir)
+        .map_err(|e| format!("Error creating cache dir: {e}"))?;
+    std::fs::write(&icon_path, &png_bytes)
+        .map_err(|e| format!("Error writing PNG file: {e}"))?;
+
+    let now = chrono::Local::now();
+    icons_map.entries.insert(
+        file_path.to_string_lossy().to_string(),
+        IconEntry {
+            hash: hash.clone(),
+            created_at: now.to_rfc3339(),
+        },
+    );
+
+    save_yaml(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
+
+    Ok(Some(icon_path.to_string_lossy().to_string()))
+}
+
+pub async fn get_icon_async(
+    file_path: &PathBuf,
+    icon_cache_dir: &PathBuf,
+    icons_map: &mut IconsMap,
+    max_files: usize
+) -> Result<Option<String>, String> {
+    let cached_path = {
+        if let Some(entry) = icons_map
+            .entries
+            .get_mut(&file_path.to_string_lossy().to_string())
+        {
+            let cached_icon_path = icon_cache_dir.join(format!("{}.png", entry.hash));
+            if tokio::fs::try_exists(&cached_icon_path).await.map_err(|e| e.to_string())? {
+                Some(cached_icon_path)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    };
+
+    if let Some(path) = cached_path {
+        return Ok(Some(path.to_string_lossy().to_string()));
+    }
+
+    /*
+    let png_bytes = tokio::task::spawn_blocking({
+        let file_path = file_path.clone();
+        extract_icon_png_bytes(&file_path)?;
+    })
+    .await
+    .map_err(|e| format!("Thread join error: {e}"))??;
+    */
+
+    let png_bytes = match extract_icon_png_bytes(&file_path) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            eprintln!("Failed to extract icon for {:?}: {}", file_path, e);
+            return Ok(None);
+        }
+    };
+
+    let mut hasher = Sha256::new();
+    hasher.update(&png_bytes);
+    let hash = format!("{:x}", hasher.finalize());
+    let icon_path = icon_cache_dir.join(format!("{hash}.png"));
+
+    tokio::fs::create_dir_all(&icon_cache_dir)
+        .await
+        .map_err(|e| format!("Error creating cache dir: {e}"))?;
+    tokio::fs::write(&icon_path, &png_bytes)
+        .await
+        .map_err(|e| format!("Error writing PNG file: {e}"))?;
+
+    let now = Local::now();
+    icons_map.entries.insert(
+        file_path.to_string_lossy().to_string(),
+        IconEntry {
+            hash,
+            created_at: now.to_rfc3339(),
+        },
+    );
+
+    save_yaml(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
+
+    Ok(Some(icon_path.to_string_lossy().to_string()))
+}
+
+fn extract_icon_png_bytes(file_path: &Path) -> Result<Vec<u8>, String> {
+    let path_utf16: Vec<u16> = file_path.as_os_str().encode_wide().chain(Some(0)).collect();
     let mut large_icon: HICON = HICON(std::ptr::null_mut());
 
     if file_path.is_dir() {
-        println!("{file_path:?}");
         if let Some(h) = get_default_icon(file_path.to_string_lossy().as_ref()) {
             large_icon = h;
         } else {
-            return Ok(None);
+            return Ok(vec![]);
         }
     } else {
-        // Primo tentativo: SHGetFileInfoW per file normali
         let mut sfi = SHFILEINFOW::default();
         let file_response = unsafe {
             SHGetFileInfoW(
@@ -160,40 +252,23 @@ pub fn get_icon(
                 SHGFI_ICON | SHGFI_LARGEICON,
             )
         };
-
-        let exe_response;
-        if file_response == 0 || sfi.hIcon.is_invalid() {
-            exe_response = unsafe {
-                ExtractIconExW(
-                    PCWSTR(path_utf16.as_ptr()),
-                    0,
-                    Some(&mut large_icon),
-                    None,
-                    1,
-                )
-            };
-        } else {
+        if file_response != 0 && !sfi.hIcon.is_invalid() {
             large_icon = sfi.hIcon;
-            exe_response = 1;
-        }
-
-        if exe_response == 0 || large_icon.0.is_null() {
-            if let Some(h) = get_default_icon(file_path.to_string_lossy().as_ref()) {
-                large_icon = h;
-            } else {
-                return Ok(None);
+        } else {
+            unsafe {
+                ExtractIconExW(PCWSTR(path_utf16.as_ptr()), 0, Some(&mut large_icon), None, 1);
             }
         }
     }
 
-    let mut icon_info = ICONINFO::default();
-    if unsafe { GetIconInfo(large_icon, &mut icon_info).is_err() } {
-        unsafe {
-            DestroyIcon(large_icon).map_err(|e| format!("Error while destroying icon: {e}"))?
-        };
+    if large_icon.0.is_null() {
+        return Err("Failed to extract icon".into());
     }
 
+    let mut icon_info = ICONINFO::default();
+    unsafe { GetIconInfo(large_icon, &mut icon_info) }.map_err(|_| "GetIconInfo failed".to_string())?;
     let mut bmp = BITMAP::default();
+
     if unsafe {
         GetObjectW(
             HGDIOBJ(icon_info.hbmColor.0),
@@ -202,21 +277,10 @@ pub fn get_icon(
         )
     } == 0
     {
-        unsafe {
-            DeleteObject(icon_info.hbmColor.into())
-                .ok()
-                .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-            DeleteObject(icon_info.hbmMask.into())
-                .ok()
-                .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-            DestroyIcon(large_icon)
-                .map_err(|e| format!("Error while destroying large_icon: {e}"))?;
-        }
-        return Ok(None);
+        return Err("GetObjectW failed".into());
     }
 
-    let width = bmp.bmWidth as u32;
-    let height = bmp.bmHeight as u32;
+    let (width, height) = (bmp.bmWidth as u32, bmp.bmHeight as u32);
     let mut buffer = vec![0u8; (width * height * 4) as usize];
 
     let mut bmi = BITMAPINFO {
@@ -237,85 +301,41 @@ pub fn get_icon(
     };
 
     let hdc = unsafe { GetDC(None) };
-    if unsafe {
+    let res = unsafe {
         GetDIBits(
             hdc,
             icon_info.hbmColor,
             0,
-            height as u32,
+            height,
             Some(buffer.as_mut_ptr() as _),
             &mut bmi,
             DIB_RGB_COLORS,
         )
-    } == 0
-    {
-        unsafe {
-            ReleaseDC(None, hdc);
-            DeleteObject(icon_info.hbmColor.into())
-                .ok()
-                .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-            DeleteObject(icon_info.hbmMask.into())
-                .ok()
-                .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-            DestroyIcon(large_icon)
-                .map_err(|e| format!("Error while destroying large_icon: {e}"))?;
-        }
-        return Ok(None);
-    }
+    };
     unsafe { ReleaseDC(None, hdc) };
-
-    // BGRA → RGBA
-    for px in buffer.chunks_exact_mut(4) {
-        let b = px[0];
-        px[0] = px[2];
-        px[2] = b;
+    if res == 0 {
+        return Err("GetDIBits failed".into());
     }
 
-    let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, buffer)
-        .ok_or("Error while creating the image buffer")?;
+    for px in buffer.chunks_exact_mut(4) {
+        px.swap(0, 2);
+    }
 
+    let img_buf: ImageBuffer<Rgba<u8>, Vec<u8>> =
+        ImageBuffer::from_raw(width, height, buffer).ok_or("Image buffer creation failed")?;
     let mut png_bytes = Vec::new();
     image::DynamicImage::ImageRgba8(img_buf)
         .write_to(
             &mut std::io::Cursor::new(&mut png_bytes),
             image::ImageFormat::Png,
         )
-        .map_err(|e| format!("Error while writing image bytes: {e}"))?;
-
-    //let base64_icon = general_purpose::STANDARD.encode(&png_bytes);
-
-    let mut hasher = Sha256::new();
-    hasher.update(&png_bytes);
-    let hash = format!("{:x}", hasher.finalize());
-    let icon_path = icon_cache_dir.join(format!("{hash}.png"));
-
-    // Pulisci cache se superi il limite di 50 icone
-    // Pulire la cache e' un problema
-    //clean_cache(icon_cache_dir, max_files)?;
-
-    fs::create_dir_all(icon_cache_dir).map_err(|e| format!("Error creating cache dir: {e}"))?;
-    fs::write(&icon_path, png_bytes).map_err(|e| format!("Error writing PNG file: {e}"))?;
-
-    let now = Local::now();
-    icons_map.entries.insert(
-        file_path.to_string_lossy().to_string(),
-        IconEntry {
-            hash: hash,
-            created_at: now.to_rfc3339(),
-        },
-    );
-
-    save_yaml(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
+        .map_err(|e| format!("Error writing PNG: {e}"))?;
 
     unsafe {
-        DeleteObject(icon_info.hbmColor.into())
-            .ok()
-            .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-        DeleteObject(icon_info.hbmMask.into())
-            .ok()
-            .map_err(|e| format!("Error while destroying icon_info.hbmColor: {e}"))?;
-        DestroyIcon(large_icon).map_err(|e| format!("Error while destroying large_icon: {e}"))?;
+        DeleteObject(icon_info.hbmColor.into()).ok().map_err(|e| format!("{e}"))?;
+        DeleteObject(icon_info.hbmMask.into()).ok().map_err(|e| format!("{e}"))?;
+        DestroyIcon(large_icon).map_err(|e| format!("{e}"))?;
     }
 
-    Ok(Some(icon_path.to_string_lossy().to_string()))
+    Ok(png_bytes)
 }

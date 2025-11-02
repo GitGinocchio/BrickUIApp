@@ -1,17 +1,16 @@
-mod keyboard;
-mod mouse;
-mod window;
-
 use crate::{
-    config::settings::TaskBarBehavior, state::BrickUIState, winapi::taskbar::hide_taskbar,
+    config::settings::TaskBarBehavior,
+    state::BrickUIState,
+    winapi::taskbar::hide_taskbar,
 };
-
 use crossbeam::channel;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
+
+mod mouse;
+mod keyboard;
+mod window;
 
 #[derive(Debug, Clone)]
 pub enum GlobalEvent {
@@ -29,27 +28,26 @@ pub enum GlobalEvent {
     WindowExitedFullscreen { hwnd: usize },
 }
 
-pub fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
+pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
     let (tx, rx) = channel::unbounded();
 
-    let app_handle_copy = app_handle.clone();
-    // Thread unico che inizializza tutti gli hook
-    thread::spawn(move || {
-        // Lancia hook input
+    let app_handle_clone = app_handle.clone();
+
+    // Hook input (mouse, keyboard, window)
+    // Avviamo gli hook in un thread separato, ma senza toccare Tauri state
+    tauri::async_runtime::spawn(async move {
         if let Err(e) = mouse::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook mouse: {:?}", e)
         }
 
-        if let Err(e) = keyboard::init_hook(tx.clone(), &app_handle_copy) {
+        if let Err(e) = keyboard::init_hook(tx.clone(), &app_handle_clone).await {
             eprintln!("Errore nell'hook keyboard: {:?}", e);
         }
 
-        // Lancia hook finestre
         if let Err(e) = window::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook window: {:?}", e);
         }
 
-        // Message loop Windows necessario per mantenere hook vivi
         unsafe {
             let mut msg = windows::Win32::UI::WindowsAndMessaging::MSG::default();
             while windows::Win32::UI::WindowsAndMessaging::GetMessageW(
@@ -60,75 +58,63 @@ pub fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
             )
             .into()
             {
-                if let Err(e) = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg).ok()
-                {
-                    eprintln!("Errore durante TranslateMessage: {:?}", e);
-                }
+                let _ = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg);
                 windows::Win32::UI::WindowsAndMessaging::DispatchMessageW(&msg);
             }
         }
 
-        if let Err(e) = keyboard::unmount_hook() {
-            eprintln!("Errore nell'unmount dell'hook keyboard: {:?}", e);
-        }
-
-        if let Err(e) = mouse::unmount_hook() {
-            eprintln!("Errore nell'unmount dell'hook mouse: {:?}", e);
-        }
-
-        if let Err(e) = window::unmount_hook() {
-            eprintln!("Errore nell'unmount dell'hook window: {:?}", e);
-        }
+        let _ = keyboard::unmount_hook();
+        let _ = mouse::unmount_hook();
+        let _ = window::unmount_hook();
     });
 
-    // Thread consumer: invia eventi al frontend Tauri
-    thread::spawn(move || {
+    // Tokio task async: riceve eventi e parla con Tauri
+    let app_handle_clone = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
         while let Ok(event) = rx.recv() {
             match event {
                 GlobalEvent::MouseMove { x, y } => {
-                    let _ = app_handle.emit_to("overlay", "global_mouse_moved", (x, y));
-                    //let _ = app_handle.emit_to("wallpaper", "global_mouse_moved", (x, y));
+                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown { x, y, button } => {
-                    let _ = app_handle.emit_to("overlay", "global_mouse_pressed", (x, y, button));
+                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_pressed", (x, y, button));
                 }
                 GlobalEvent::MouseButtonUp { x, y, button } => {
-                    let _ = app_handle.emit_to("overlay", "global_mouse_released", (x, y, button));
+                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_released", (x, y, button));
                 }
                 GlobalEvent::MouseWheel { x, y, notches } => {
-                    let _ = app_handle.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
+                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
                 }
                 GlobalEvent::KeyDown(key) => {
-                    let _ = app_handle.emit_to("overlay", "global_key_pressed", key);
+                    let _ = app_handle_clone.emit_to("overlay", "global_key_pressed", key);
                 }
                 GlobalEvent::KeyUp(key) => {
-                    let _ = app_handle.emit_to("overlay", "global_key_released", key);
+                    let _ = app_handle_clone.emit_to("overlay", "global_key_released", key);
                 }
                 GlobalEvent::WindowEnteredFullscreen { hwnd } => {
-                    //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
                     println!("Window entered fullscreen!");
-                    let _ = app_handle.emit_to("overlay", "window_entered_fullscreen", hwnd);
+                    let _ = app_handle_clone.emit_to("overlay", "window_entered_fullscreen", hwnd);
                 }
                 GlobalEvent::WindowExitedFullscreen { hwnd } => {
                     println!("Window exited fullscreen!");
 
-                    let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+                    // Recupera stato solo ora, quando esiste
+                    if let Some(state) = app_handle_clone.try_state::<Arc<Mutex<BrickUIState>>>() {
+                        let settings = {
+                            let state_guard = state.lock().await;
+                            state_guard.get_settings().clone()
+                        };
 
-                    let settings = {
-                        let state_guard = state
-                            .lock()
-                            .map_err(|e| format!("Mutex poisoned: {e}"))
-                            .unwrap();
-                        state_guard.get_settings().clone()
-                    };
-
-                    if settings.taskbar.behavior != TaskBarBehavior::Show {
-                        hide_taskbar(&app_handle).unwrap();
+                        if settings.taskbar.behavior != TaskBarBehavior::Show {
+                            if let Err(e) = hide_taskbar(&app_handle_clone) {
+                                eprintln!("Errore hide_taskbar: {:?}", e);
+                            }
+                        }
+                    } else {
+                        eprintln!("State non ancora gestito (ignorato)");
                     }
 
-                    //set_snap_flyout(false).map_err(|e| format!("Errore set_snap_flyout: {e}")).unwrap();
-
-                    let _ = app_handle.emit_to("overlay", "window_exited_fullscreen", hwnd);
+                    let _ = app_handle_clone.emit_to("overlay", "window_exited_fullscreen", hwnd);
                 }
                 event => {
                     eprintln!("Evento non riconosciuto: {event:?}");

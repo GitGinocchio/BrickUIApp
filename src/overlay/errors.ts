@@ -40,7 +40,7 @@ export async function onBrickError(
             color: "#FFFFFF85",
           },
         },
-        `${error.message}\n${error.cause ?? ""}`
+        `${error.message ?? error}\n${error.cause ?? ""}`
       );
     },
     action: () => {

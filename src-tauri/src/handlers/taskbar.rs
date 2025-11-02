@@ -1,8 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::{state::BrickUIState, winapi::{self, taskbar::apps::App}};
+use crate::{state::BrickUIState, winapi::{self, taskbar::apps::{App}}};
 
 
 #[tauri::command]
@@ -19,68 +20,69 @@ pub fn show_taskbar(
     winapi::taskbar::show_taskbar(&app_handle)
 }
 
-#[tauri::command]
-pub fn get_active_taskbar_apps(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<App>, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
-    let path = state_guard.get_path();
-
-    let icon_cache_path = path.join("cache").join("icons");
+#[tauri::command(async)]
+pub async fn get_active_taskbar_apps(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<App>, String> {
+    let mut state_guard = state.lock().await;
+    let icon_cache_path = state_guard.get_path().clone().join("cache").join("icons");
     let icons_map = state_guard.get_mut_icons_map();
 
-    // Qui max_files andrebbe sostituito con un impostazione presa dal file settings
-    Ok(crate::winapi::taskbar::apps::get_active_taskbar_apps(
+    let apps = crate::winapi::taskbar::apps::get_active_taskbar_apps(
         &icon_cache_path,
         50,
         icons_map,
-    ))
+    ).await;
+
+    Ok(apps)
 }
 
-#[tauri::command]
-pub fn get_pinned_taskbar_apps(
+#[tauri::command(async)]
+pub async fn get_pinned_taskbar_apps(
     app_handle: AppHandle,
     state: State<'_, Arc<Mutex<BrickUIState>>>,
 ) -> Result<Vec<App>, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
-
     let icon_cache_path = path.join("cache").join("icons");
-    let icons_map = state_guard.get_mut_icons_map();
-
     let resolver = app_handle.path();
     let config_dir = resolver
         .config_dir()
         .map_err(|e| format!("error obtaining config dir: {e}"))?;
+    let icons_map = state_guard.get_mut_icons_map();
 
-    Ok(crate::winapi::taskbar::apps::get_pinned_taskbar_apps(
+    let apps = crate::winapi::taskbar::apps::get_pinned_taskbar_apps(
         &icon_cache_path,
         &config_dir,
         50,
         icons_map,
-    ))
+    )
+    .await;
+
+    Ok(apps)
 }
 
-#[tauri::command]
-pub fn get_taskbar_apps(
+#[tauri::command(async)]
+pub async fn get_taskbar_apps(
     app_handle: AppHandle,
     state: State<'_, Arc<Mutex<BrickUIState>>>,
 ) -> Result<Vec<App>, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
-
     let icon_cache_path = path.join("cache").join("icons");
-    let icons_map = state_guard.get_mut_icons_map();
-
     let resolver = app_handle.path();
     let config_dir = resolver
         .config_dir()
         .map_err(|e| format!("error obtaining config dir: {e}"))?;
+    let icons_map = state_guard.get_mut_icons_map();
 
-    Ok(crate::winapi::taskbar::apps::get_taskbar_apps(
+    let apps = crate::winapi::taskbar::apps::get_taskbar_apps(
         &icon_cache_path,
         &config_dir,
         50,
         icons_map,
-    ))
+    )
+    .await;
+
+    Ok(apps)
 }
 
 #[tauri::command]

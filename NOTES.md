@@ -1,4 +1,8 @@
 
+
+Questa app non deve essere mostrata nelle applicazioni attive...
+C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe
+
 ```bash
 thread 'main' panicked at A:\Software\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-2.8.4\src\menu\submenu.rs:199:72:
 called `Result::unwrap()` on an `Err` value: OsError(Os { code: 0, kind: Uncategorized, message: "Operazione completata." })

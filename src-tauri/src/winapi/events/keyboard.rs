@@ -1,7 +1,8 @@
 use std::sync::{
-    Arc, Mutex, OnceLock,
+    Arc, OnceLock,
     atomic::{AtomicPtr, Ordering},
 };
+use tokio::sync::Mutex;
 
 use crossbeam::channel::Sender;
 use tauri::{AppHandle, Manager};
@@ -22,7 +23,7 @@ use super::GlobalEvent;
 
 static KEYBOARD_HOOK: AtomicPtr<HHOOK> = AtomicPtr::new(std::ptr::null_mut());
 
-pub fn init_hook<R: tauri::Runtime>(
+pub async fn init_hook<R: tauri::Runtime>(
     tx: Sender<GlobalEvent>,
     app_handle: &AppHandle<R>,
 ) -> Result<(), String> {
@@ -31,8 +32,7 @@ pub fn init_hook<R: tauri::Runtime>(
     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
     let state_guard = state
         .lock()
-        .map_err(|e| format!("Mutex poisoned: {e}"))
-        .unwrap();
+        .await;
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
     SETTINGS
         .set(state_guard.get_settings().clone())

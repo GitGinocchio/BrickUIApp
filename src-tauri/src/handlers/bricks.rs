@@ -4,29 +4,30 @@ use crate::bricks::brick::Brick;
 use crate::state::BrickUIState;
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tauri::State;
 
-#[tauri::command]
-pub fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+    let state_guard = state.lock().await;
 
     Ok(state_guard.get_bricks().to_vec())
 }
 
-#[tauri::command]
-pub fn get_brick_by_name(
+#[tauri::command(async)]
+pub async fn get_brick_by_name(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     name: String,
 ) -> Result<Option<Brick>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let state_guard = state.lock().await;
 
     Ok(state_guard.get_brick_by_name(&name))
 }
 
-#[tauri::command]
-pub fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+    let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
     let bricks = bricks::load_bricks(&path)?;
@@ -37,9 +38,9 @@ pub fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Bri
     Ok(bricks_return)
 }
 
-#[tauri::command]
-pub fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
 
@@ -59,13 +60,13 @@ pub fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> R
     Ok(())
 }
 
-#[tauri::command]
-pub fn rename_brick(
+#[tauri::command(async)]
+pub async fn rename_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     old_name: String,
     new_name: String,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
 
     bricks::rename_brick(&path, &old_name, &new_name)?;
@@ -79,9 +80,9 @@ pub fn rename_brick(
     Ok(())
 }
 
-#[tauri::command]
-pub fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
 
     let new_brick = bricks::duplicate_brick(&path, brick)?;
@@ -93,20 +94,20 @@ pub fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick)
 }
 
 // Questo non serve a molto potrebbe essere sostituito con il plugin opener e basta
-#[tauri::command]
-pub fn open_brick(
+#[tauri::command(async)]
+pub async fn open_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     brick_name: String,
 ) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let state_guard = state.lock().await;
     let path = state_guard.get_path();
 
     bricks::open_brick(&path, brick_name)
 }
 
-#[tauri::command]
-pub fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
 
@@ -118,9 +119,9 @@ pub fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) ->
     Ok(())
 }
 
-#[tauri::command]
-pub fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
-    let mut state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+#[tauri::command(async)]
+pub async fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+    let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
     let res_path = state_guard.get_resource_path();
 
@@ -132,13 +133,13 @@ pub fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Re
     Ok(())
 }
 
-#[tauri::command]
-pub fn pack_brick(
+#[tauri::command(async)]
+pub async fn pack_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     brick_name: String,
     output_path: String,
 ) -> Result<Option<String>, String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let state_guard = state.lock().await;
     let path = state_guard.get_path();
 
     crate::bricks::pack_brick(&path, brick_name, &PathBuf::from(output_path))?;
@@ -146,13 +147,13 @@ pub fn pack_brick(
     Ok(None)
 }
 
-#[tauri::command]
-pub fn unpack_brick(
+#[tauri::command(async)]
+pub async fn unpack_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     brick_path: String,
     brick_name: String
 ) -> Result<(), String> {
-    let state_guard = state.lock().map_err(|e| format!("Mutex poisoned: {e}"))?;
+    let state_guard = state.lock().await;
     let path = state_guard.get_path();
 
     let output_dir = path.join("bricks").join(brick_name);

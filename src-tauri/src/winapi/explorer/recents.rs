@@ -1,13 +1,14 @@
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use tokio::sync::Mutex;
+use std::{fs, path::PathBuf, sync::Arc};
 use windows::Win32::{
     System::Com::CoTaskMemFree,
     UI::Shell::{Common::ITEMIDLIST, SHGetNameFromIDList, SIGDN_NORMALDISPLAY},
 };
 
 use crate::winapi::{
-    icons::{IconsMap, get_icon},
+    icons::{IconsMap, get_icon, get_icon_async},
     resolve_lnk,
 };
 
@@ -59,7 +60,7 @@ fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
     }
 }
 
-pub fn get_explorer_recents(
+pub async fn get_explorer_recents(
     app_data_dir: &PathBuf,
     icon_cache_dir: &PathBuf,
     icons_map: &mut IconsMap,
@@ -147,12 +148,12 @@ pub fn get_explorer_recents(
                     }
                 });
 
-            let icon = match get_icon(
+            let icon = match get_icon_async(
                 &PathBuf::from(&icon_path),
                 icon_cache_dir,
-                icons_map,
+                &mut icons_map.clone(),
                 max_files,
-            )? {
+            ).await? {
                 Some(cached_icon_path) => cached_icon_path,
                 None => icon_path,
             };
