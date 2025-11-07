@@ -6,6 +6,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::settings::Settings;
 
@@ -26,8 +27,88 @@ pub fn save_yaml<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
     T: Serialize
 {
-    let contents = serde_yaml::to_string(&data).unwrap();
-    std::fs::write(path, contents).map_err(|e| format!("Error while writing file {path:?}: {e}"))
+    let contents = serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
+
+    // Ensure parent dir exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent dir {:?}: {e}", parent))?;
+    }
+
+    // Write to temporary file then rename for atomicity
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default();
+    let tmp_name = match path.file_name() {
+        Some(name) => format!("{}.{}.tmp", name.to_string_lossy(), ts),
+        None => format!("tmp.{}.yml", ts),
+    };
+    let tmp_path = match path.parent() {
+        Some(parent) => parent.join(tmp_name),
+        None => PathBuf::from(tmp_name),
+    };
+
+    std::fs::write(&tmp_path, &contents)
+        .map_err(|e| format!("Error while writing temp file {:?}: {e}", tmp_path))?;
+
+    // Try rename; on Windows, rename may fail if target exists so remove and retry
+    match std::fs::rename(&tmp_path, path) {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            // attempt to remove destination then rename
+            if path.exists() {
+                std::fs::remove_file(path)
+                    .map_err(|er| format!("Failed to remove existing file {:?}: {er}", path))?;
+            }
+            std::fs::rename(&tmp_path, path)
+                .map_err(|er| format!("Failed to rename temp file to destination: {er}"))
+        }
+    }
+}
+
+pub async fn save_yaml_async<T>(path: &PathBuf, data: T) -> Result<(), String>
+where
+    T: Serialize
+{
+    let contents = serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
+
+    if let Some(parent) = path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create parent dir {:?}: {e}", parent))?;
+    }
+
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default();
+    let tmp_name = match path.file_name() {
+        Some(name) => format!("{}.{}.tmp", name.to_string_lossy(), ts),
+        None => format!("tmp.{}.yml", ts),
+    };
+    let tmp_path = match path.parent() {
+        Some(parent) => parent.join(tmp_name),
+        None => PathBuf::from(tmp_name),
+    };
+
+    tokio::fs::write(&tmp_path, &contents)
+        .await
+        .map_err(|e| format!("Error while writing temp file {:?}: {e}", tmp_path))?;
+
+    match tokio::fs::rename(&tmp_path, path).await {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            if tokio::fs::try_exists(path).await.map_err(|e| e.to_string())? {
+                tokio::fs::remove_file(path)
+                    .await
+                    .map_err(|e| format!("Failed to remove existing file {:?}: {e}", path))?;
+            }
+            tokio::fs::rename(&tmp_path, path)
+                .await
+                .map_err(|e| format!("Failed to rename temp file to destination: {e}"))
+        }
+    }
 }
 
 pub fn save_settings(path: &PathBuf, settings: Settings) -> Result<(), String> {

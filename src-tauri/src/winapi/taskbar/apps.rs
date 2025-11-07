@@ -1,5 +1,6 @@
 use std::{collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf, sync::Arc};
 use tokio::sync::Mutex;
+use futures::stream::{FuturesUnordered, StreamExt};
 use windows::{
     Win32::{Foundation::*, System::Threading::*, UI::WindowsAndMessaging::*},
     core::{BOOL, PWSTR},
@@ -9,6 +10,14 @@ use crate::winapi::{
     icons::{IconsMap, get_icon, get_icon_async},
     resolve_lnk,
 };
+
+#[derive(serde::Serialize)]
+pub struct App {
+    exe: String,
+    icon: Option<String>,
+    titles: Vec<String>,
+    pinned: bool,
+}
 
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
@@ -65,16 +74,6 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
     }
 }
 
-#[derive(serde::Serialize)]
-pub struct App {
-    exe: String,
-    icon: Option<String>,
-    titles: Vec<String>,
-    pinned: bool,
-}
-
-use futures::stream::{FuturesUnordered, StreamExt};
-
 async fn collect_active_taskbar_apps(
     icon_cache_dir: &PathBuf,
     max_files: usize,
@@ -118,10 +117,16 @@ async fn collect_active_taskbar_apps(
 
         tasks.push(tokio::spawn(async move {
             // Calcola icona senza lock
-            let icon = get_icon_async(&PathBuf::from(&exe), &icon_cache_dir, &mut icons_map_clone, max_files)
-                .await
-                .ok()
-                .flatten();
+            let icon = crate::winapi::icons::get_icon_async(
+                &PathBuf::from(&exe),
+                None,
+                &icon_cache_dir,
+                &mut icons_map_clone,
+                max_files,
+            )
+            .await
+            .ok()
+            .flatten();
 
             (exe, title, icon)
         }));
@@ -176,8 +181,11 @@ async fn collect_pinned_taskbar_apps(
                         None => &exe,
                     };
 
-                    let icon = get_icon_async(
-                        &PathBuf::from(icon_location),
+                    let (icon_pathbuf, icon_index) = crate::winapi::icons::parse_icon_location(icon_location);
+
+                    let icon = crate::winapi::icons::get_icon_async(
+                        &icon_pathbuf,
+                        icon_index,
                         icon_cache_dir,
                         icons_map,
                         max_files,

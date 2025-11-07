@@ -1,6 +1,6 @@
 use tokio::sync::Mutex;
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, Manager, Window, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent};
 
 mod state;
 use state::BrickUIState;
@@ -10,8 +10,8 @@ mod winapi;
 use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
-use crate::winapi::taskbar::{hide_taskbar, reset_taskbar, show_taskbar};
-use crate::winapi::window::{remove_titlebar, set_window_topmost};
+use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
+//use crate::winapi::window::{remove_titlebar, set_window_topmost};
 
 mod config;
 use crate::config::settings::{TaskBarBehavior};
@@ -128,24 +128,28 @@ pub fn run() {
                 }
 
                 if let Some(overlay) = app_handle.get_window("overlay") {
-                    overlay.hide().expect("Error hiding overlay window:");
                     overlay.close().expect("Error closing overlay window:");
                 }
 
                 if let Some(wallpaper) = app_handle.get_window("wallpaper") {
-                    wallpaper.hide().expect("Error hiding wallpaper window:");
                     wallpaper.close().expect("Error closing wallpaper window:");
                 }
 
                 reset_workareas().unwrap();
                 if settings.taskbar.behavior != TaskBarBehavior::Show {
-                    reset_taskbar().expect("Error restoring taskbar:");
+                    show_taskbar(app_handle).expect("Error showing taskbar:");
+                    //reset_taskbar().expect("Error restoring taskbar:");
                 }
 
                 restore_cursors(&backup.cursors).expect("Error restoring cursors:");
                 uninitialize_com();
+
                 app_handle.cleanup_before_exit();
-                app_handle.exit(0);
+                
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                    std::process::exit(0);
+                });
             }
         })
         .run(context)

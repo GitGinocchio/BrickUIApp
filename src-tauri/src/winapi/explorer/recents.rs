@@ -76,6 +76,7 @@ pub async fn get_explorer_recents(
 
         if path.extension().map(|e| e == "lnk").unwrap_or(false) {
             // qui servirebbe risolvere il .lnk → percorso reale
+            println!("{path:?}");
             let lnk = match resolve_lnk(&path) {
                 Ok(lnk) => lnk,
                 Err(e) => {
@@ -123,8 +124,6 @@ pub async fn get_explorer_recents(
                     .to_string()
             };
 
-            //println!("{friendly_name}");
-
             let accessed = DateTime::<Local>::from_naive_utc_and_offset(
                 lnk.header().access_time().datetime(),
                 *Local::now().offset(),
@@ -148,12 +147,16 @@ pub async fn get_explorer_recents(
                     }
                 });
 
-            let icon = match get_icon_async(
-                &PathBuf::from(&icon_path),
+            let (icon_pathbuf, icon_index) = crate::winapi::icons::parse_icon_location(&icon_path);
+
+            let icon = match crate::winapi::icons::get_icon_async(
+                &icon_pathbuf,
+                icon_index,
                 icon_cache_dir,
-                &mut icons_map.clone(),
+                icons_map,
                 max_files,
-            ).await? {
+            )
+            .await? {
                 Some(cached_icon_path) => cached_icon_path,
                 None => icon_path,
             };

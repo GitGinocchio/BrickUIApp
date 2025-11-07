@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::{state::BrickUIState, winapi::{self, taskbar::apps::{App}}};
+use crate::{state::BrickUIState, winapi::{self, taskbar::apps::App, taskbar::tray::TrayIcon}};
 
 
 #[tauri::command]
@@ -88,4 +88,20 @@ pub async fn get_taskbar_apps(
 #[tauri::command]
 pub fn is_taskbar_autohide() -> bool {
     crate::winapi::taskbar::is_taskbar_autohide()
+}
+
+#[tauri::command(async)]
+pub async fn get_tray_icons(
+    state: State<'_, Arc<Mutex<BrickUIState>>>
+) -> Result<Vec<TrayIcon>, String> {
+    let mut state_guard = state.lock().await;
+    let path = state_guard.get_path();
+    let icon_cache_path = path.join("cache").join("icons");
+    let icons_map = state_guard.get_mut_icons_map();
+
+    crate::winapi::taskbar::tray::get_tray_icons(
+        &icon_cache_path, 
+        icons_map, 
+        50
+    )
 }

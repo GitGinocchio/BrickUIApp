@@ -25,35 +25,35 @@ impl TryFrom<HMONITOR> for Monitor {
             let mut info = MONITORINFOEXW::default();
             info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
 
-            if GetMonitorInfoW(hmonitor, &mut info as *mut _ as *mut _).as_bool() {
-                let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
-                let device_name = OsString::from_wide(&info.szDevice[..len])
-                    .to_string_lossy()
-                    .to_string();
+            GetMonitorInfoW(hmonitor, &mut info as *mut _ as *mut _)
+                .ok()
+                .map_err(|e| format!("Error obtaining monitor info: {e}"))?;
 
-                let friendly_name = get_monitor_friendly_name(&device_name);
+            let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+            let device_name = OsString::from_wide(&info.szDevice[..len])
+                .to_string_lossy()
+                .to_string();
 
-                Ok(Monitor {
-                    is_primary: info.monitorInfo.dwFlags & MONITORINFOF_PRIMARY != 0,
-                    rect: Rect {
-                        left: info.monitorInfo.rcMonitor.left,
-                        top: info.monitorInfo.rcMonitor.top,
-                        right: info.monitorInfo.rcMonitor.right,
-                        bottom: info.monitorInfo.rcMonitor.bottom,
-                    },
-                    workarea: Rect {
-                        left: info.monitorInfo.rcWork.left,
-                        top: info.monitorInfo.rcWork.top,
-                        right: info.monitorInfo.rcWork.right,
-                        bottom: info.monitorInfo.rcWork.bottom,
-                    },
-                    device_name,
-                    friendly_name,
-                    hmonitor: hmonitor.0 as isize,
-                })
-            } else {
-                Err(windows::core::Error::from_win32().message())
-            }
+            let friendly_name = get_monitor_friendly_name(&device_name);
+
+            Ok(Monitor {
+                is_primary: info.monitorInfo.dwFlags & MONITORINFOF_PRIMARY != 0,
+                rect: Rect {
+                    left: info.monitorInfo.rcMonitor.left,
+                    top: info.monitorInfo.rcMonitor.top,
+                    right: info.monitorInfo.rcMonitor.right,
+                    bottom: info.monitorInfo.rcMonitor.bottom,
+                },
+                workarea: Rect {
+                    left: info.monitorInfo.rcWork.left,
+                    top: info.monitorInfo.rcWork.top,
+                    right: info.monitorInfo.rcWork.right,
+                    bottom: info.monitorInfo.rcWork.bottom,
+                },
+                device_name,
+                friendly_name,
+                hmonitor: hmonitor.0 as isize,
+            })
         }
     }
 }

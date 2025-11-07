@@ -1,18 +1,19 @@
-pub mod overlay;
-pub mod wallpaper;
-
 use std::{ptr::null_mut, sync::{Arc, Mutex}};
 use serde::{Deserialize, Serialize};
-use windows::{core::BOOL, Win32::{
+use windows::{Win32::{
     Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
-    Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST},
+    Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MONITORINFOEXW, MonitorFromPoint, MonitorFromWindow},
     UI::WindowsAndMessaging::{
-        EnumWindows, FindWindowA, FindWindowExA, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsWindowVisible, IsZoomed, SendMessageTimeoutA, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_EX_TOPMOST, WS_THICKFRAME
+        EnumWindows, FindWindowA, FindWindowExA, GWL_EXSTYLE, GWL_STYLE, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, HWND_TOPMOST, IsWindowVisible, IsZoomed, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SendMessageTimeoutA, SetParent, SetWindowLongPtrW, SetWindowPos, WS_CAPTION, WS_EX_TOPMOST, WS_THICKFRAME
     },
-}};
+}, core::BOOL};
 use windows::core::PCSTR;
 
-use crate::winapi::{monitor::{get_monitor_friendly_name, get_monitor_from_hwnd, get_monitor_from_point, Monitor}, rect::Rect};
+pub mod overlay;
+pub mod wallpaper;
+pub mod utils;
+
+use crate::winapi::{monitor::{get_monitor_friendly_name, get_monitor_from_hwnd, Monitor}, rect::Rect};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
@@ -64,7 +65,7 @@ impl Window {
 
     pub fn set_rect(&self, rect: &Rect) -> Result<(), String> {
         if self.hwnd == 0 {
-            return Err(windows::core::Error::from_win32().message());
+            return Err("Hwnd can't be 0".into());
         }
 
         unsafe {
@@ -220,7 +221,7 @@ fn force_window_style_refresh(hwnd: HWND) {
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
         );
     }
-}
+} 
 
 // Rendere il metodo generico che prende un HWND
 pub fn remove_titlebar(hwnd: HWND) {

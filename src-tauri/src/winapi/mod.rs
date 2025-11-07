@@ -12,21 +12,20 @@ pub mod com;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
-use serde::{Deserialize, Serialize};
 use std::ffi::CString;
 use std::path::PathBuf;
-use std::ptr::null_mut;
 use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
 use windows::core::PCSTR;
 
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
-    let shortcut = ShellLink::open(lnk, WINDOWS_1252).unwrap();
+    let shortcut = ShellLink::open(lnk, WINDOWS_1252)
+        .map_err(|e| format!("Could not parse lnk file: {e}"))?;
     Ok(shortcut)
 }
 
 pub fn set_snap_flyout(enabled: bool) -> windows::core::Result<()> {
     unsafe {
-        let mut hkey = HKEY(null_mut());
+        let mut hkey = HKEY::default();
 
         let subkey =
             CString::new("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced")

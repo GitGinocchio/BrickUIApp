@@ -13,6 +13,9 @@ const allowedCommands = new Set<string>([
   "get_active_taskbar_apps",
   "get_pinned_taskbar_apps",
 
+  // Taskbar / Tray icons
+  //"get_tray_icons",
+
   // StarMenu
   "open_start_menu",
   "get_start_menu_favorites",

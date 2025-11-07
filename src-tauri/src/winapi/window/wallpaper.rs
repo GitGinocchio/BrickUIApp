@@ -5,7 +5,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{BOOL, PCSTR};
 
 // Funzione che cerca il WorkerW nascosto
-fn get_workerw() -> Result<HWND, String> {
+pub fn get_workerw() -> Result<HWND, String> {
     let mut workerw = HWND(null_mut());
     let progman = unsafe {
         FindWindowA(PCSTR(b"Progman\0".as_ptr()), PCSTR(null_mut()))

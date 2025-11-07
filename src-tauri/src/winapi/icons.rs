@@ -6,7 +6,9 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     os::windows::ffi::OsStrExt,
-    path::{Path, PathBuf}, sync::Arc
+    path::{Path, PathBuf},
+    sync::Arc,
+    env,
 };
 use tokio::sync::Mutex;
 use windows::Win32::UI::Shell::{
@@ -33,7 +35,7 @@ use windows::{
     core::{PCWSTR, PWSTR},
 };
 
-use crate::config::save_yaml;
+use crate::config::{save_yaml, save_yaml_async};
 
 // In questo modo viene calcolato solo una volta l'hash del contenuto di un icona
 // In base al percorso del file si puo' ottenere l'hash del contenuto (che e' anche il nome del file)
@@ -53,8 +55,8 @@ fn default_schema() -> String {
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
 pub struct IconEntry {
-    hash: String,
-    created_at: String,
+    pub hash: String,
+    pub created_at: String,
 }
 
 pub fn get_default_icon(path: &str) -> Option<HICON> {
@@ -72,9 +74,6 @@ pub fn get_default_icon(path: &str) -> Option<HICON> {
             let drive_type = unsafe { GetDriveTypeW(PWSTR(wide.as_ptr() as *mut _)) };
             match drive_type {
                 DRIVE_CDROM => SIID_DRIVECD,
-                _DRIVE_REMOVABLE => SIID_DRIVEREMOVE,
-                _DRIVE_REMOTE => SIID_DRIVENET,
-                _DRIVE_RAMDISK => SIID_DRIVERAM,
                 _ => SIID_DRIVEFIXED,
             }
         } else if path.to_lowercase().contains("$recycle.bin") {
@@ -113,15 +112,73 @@ pub fn get_default_icon(path: &str) -> Option<HICON> {
     if hr.is_ok() { Some(sii.hIcon) } else { None }
 }
 
+/// Parse an icon location string like "%SystemRoot%\\System32\\shell32.dll,3"
+/// Returns (expanded_path, optional_index)
+pub fn parse_icon_location(s: &str) -> (PathBuf, Option<i32>) {
+    // Trim quotes
+    let s = s.trim().trim_matches('"').to_string();
+
+    // Expand %VAR% style environment variables (basic support)
+    let mut out = String::new();
+    let mut i = 0usize;
+    let chars: Vec<char> = s.chars().collect();
+    while i < chars.len() {
+        if chars[i] == '%' {
+            if let Some(end) = (i + 1..chars.len()).find(|&j| chars[j] == '%') {
+                let var_name: String = chars[i + 1..end].iter().collect();
+                if let Some(val) = env::var_os(&var_name) {
+                    out.push_str(&val.to_string_lossy());
+                } else {
+                    out.push('%');
+                    out.push_str(&var_name);
+                    out.push('%');
+                }
+                i = end + 1;
+                continue;
+            }
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+
+    // Now try to parse trailing ",<index>" where <index> is an integer
+    if let Some(pos) = out.rfind(',') {
+        let (left, right) = out.split_at(pos);
+        let maybe_idx = right.trim_start_matches(',').trim();
+        if !maybe_idx.is_empty() && maybe_idx.chars().all(|c| c.is_ascii_digit() || c == '-') {
+            if let Ok(idx) = maybe_idx.parse::<i32>() {
+                return (PathBuf::from(left.to_string()), Some(idx));
+            }
+        }
+    }
+
+    (PathBuf::from(out), None)
+}
+
+fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
+    let key = match std::fs::canonicalize(path) {
+        Ok(p) => p.to_string_lossy().to_string(),
+        Err(_) => path.to_string_lossy().to_string(),
+    };
+
+    if let Some(i) = index {
+        format!("{},{}", key, i)
+    } else {
+        key
+    }
+}
+
 /// Ritorna il percorso di un icona nella cartella cache ottenuta da un file
 pub fn get_icon(
     file_path: &PathBuf,
+    icon_index: Option<i32>,
     icon_cache_dir: &PathBuf,
     icons_map: &mut IconsMap,
-    max_files: usize
+    max_files: usize,
 ) -> Result<Option<String>, String> {
     // Controllo cache esistente
-    if let Some(entry) = icons_map.entries.get_mut(&file_path.to_string_lossy().to_string()) {
+    let key = normalize_icon_key(file_path, icon_index);
+    if let Some(entry) = icons_map.entries.get_mut(&key) {
         let cached_icon_path = icon_cache_dir.join(format!("{}.png", entry.hash));
         if cached_icon_path.exists() {
             return Ok(Some(cached_icon_path.to_string_lossy().to_string()));
@@ -129,7 +186,7 @@ pub fn get_icon(
     }
 
     // Estrai l’icona in memoria
-    let png_bytes = match extract_icon_png_bytes(file_path) {
+    let png_bytes = match extract_icon_png_bytes(file_path, icon_index) {
         Ok(bytes) => bytes,
         Err(e) => {
             eprintln!("Failed to extract icon for {:?}: {}", file_path, e);
@@ -150,7 +207,7 @@ pub fn get_icon(
 
     let now = chrono::Local::now();
     icons_map.entries.insert(
-        file_path.to_string_lossy().to_string(),
+        key.clone(),
         IconEntry {
             hash: hash.clone(),
             created_at: now.to_rfc3339(),
@@ -164,15 +221,14 @@ pub fn get_icon(
 
 pub async fn get_icon_async(
     file_path: &PathBuf,
+    icon_index: Option<i32>,
     icon_cache_dir: &PathBuf,
     icons_map: &mut IconsMap,
-    max_files: usize
+    max_files: usize,
 ) -> Result<Option<String>, String> {
+    let key = normalize_icon_key(file_path, icon_index);
     let cached_path = {
-        if let Some(entry) = icons_map
-            .entries
-            .get_mut(&file_path.to_string_lossy().to_string())
-        {
+        if let Some(entry) = icons_map.entries.get_mut(&key) {
             let cached_icon_path = icon_cache_dir.join(format!("{}.png", entry.hash));
             if tokio::fs::try_exists(&cached_icon_path).await.map_err(|e| e.to_string())? {
                 Some(cached_icon_path)
@@ -188,21 +244,17 @@ pub async fn get_icon_async(
         return Ok(Some(path.to_string_lossy().to_string()));
     }
 
-    /*
-    let png_bytes = tokio::task::spawn_blocking({
-        let file_path = file_path.clone();
-        extract_icon_png_bytes(&file_path)?;
-    })
-    .await
-    .map_err(|e| format!("Thread join error: {e}"))??;
-    */
+    let file_path_clone = file_path.clone();
 
-    let png_bytes = match extract_icon_png_bytes(&file_path) {
-        Ok(bytes) => bytes,
-        Err(e) => {
+    let png_bytes = match tokio::task::spawn_blocking(move || {
+        extract_icon_png_bytes(&file_path_clone, icon_index)
+    }).await {
+        Ok(Ok(bytes)) => bytes,
+        Ok(Err(e)) => {
             eprintln!("Failed to extract icon for {:?}: {}", file_path, e);
             return Ok(None);
-        }
+        },
+        Err(e) => return Err(format!("Error in spawn_blocking while extracting icon png bytes: {e}"))
     };
 
     let mut hasher = Sha256::new();
@@ -219,19 +271,19 @@ pub async fn get_icon_async(
 
     let now = Local::now();
     icons_map.entries.insert(
-        file_path.to_string_lossy().to_string(),
+        key.clone(),
         IconEntry {
             hash,
             created_at: now.to_rfc3339(),
         },
     );
 
-    save_yaml(&icon_cache_dir.join("icons.map.yml"), icons_map)?;
+    save_yaml_async(&icon_cache_dir.join("icons.map.yml"), icons_map).await?;
 
     Ok(Some(icon_path.to_string_lossy().to_string()))
 }
 
-fn extract_icon_png_bytes(file_path: &Path) -> Result<Vec<u8>, String> {
+fn extract_icon_png_bytes(file_path: &Path, icon_index: Option<i32>) -> Result<Vec<u8>, String> {
     let path_utf16: Vec<u16> = file_path.as_os_str().encode_wide().chain(Some(0)).collect();
     let mut large_icon: HICON = HICON(std::ptr::null_mut());
 
@@ -239,34 +291,53 @@ fn extract_icon_png_bytes(file_path: &Path) -> Result<Vec<u8>, String> {
         if let Some(h) = get_default_icon(file_path.to_string_lossy().as_ref()) {
             large_icon = h;
         } else {
-            return Ok(vec![]);
+            return Err("Failed to extract default icon".into());
         }
     } else {
-        let mut sfi = SHFILEINFOW::default();
-        let file_response = unsafe {
-            SHGetFileInfoW(
-                PWSTR(path_utf16.as_ptr() as *mut _),
-                windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES(0),
-                Some(&mut sfi),
-                std::mem::size_of::<SHFILEINFOW>() as u32,
-                SHGFI_ICON | SHGFI_LARGEICON,
-            )
-        };
-        if file_response != 0 && !sfi.hIcon.is_invalid() {
-            large_icon = sfi.hIcon;
-        } else {
+        // If an explicit icon index was supplied (e.g. shell32.dll,3) prefer ExtractIconExW
+        if let Some(idx) = icon_index {
             unsafe {
-                ExtractIconExW(PCWSTR(path_utf16.as_ptr()), 0, Some(&mut large_icon), None, 1);
+                ExtractIconExW(PCWSTR(path_utf16.as_ptr()), idx, Some(&mut large_icon), None, 1);
+            }
+        } else {
+            let mut sfi = SHFILEINFOW::default();
+            let file_response = unsafe {
+                SHGetFileInfoW(
+                    PWSTR(path_utf16.as_ptr() as *mut _),
+                    windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES(0),
+                    Some(&mut sfi),
+                    std::mem::size_of::<SHFILEINFOW>() as u32,
+                    SHGFI_ICON | SHGFI_LARGEICON,
+                )
+            };
+            if file_response != 0 && !sfi.hIcon.is_invalid() {
+                large_icon = sfi.hIcon;
+            } else {
+                unsafe {
+                    ExtractIconExW(PCWSTR(path_utf16.as_ptr()), 0, Some(&mut large_icon), None, 1);
+                }
             }
         }
     }
 
     if large_icon.0.is_null() {
-        return Err("Failed to extract icon".into());
+        if let Some(h) = get_default_icon(file_path.to_string_lossy().as_ref()) {
+            large_icon = h;
+        } else {
+            return Err("Failed to extract icon".into());
+        }
     }
 
+    // Delegate conversion of HICON -> PNG bytes to helper
+    let png_bytes = hicon_to_png_bytes(large_icon)?;
+
+    Ok(png_bytes)
+}
+
+/// Convert an HICON to PNG bytes using the same bitmap extraction pipeline.
+pub fn hicon_to_png_bytes(hicon: HICON) -> Result<Vec<u8>, String> {
     let mut icon_info = ICONINFO::default();
-    unsafe { GetIconInfo(large_icon, &mut icon_info) }.map_err(|_| "GetIconInfo failed".to_string())?;
+    unsafe { GetIconInfo(hicon, &mut icon_info) }.map_err(|_| "GetIconInfo failed".to_string())?;
     let mut bmp = BITMAP::default();
 
     if unsafe {
@@ -334,7 +405,7 @@ fn extract_icon_png_bytes(file_path: &Path) -> Result<Vec<u8>, String> {
     unsafe {
         DeleteObject(icon_info.hbmColor.into()).ok().map_err(|e| format!("{e}"))?;
         DeleteObject(icon_info.hbmMask.into()).ok().map_err(|e| format!("{e}"))?;
-        DestroyIcon(large_icon).map_err(|e| format!("{e}"))?;
+        DestroyIcon(hicon).map_err(|e| format!("{e}"))?;
     }
 
     Ok(png_bytes)

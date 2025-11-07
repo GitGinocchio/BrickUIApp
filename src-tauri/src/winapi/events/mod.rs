@@ -22,8 +22,8 @@ pub enum GlobalEvent {
     KeyDown(String),
     KeyUp(String),
 
-    WindowCreated { hwnd: usize },
-    WindowDestroyed { hwnd: usize },
+    //WindowCreated { hwnd: usize },
+    //WindowDestroyed { hwnd: usize },
     WindowEnteredFullscreen { hwnd: usize },
     WindowExitedFullscreen { hwnd: usize },
 }
