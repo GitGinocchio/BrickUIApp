@@ -4,7 +4,7 @@ use windows::{Win32::{
     Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
     Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MONITORINFOEXW, MonitorFromPoint, MonitorFromWindow},
     UI::WindowsAndMessaging::{
-        EnumWindows, FindWindowA, FindWindowExA, GWL_EXSTYLE, GWL_STYLE, GetParent, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, HWND_TOPMOST, IsWindowVisible, IsZoomed, SIZE_RESTORED, SMTO_NORMAL, SW_MAXIMIZE, SW_RESTORE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SendMessageTimeoutA, SendMessageW, SetForegroundWindow, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, WM_ACTIVATE, WM_SETTINGCHANGE, WM_SIZE, WM_WINDOWPOSCHANGED, WS_CAPTION, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_THICKFRAME
+        EnumWindows, FindWindowA, FindWindowExA, GWL_EXSTYLE, GWL_STYLE, GetParent, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, HWND_TOPMOST, IsWindowVisible, IsZoomed, SIZE_RESTORED, SMTO_NORMAL, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SendMessageTimeoutA, SendMessageW, SetForegroundWindow, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, WM_ACTIVATE, WM_SETTINGCHANGE, WM_SIZE, WM_WINDOWPOSCHANGED, WS_CAPTION, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_THICKFRAME
     },
 }, core::BOOL};
 use windows::core::PCSTR;
@@ -13,11 +13,12 @@ pub mod overlay;
 pub mod wallpaper;
 pub mod utils;
 
-use crate::winapi::{monitor::{Monitor, get_monitor_friendly_name, get_monitor_from_hwnd}, rect::Rect, window::utils::is_tauri_window};
+use crate::winapi::{monitor::{Monitor, get_monitor_friendly_name, get_monitor_from_hwnd}, rect::Rect, window::utils::{get_window_class, is_tauri_window}};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
     pub hwnd: isize,
+    pub class: Option<String>,
     pub title: String,
     pub is_visible: bool,
     pub is_maximized: bool,
@@ -56,6 +57,7 @@ impl Window {
 
             Ok(Window {
                 hwnd: hwnd,
+                class: get_window_class(win_hwnd),
                 title,
                 is_visible,
                 is_maximized,
@@ -68,6 +70,20 @@ impl Window {
     }
 
     pub fn unmaximize(&self) -> Result<(), String> {
+        if self.hwnd == 0 {
+            return Err("Hwnd can't be 0".into());
+        }
+
+        unsafe {
+            let hwnd = HWND(self.hwnd as *mut _);
+
+            // Mostra la finestra minimizzata
+            let success = ShowWindow(hwnd, SW_MINIMIZE);
+            if !success.as_bool() {
+                return Err("Failed to maximize window".into());
+            }
+        }
+
         Ok(())
     }
 
@@ -232,11 +248,12 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL 
 
     let window = Window {
         hwnd: hwnd.0 as isize,
+        class: get_window_class(hwnd),
         title,
         is_visible,
         is_maximized,
-        is_self: is_tauri_window(hwnd).expect("Error checking if window was a tauri window."),
-        is_taskbar: is_taskbar_window(hwnd).expect("Error checking if window was in the taskbar."),
+        is_self: is_tauri_window(hwnd).unwrap_or(false),
+        is_taskbar: is_taskbar_window(hwnd).unwrap_or(false),
         rect: rect_opt,
         monitor: monitor
     };
