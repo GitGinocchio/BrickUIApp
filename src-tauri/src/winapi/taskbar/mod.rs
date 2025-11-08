@@ -1,8 +1,6 @@
 pub mod apps;
 pub mod tray;
 
-use std::{thread, time::Duration};
-
 use tauri::{AppHandle, Manager, PhysicalSize, PhysicalPosition};
 use windows::{
     Win32::{
@@ -10,7 +8,7 @@ use windows::{
         UI::{
             Shell::{ABM_GETSTATE, ABM_GETTASKBARPOS, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA, SHAppBarMessage},
             WindowsAndMessaging::{
-                FindWindowA, GWL_EXSTYLE, GetWindowLongA, HWND_BOTTOM, HWND_TOPMOST, LWA_ALPHA, SW_HIDE, SW_SHOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_SHOWWINDOW, SetLayeredWindowAttributes, SetWindowLongA, SetWindowPos, ShowWindow, WS_EX_LAYERED
+                FindWindowA, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetWindowPos, ShowWindow,
             },
         },
     }, core::{Error as WinError, PCSTR}
@@ -27,7 +25,10 @@ pub fn get_taskbar_rect() -> Option<Rect> {
     if res != 0 { Some(data.rc.into()) } else { None }
 }
 
-pub fn restore_taskbar() -> Result<(), String> {
+/*
+TODO: Usare questi metodi per sistemare quelli vecchi
+
+pub fn new_restore_taskbar() -> Result<(), String> {
     unsafe {
         let class_name = b"Shell_TrayWnd\0".as_ptr();
         let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())?;
@@ -76,19 +77,27 @@ pub fn restore_taskbar() -> Result<(), String> {
         ShowWindow(taskbar, SW_SHOW)
             .ok()
             .map_err(|e| format!("Error showing window: {e}"))?;
+
+        let mut rect = RECT::default();
+        SystemParametersInfoA(
+            SPI_GETWORKAREA, 
+            0, 
+            Some(&mut rect as *mut RECT as *mut _), 
+            SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)
+        ).map_err(|e| format!("Error obtaining workarea: {e}"))?;
     }
 
     Ok(())
 }
 
-pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
+pub fn new_hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     let mut pmonitor = get_primary_monitor()?;
     let mut workarea = pmonitor.workarea;
     let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
 
     println!("{workarea:?}");
 
-    //restore_taskbar()?;
+    restore_taskbar()?;
 
     let class_name = b"Shell_TrayWnd\0".as_ptr();
     let taskbar = unsafe { FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())? };
@@ -96,27 +105,7 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
         return Err("Invalid taskbar hwnd".into());
     }
 
-    let overlay_window = app_handle.get_window("overlay")
-        .ok_or("Error obtaining overlay window".to_string())?;
-
-    let overlay_hwnd = overlay_window
-        .hwnd()
-        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
-
-    remove_titlebar(overlay_hwnd);
-    set_window_topmost(overlay_hwnd)?;
-
     unsafe {
-        // Rendi la taskbar completamente trasparente ma attiva
-        let style = GetWindowLongA(taskbar, GWL_EXSTYLE);
-        SetWindowLongA(taskbar, GWL_EXSTYLE, style | WS_EX_LAYERED.0 as i32);
-        SetLayeredWindowAttributes(
-            taskbar, 
-            windows::Win32::Foundation::COLORREF(0), 
-            0, 
-            LWA_ALPHA
-        ).map_err(|e| format!("Error while setting layeredWindowAttributes: {e}"))?; 
-
         let mut abd = APPBARDATA {
             cbSize: std::mem::size_of::<APPBARDATA>() as u32,
             hWnd: taskbar,
@@ -126,6 +115,16 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
             uCallbackMessage: 0,
         };
         SHAppBarMessage(ABM_SETSTATE, &mut abd);
+
+        // Rendi la taskbar completamente trasparente ma attiva
+        let style = GetWindowLongA(taskbar, GWL_EXSTYLE);
+        SetWindowLongA(taskbar, GWL_EXSTYLE, style | WS_EX_LAYERED.0 as i32);
+        SetLayeredWindowAttributes(
+            taskbar, 
+            windows::Win32::Foundation::COLORREF(0), 
+            0, 
+            LWA_ALPHA
+        ).map_err(|e| format!("Error while setting layeredWindowAttributes: {e}"))?; 
 
         // Mantienila visibile logicamente
         ShowWindow(taskbar, SW_SHOW)
@@ -144,10 +143,187 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
         ).map_err(|e| format!("Error settings taskbar position: {e}"))?;
     }
 
+    let overlay_window = app_handle.get_window("overlay")
+        .ok_or("Error obtaining overlay window".to_string())?;
+
+    let overlay_hwnd = overlay_window
+        .hwnd()
+        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
+
+    remove_titlebar(overlay_hwnd);
+    set_window_topmost(overlay_hwnd)?;
+
+    std::thread::sleep(Duration::from_millis(300));
+
+    if workarea.bottom >= pmonitor.rect.bottom - tbrect.height() {
+        workarea.bottom = pmonitor.rect.bottom;
+    }
+    for _ in 0..100 {
+        pmonitor.set_workarea(&workarea)?;
+    }
+
+    // Set position to monitor top-left (0,0)
+    overlay_window.set_position(PhysicalPosition {
+        x: pmonitor.rect.left,
+        y: pmonitor.rect.top
+    }).map_err(|e| format!("Error setting window position: {e}"))?;
+
+    let size = PhysicalSize {
+        height: pmonitor.rect.height() as u32 - 1,
+        width: pmonitor.rect.width() as u32 - 1
+    };
+
+    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
+
+    // Force overlay window to use full monitor dimensions
+    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
+
+    Ok(())
+}
+
+pub fn new_show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
+    let mut pmonitor = get_primary_monitor()?;
+    let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
+    let mut workarea = pmonitor.workarea;
+
+    println!("{workarea:?}");
+
+    restore_taskbar()?;
+
+    let overlay_window = app_handle.get_window("overlay")
+        .ok_or("Error obtaining overlay window".to_string())?;
+
+    let overlay_hwnd = overlay_window
+        .hwnd()
+        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
+
+    remove_titlebar(overlay_hwnd);
+    set_window_topmost(overlay_hwnd)?;
+
+    // Se la workarea arriva fino alla parte bassa dello schermo...
+    if workarea.bottom > pmonitor.rect.bottom - tbrect.height() {
+        // Fai si che arrivi a sopra alla taskbar (comportamento normale)
+        workarea.bottom -= tbrect.height();
+    }
+    pmonitor.set_workarea(&workarea)?;
+
+    // Set position to monitor top-left (0,0)
+    overlay_window.set_position(PhysicalPosition {
+        x: pmonitor.rect.left,
+        y: pmonitor.rect.top
+    }).map_err(|e| format!("Error setting window position: {e}"))?;
+
+    let size = PhysicalSize {
+        height: pmonitor.rect.height() as u32,
+        width: pmonitor.rect.width() as u32
+    };
+
+    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
+
+    // Force overlay window to use full monitor dimensions
+    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
+
+    Ok(())
+}
+*/
+
+pub fn restore_taskbar() -> Result<(), String> {
+    unsafe {
+        let class_name = b"Shell_TrayWnd\0".as_ptr();
+        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())?;
+
+        if taskbar.is_invalid() {
+            return Err(WinError::from_win32().to_string());
+        }
+
+        // Disattiva l'autohide
+        let mut abd = APPBARDATA {
+            cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+            hWnd: taskbar,
+            uEdge: 0,
+            rc: Default::default(),
+            lParam: LPARAM(ABS_ALWAYSONTOP as isize), // torna a comportamento normale
+            uCallbackMessage: 0,
+        };
+
+        SHAppBarMessage(ABM_SETSTATE, &mut abd);
+
+        // Riporta la taskbar al suo posto
+        SetWindowPos(
+            taskbar,
+            Some(HWND_TOPMOST),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOMOVE,
+        )
+        .map_err(|e| e.to_string())?;
+
+        // Mostra la barra delle applicazioni
+        let _ = ShowWindow(taskbar, SW_SHOW);
+
+        Ok(())
+    }
+}
+
+pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
+    let mut pmonitor = get_primary_monitor()?;
+    let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
+    let mut workarea = pmonitor.workarea;
+
+    restore_taskbar()?;
+
+    let class_name = b"Shell_TrayWnd\0".as_ptr();
+    let taskbar = unsafe { FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())? };
+
+    if taskbar.is_invalid() {
+        return Err(WinError::from_win32().to_string());
+    }
+
+    // Sposta la taskbar fuori dallo schermo
+    unsafe {
+        SetWindowPos(
+            taskbar,
+            Some(HWND_BOTTOM),
+            0,
+            -100,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE,
+        ).map_err(|e| e.to_string())?;
+
+        // Abilita l'autohide
+        let mut abd = APPBARDATA {
+            cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+            hWnd: taskbar,
+            uEdge: 0,
+            rc: Default::default(),
+            lParam: LPARAM(ABS_AUTOHIDE as isize),
+            uCallbackMessage: 0,
+        };
+
+        SHAppBarMessage(ABM_SETSTATE, &mut abd);
+
+        ShowWindow(taskbar, SW_HIDE)
+            .ok()
+            .map_err(|e| format!("Error hiding taskbar: {e}"))?;
+    }
+
     if workarea.bottom >= pmonitor.rect.bottom - tbrect.height() {
         workarea.bottom = pmonitor.rect.bottom;
     }
     pmonitor.set_workarea(&workarea)?;
+
+    let overlay_window = app_handle.get_window("overlay")
+        .ok_or("Error obtaining overlay window".to_string())?;
+
+    let overlay_hwnd = overlay_window
+        .hwnd()
+        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
+
+    remove_titlebar(overlay_hwnd);
+    set_window_topmost(overlay_hwnd)?;
 
     // Set position to monitor top-left (0,0)
     overlay_window.set_position(PhysicalPosition {
@@ -173,13 +349,10 @@ pub fn show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
     let mut workarea = pmonitor.workarea;
 
-    println!("{workarea:?}");
-
     restore_taskbar()?;
 
     // Se la workarea arriva fino alla parte bassa dello schermo...
     if workarea.bottom > pmonitor.rect.bottom - tbrect.height() {
-        // Fai si che arrivi a sopra alla taskbar (comportamento normale)
         workarea.bottom -= tbrect.height();
     }
     pmonitor.set_workarea(&workarea)?;
@@ -226,163 +399,4 @@ pub fn is_taskbar_autohide() -> bool {
     }
 
     (state & ABS_AUTOHIDE as usize) != 0
-}
-
-// Legacy methods
-
-pub fn legacy_reset_taskbar() -> Result<(), String> {
-    unsafe {
-        let class_name = b"Shell_TrayWnd\0".as_ptr();
-        let taskbar = FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())?;
-
-        if taskbar.is_invalid() {
-            return Err(WinError::from_win32().to_string());
-        }
-
-        // Riporta la taskbar al suo posto
-        SetWindowPos(
-            taskbar,
-            Some(HWND_TOPMOST),
-            0,
-            0,
-            0,
-            0,
-            SWP_NOSIZE | SWP_NOMOVE,
-        )
-        .map_err(|e| e.to_string())?;
-
-        // Disattiva l'autohide
-        let mut abd = APPBARDATA {
-            cbSize: std::mem::size_of::<APPBARDATA>() as u32,
-            hWnd: taskbar,
-            uEdge: 0,
-            rc: Default::default(),
-            lParam: LPARAM(ABS_ALWAYSONTOP as isize), // torna a comportamento normale
-            uCallbackMessage: 0,
-        };
-
-        SHAppBarMessage(ABM_SETSTATE, &mut abd);
-
-        // Mostra la barra delle applicazioni
-        let _ = ShowWindow(taskbar, SW_SHOW);
-
-        Ok(())
-    }
-}
-
-pub fn legacy_hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
-    let mut pmonitor = get_primary_monitor()?;
-    let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
-    let mut workarea = pmonitor.workarea;
-
-    legacy_reset_taskbar()?;
-
-    let class_name = b"Shell_TrayWnd\0".as_ptr();
-    let taskbar = unsafe { FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())? };
-
-    if taskbar.is_invalid() {
-        return Err(WinError::from_win32().to_string());
-    }
-
-    // Sposta la taskbar fuori dallo schermo
-    unsafe {
-        SetWindowPos(
-            taskbar,
-            Some(HWND_BOTTOM),
-            0,
-            -100,
-            0,
-            0,
-            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE,
-        ).map_err(|e| e.to_string())?;
-    }
-
-    // Abilita l'autohide
-    let mut abd = APPBARDATA {
-        cbSize: std::mem::size_of::<APPBARDATA>() as u32,
-        hWnd: taskbar,
-        uEdge: 0,
-        rc: Default::default(),
-        lParam: LPARAM(ABS_AUTOHIDE as isize),
-        uCallbackMessage: 0,
-    };
-
-    let _ = unsafe { SHAppBarMessage(ABM_SETSTATE, &mut abd) };
-
-    let _ = unsafe { ShowWindow(taskbar, SW_HIDE) };
-
-    if workarea.bottom >= pmonitor.rect.bottom - tbrect.height() {
-        workarea.bottom = pmonitor.rect.bottom;
-    }
-    pmonitor.set_workarea(&workarea)?;
-
-    let overlay_window = app_handle.get_window("overlay")
-        .ok_or("Error obtaining overlay window".to_string())?;
-
-    let overlay_hwnd = overlay_window
-        .hwnd()
-        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
-
-    remove_titlebar(overlay_hwnd);
-    set_window_topmost(overlay_hwnd)?;
-
-    // Set position to monitor top-left (0,0)
-    overlay_window.set_position(PhysicalPosition {
-        x: pmonitor.rect.left,
-        y: pmonitor.rect.top
-    }).map_err(|e| format!("Error setting window position: {e}"))?;
-
-    let size = PhysicalSize {
-        height: pmonitor.rect.height() as u32,
-        width: pmonitor.rect.width() as u32
-    };
-
-    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
-
-    // Force overlay window to use full monitor dimensions
-    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
-
-    Ok(())
-}
-
-pub fn legacy_show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
-    let mut pmonitor = get_primary_monitor()?;
-    let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
-    let mut workarea = pmonitor.workarea;
-
-    legacy_reset_taskbar()?;
-
-    // Se la workarea arriva fino alla parte bassa dello schermo...
-    if workarea.bottom > pmonitor.rect.bottom - tbrect.height() {
-        workarea.bottom -= tbrect.height();
-    }
-    pmonitor.set_workarea(&workarea)?;
-
-    let overlay_window = app_handle.get_window("overlay")
-        .ok_or("Error obtaining overlay window".to_string())?;
-
-    let overlay_hwnd = overlay_window
-        .hwnd()
-        .map_err(|e| format!("Error obtaining overlay window handle: {e}"))?;
-
-    remove_titlebar(overlay_hwnd);
-    set_window_topmost(overlay_hwnd)?;
-
-    // Set position to monitor top-left (0,0)
-    overlay_window.set_position(PhysicalPosition {
-        x: pmonitor.rect.left,
-        y: pmonitor.rect.top
-    }).map_err(|e| format!("Error setting window position: {e}"))?;
-
-    let size = PhysicalSize {
-        height: pmonitor.rect.height() as u32,
-        width: pmonitor.rect.width() as u32
-    };
-
-    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
-
-    // Force overlay window to use full monitor dimensions
-    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
-
-    Ok(())
 }

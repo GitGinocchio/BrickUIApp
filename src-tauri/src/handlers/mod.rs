@@ -52,9 +52,9 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         restore_all_cursors,
 
         // Window
-        get_maximized_window_for_monitor,
+        get_monitor_maximized_window,
         get_maximized_windows,
-        get_windows_in_monitor,
+        get_monitor_windows,
         get_all_windows,
 
         // Workarea

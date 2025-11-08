@@ -58,7 +58,7 @@ impl OptionalRect {
 impl Rect {
     pub fn width(&self) -> i32 { self.right - self.left }
     pub fn height(&self) -> i32 { self.bottom - self.top }
-    
+
     /// Applica margini rispetto al Rect originale.
     /// - Some(v) → usa v
     /// - None → lascia invariato il bordo corrente
@@ -69,6 +69,39 @@ impl Rect {
             right: margins.right.map_or(self.right, |v| original.right - v),
             bottom: margins.bottom.map_or(self.bottom, |v| original.bottom - v),
         }
+    }
+
+    /// Controlla se `self` sia all'interno di `other`
+    pub fn is_inside(&self, other: &Rect) -> bool {
+        self.left >= other.left &&
+        self.top >= other.top &&
+        self.right <= other.right &&
+        self.bottom <= other.bottom
+    }
+
+    /// Sposta i lati del rect per farli rientrare in `other`.
+    /// Ritorna `true` se almeno un lato è stato modificato.
+    pub fn clamp_inside(&mut self, other: &Rect) -> bool {
+        let mut changed = false;
+
+        if self.left < other.left {
+            self.left = other.left;
+            changed = true;
+        }
+        if self.top < other.top {
+            self.top = other.top;
+            changed = true;
+        }
+        if self.right > other.right {
+            self.right = other.right;
+            changed = true;
+        }
+        if self.bottom > other.bottom {
+            self.bottom = other.bottom;
+            changed = true;
+        }
+
+        changed
     }
 }
 

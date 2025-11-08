@@ -6,13 +6,13 @@ pub fn get_maximized_windows() -> Result<Vec<Window>, String> {
 }
 
 #[tauri::command]
-pub fn get_maximized_window_for_monitor(monitor: Monitor) -> Result<Option<Window>, String> {
-    crate::winapi::window::get_maximized_window_for_monitor(&monitor)
+pub fn get_monitor_maximized_window(monitor: Monitor) -> Result<Option<Window>, String> {
+    crate::winapi::window::get_monitor_maximized_window(&monitor)
 }
 
 #[tauri::command]
-pub fn get_windows_in_monitor(monitor: Monitor) -> Result<Vec<Window>, String> {
-    crate::winapi::window::get_windows_in_monitor(&monitor)
+pub fn get_monitor_windows(monitor: Monitor) -> Result<Vec<Window>, String> {
+    crate::winapi::window::get_monitor_windows(&monitor)
 }
 
 #[tauri::command]

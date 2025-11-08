@@ -21,6 +21,7 @@ mod bricks;
 mod handlers;
 use crate::handlers::generate_handlers;
 use crate::winapi::monitor::workarea::reset_workareas;
+use crate::winapi::window::utils::get_window_class;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

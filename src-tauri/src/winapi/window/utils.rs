@@ -1,7 +1,7 @@
 use std::{ffi::{CStr, CString}};
 use windows::{Win32::{
     Foundation::{CloseHandle, HANDLE, HWND, LPARAM}, System::Threading::{OpenProcess, PROCESS_NAME_FORMAT, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW}, UI::WindowsAndMessaging::{
-        EnumChildWindows, EnumWindows, FindWindowA, FindWindowExA, GetClassNameA
+        EnumChildWindows, EnumWindows, FindWindowA, FindWindowExA, GetClassNameA, GetClassNameW
     }
 }, core::{BOOL, PWSTR}};
 use windows::core::PCSTR;
@@ -279,4 +279,28 @@ pub fn find_tray_toolbar_window() -> Result<HWND, String> {
         println!("[+] Found Windows 10 Tray Toolbar");
         Ok(toolbar)
     }
+}
+
+pub fn get_window_class(hwnd: HWND) -> Option<String> {
+    unsafe {
+        // buffer per la classe (massimo 256 caratteri)
+        let mut class_name = [0u16; 256];
+        let len = GetClassNameW(hwnd, &mut class_name);
+
+        if len == 0 {
+            // fallita
+            None
+        } else {
+            // converte da UTF-16 a Rust String
+            Some(String::from_utf16_lossy(&class_name[..len as usize]))
+        }
+    }
+}
+
+pub fn is_tauri_window(hwnd: HWND) -> Result<bool, String> {
+    get_window_class(hwnd)
+    .map_or(
+        Ok(false), 
+        |class_name| Ok(class_name.starts_with("Tauri"))
+    )
 }

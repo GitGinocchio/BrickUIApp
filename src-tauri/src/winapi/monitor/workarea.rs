@@ -1,17 +1,59 @@
 use windows::Win32::UI::WindowsAndMessaging::{
-    SystemParametersInfoW, SPIF_SENDCHANGE, SPIF_SENDWININICHANGE, SPIF_UPDATEINIFILE, SPI_SETWORKAREA,
+    SPI_SETWORKAREA, SPIF_SENDCHANGE, SPIF_SENDWININICHANGE, SPIF_UPDATEINIFILE, SWP_NOACTIVATE, SWP_NOZORDER, SetWindowPos, SystemParametersInfoW
 };
-use windows::Win32::Foundation::RECT;
+use windows::Win32::Foundation::{HWND, RECT};
 
 use crate::winapi::taskbar::is_taskbar_autohide;
+use crate::winapi::window::get_monitor_taskbar_windows;
 use crate::winapi::{
     desktop::refresh_desktop_icons,
     rect::{OptionalRect, Rect},
-    taskbar::get_taskbar_rect,
-    window::get_maximized_window_for_monitor,
+    taskbar::get_taskbar_rect
 };
 
 use super::{get_all_monitors, get_primary_monitor, Monitor};
+
+fn notify_all_monitor_windows(monitor: &Monitor) -> Result<(), String> {
+    let mut windows = get_monitor_taskbar_windows(monitor)?;
+
+    for window in &mut windows {
+        if window.is_self { continue; }
+        if let Some(rect) = window.rect.as_mut() {
+            let win_hwnd = HWND(window.hwnd as *mut _);
+
+            // Cambia la dimensione delle finestre in modo da triggerare un update
+            // e un redraw, in modo che la finestra si adatti alla nuova workarea
+            unsafe {
+                match SetWindowPos(
+                    win_hwnd, 
+                    None, 
+                    rect.left, 
+                    rect.top, 
+                    rect.width() + 1, 
+                    rect.height(), 
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                ) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Could not resize window: {e}")
+                };
+                match SetWindowPos(
+                    win_hwnd, 
+                    None, 
+                    rect.left, 
+                    rect.top, 
+                    rect.width(), 
+                    rect.height(), 
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                ) {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("Could not resize window: {e}")
+                };
+            }
+        }
+    }
+
+    Ok(())
+}
 
 fn apply_workarea(monitor: &Monitor, rect: &Rect) -> Result<Rect, String> {
     let mut rect = rect.clone();
@@ -57,10 +99,7 @@ fn apply_workarea(monitor: &Monitor, rect: &Rect) -> Result<Rect, String> {
     // Refresh desktop e finestre massimizzate
     refresh_desktop_icons()?;
 
-    // Qui sarebbe da ottenere una lista di finestre massimizzate
-    if let Some(window) = get_maximized_window_for_monitor(monitor)? {
-        window.set_rect(&rect)?;
-    }
+    notify_all_monitor_windows(&monitor)?;
 
     Ok(rect)
 }
