@@ -13,8 +13,6 @@ use windows::Win32::{
 
 use crate::winapi::bluetooth::BTDevice;
 
-use super::BTState;
-
 fn systemtime_to_naive(s: &SYSTEMTIME) -> Option<NaiveDateTime> {
     NaiveDate::from_ymd_opt(s.wYear as i32, s.wMonth.into(), s.wDay.into()).and_then(|date| {
         NaiveTime::from_hms_milli_opt(
@@ -363,99 +361,92 @@ impl BTDevice for ClassicDevice {
     }
 }
 
-impl BTState {
-    pub fn scan_classic(&self, duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
-        let mut devices = Vec::new();
+pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
+    let mut devices = Vec::new();
 
-        unsafe {
-            // Find radios
-            let mut radio_params = BLUETOOTH_FIND_RADIO_PARAMS {
-                dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
-            };
-            let mut radio_handle: HANDLE = HANDLE::default();
+    unsafe {
+        // Find radios
+        let mut radio_params = BLUETOOTH_FIND_RADIO_PARAMS {
+            dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
+        };
+        let mut radio_handle: HANDLE = HANDLE::default();
 
-            let radio_enum = match BluetoothFindFirstRadio(&mut radio_params, &mut radio_handle) {
-                Ok(h) => h,
-                Err(_) => {
-                    // Nessun radio → non è un errore → return lista vuota
-                    return Ok(devices);
-                }
-            };
-
-            if radio_enum.is_invalid() {
+        let radio_enum = match BluetoothFindFirstRadio(&mut radio_params, &mut radio_handle) {
+            Ok(h) => h,
+            Err(_) => {
+                // Nessun radio → non è un errore → return lista vuota
                 return Ok(devices);
             }
+        };
 
-            loop {
-                // Device search parameters
-                let search_params = BLUETOOTH_DEVICE_SEARCH_PARAMS {
-                    dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_SEARCH_PARAMS>() as u32,
-                    fReturnAuthenticated: true.into(),
-                    fReturnRemembered: true.into(),
-                    fReturnUnknown: true.into(),
-                    fReturnConnected: true.into(),
-                    fIssueInquiry: true.into(),
-                    cTimeoutMultiplier: duration.unwrap_or(5),
-                    hRadio: radio_handle,
-                };
-
-                let mut device_info = BLUETOOTH_DEVICE_INFO {
-                    dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_INFO>() as u32,
-                    ..Default::default()
-                };
-
-                // Find first device
-                let h_find = match BluetoothFindFirstDevice(&search_params, &mut device_info) {
-                    Ok(h) => h,
-                    Err(_) => {
-                        // Nessun device per questo radio → passa al prossimo radio
-                        let mut next_radio = HANDLE::default();
-                        if BluetoothFindNextRadio(radio_enum, &mut next_radio).is_ok() {
-                            radio_handle = next_radio;
-                            continue;
-                        } else {
-                            break;
-                        }
-                    }
-                };
-
-                if !h_find.is_invalid() {
-                    loop {
-                        devices.push(ClassicDevice::from_win32(&device_info));
-
-                        if !BluetoothFindNextDevice(h_find, &mut device_info).is_ok() {
-                            break;
-                        }
-                    }
-                    // Chiudi handle
-                    let _ = BluetoothFindDeviceClose(h_find);
-                }
-
-                // Next radio
-                let mut next_radio = HANDLE::default();
-                if !BluetoothFindNextRadio(radio_enum, &mut next_radio).is_ok() {
-                    break;
-                }
-                radio_handle = next_radio;
-            }
-
-            let _ = BluetoothFindRadioClose(radio_enum);
+        if radio_enum.is_invalid() {
+            return Ok(devices);
         }
 
-        Ok(devices)
+        loop {
+            // Device search parameters
+            let search_params = BLUETOOTH_DEVICE_SEARCH_PARAMS {
+                dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_SEARCH_PARAMS>() as u32,
+                fReturnAuthenticated: true.into(),
+                fReturnRemembered: true.into(),
+                fReturnUnknown: true.into(),
+                fReturnConnected: true.into(),
+                fIssueInquiry: true.into(),
+                cTimeoutMultiplier: duration.unwrap_or(5),
+                hRadio: radio_handle,
+            };
+
+            let mut device_info = BLUETOOTH_DEVICE_INFO {
+                dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_INFO>() as u32,
+                ..Default::default()
+            };
+
+            // Find first device
+            let h_find = match BluetoothFindFirstDevice(&search_params, &mut device_info) {
+                Ok(h) => h,
+                Err(_) => {
+                    // Nessun device per questo radio → passa al prossimo radio
+                    let mut next_radio = HANDLE::default();
+                    if BluetoothFindNextRadio(radio_enum, &mut next_radio).is_ok() {
+                        radio_handle = next_radio;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+            };
+
+            if !h_find.is_invalid() {
+                loop {
+                    devices.push(ClassicDevice::from_win32(&device_info));
+
+                    if !BluetoothFindNextDevice(h_find, &mut device_info).is_ok() {
+                        break;
+                    }
+                }
+                // Chiudi handle
+                let _ = BluetoothFindDeviceClose(h_find);
+            }
+
+            // Next radio
+            let mut next_radio = HANDLE::default();
+            if !BluetoothFindNextRadio(radio_enum, &mut next_radio).is_ok() {
+                break;
+            }
+            radio_handle = next_radio;
+        }
+
+        let _ = BluetoothFindRadioClose(radio_enum);
     }
 
-    pub async fn async_scan_classic(
-        &self,
-        duration: Option<u8>,
-    ) -> Result<Vec<ClassicDevice>, String> {
-        let self_clone = self.clone();
+    Ok(devices)
+}
 
-        let devices =
-            tauri::async_runtime::spawn_blocking(move || self_clone.scan_classic(duration))
-                .await
-                .map_err(|e| format!("Task join error: {e}"))??;
+pub async fn async_scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
+    let devices =
+        tauri::async_runtime::spawn_blocking(move || scan_classic(duration))
+            .await
+            .map_err(|e| format!("Task join error: {e}"))??;
 
-        Ok(devices)
-    }
+    Ok(devices)
 }

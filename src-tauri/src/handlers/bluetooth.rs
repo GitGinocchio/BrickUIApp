@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 
 use crate::{
     state::BrickUIState,
-    winapi::bluetooth::{Device, classic::ClassicDevice},
+    winapi::bluetooth::{Device, classic::{ClassicDevice, async_scan_classic}, scan},
 };
 
 /*
@@ -56,22 +56,22 @@ pub async fn scan(
 
 #[tauri::command(async)]
 pub async fn bluetooth_scan(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    _state: State<'_, Arc<Mutex<BrickUIState>>>,
     duration: Option<u8>,
 ) -> Result<Vec<Device>, String> {
-    let state_guard = state.lock().await;
-    let bt_state = state_guard.get_bluetooth_state();
+    //let state_guard = state.lock().await;
+    //let bt_state = state_guard.get_bluetooth_state();
 
-    bt_state.scan(duration).await
+    scan(duration).await
 }
 
 #[tauri::command(async)]
 pub async fn bluetooth_classic_scan(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    _state: State<'_, Arc<Mutex<BrickUIState>>>,
     duration: Option<u8>,
 ) -> Result<Vec<ClassicDevice>, String> {
-    let state_guard = state.lock().await;
-    let bt_state = state_guard.get_bluetooth_state();
+    //let state_guard = state.lock().await;
+    //let bt_state = state_guard.get_bluetooth_state();
 
-    bt_state.async_scan_classic(duration).await
+    async_scan_classic(duration).await
 }

@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use crate::winapi::bluetooth::classic::{async_scan_classic, scan_classic};
+
 pub mod ble;
 pub mod classic;
 
@@ -24,14 +26,15 @@ impl BTState {
     pub async fn new() -> Result<Self, String> {
         Ok(Self {})
     }
+}
 
-    pub async fn scan(&self, duration: Option<u8>) -> Result<Vec<Device>, String> {
-        let classic_devices = self
-            .scan_classic(duration)?
-            .into_iter()
-            .map(Device::Classic)
-            .collect();
 
-        Ok(classic_devices)
-    }
+pub async fn scan(duration: Option<u8>) -> Result<Vec<Device>, String> {
+    let classic_devices = async_scan_classic(duration)
+        .await?
+        .into_iter()
+        .map(Device::Classic)
+        .collect();
+
+    Ok(classic_devices)
 }

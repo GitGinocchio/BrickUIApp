@@ -26,10 +26,13 @@ export async function loadVueModuleToCJS(
   // 1. Fa il parse del file .vue
   const parsed = parse(source, { filename: componentPath });
   const descriptor = parsed.descriptor;
-  const id = btoa(componentPath)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+
+  const bytes = new TextEncoder().encode(componentPath);
+  const base64 = btoa(String.fromCharCode(...bytes));
+  const id = base64
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 
   const imports = extractImports(descriptor);
   

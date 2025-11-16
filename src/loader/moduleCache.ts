@@ -1,8 +1,12 @@
 // src/loader/moduleCache.ts
 import * as Vue from "vue";
+
 import core from "../api/core";
-import event from "../api/event";
 import type { InvokeArgs, InvokeOptions } from "@tauri-apps/api/core";
+
+import event from "../api/event";
+import opener from "../api/plugins/opener";
+import shell from "../api/plugins/shell";
 
 export interface BrickContext {
   name: string;
@@ -25,6 +29,11 @@ export function createModuleCache(ctx: BrickContext) {
           `Access denied: brick "${ctx.name}" is not allowed to create a new Vue app.`
         );
       }
+    },
+
+    plugins: {
+      opener: opener,
+      shell: shell
     },
 
     core: {
