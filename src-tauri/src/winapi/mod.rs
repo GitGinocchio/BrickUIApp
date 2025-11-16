@@ -1,14 +1,15 @@
+pub mod bluetooth;
+pub mod com;
 pub mod cursor;
+pub mod desktop;
 pub mod events;
 pub mod explorer;
 pub mod icons;
+pub mod monitor;
+pub mod rect;
 pub mod startmenu;
 pub mod taskbar;
 pub mod window;
-pub mod monitor;
-pub mod desktop;
-pub mod rect;
-pub mod com;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
@@ -18,8 +19,8 @@ use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging
 use windows::core::PCSTR;
 
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
-    let shortcut = ShellLink::open(lnk, WINDOWS_1252)
-        .map_err(|e| format!("Could not parse lnk file: {e}"))?;
+    let shortcut =
+        ShellLink::open(lnk, WINDOWS_1252).map_err(|e| format!("Could not parse lnk file: {e}"))?;
     Ok(shortcut)
 }
 

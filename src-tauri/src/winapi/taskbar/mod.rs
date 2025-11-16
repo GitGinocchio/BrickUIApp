@@ -1,20 +1,29 @@
 pub mod apps;
 pub mod tray;
 
-use tauri::{AppHandle, Manager, PhysicalSize, PhysicalPosition};
+use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 use windows::{
     Win32::{
         Foundation::LPARAM,
         UI::{
-            Shell::{ABM_GETSTATE, ABM_GETTASKBARPOS, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE, APPBARDATA, SHAppBarMessage},
+            Shell::{
+                ABM_GETSTATE, ABM_GETTASKBARPOS, ABM_SETSTATE, ABS_ALWAYSONTOP, ABS_AUTOHIDE,
+                APPBARDATA, SHAppBarMessage,
+            },
             WindowsAndMessaging::{
-                FindWindowA, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetWindowPos, ShowWindow,
+                FindWindowA, HWND_BOTTOM, HWND_TOPMOST, SW_HIDE, SW_SHOW, SWP_NOACTIVATE,
+                SWP_NOMOVE, SWP_NOSIZE, SetWindowPos, ShowWindow,
             },
         },
-    }, core::{Error as WinError, PCSTR}
+    },
+    core::{Error as WinError, PCSTR},
 };
 
-use crate::winapi::{monitor::get_primary_monitor, rect::Rect, window::{remove_titlebar, set_window_topmost}};
+use crate::winapi::{
+    monitor::get_primary_monitor,
+    rect::Rect,
+    window::{remove_titlebar, set_window_topmost},
+};
 
 pub fn get_taskbar_rect() -> Option<Rect> {
     let mut data = APPBARDATA {
@@ -56,9 +65,9 @@ pub fn new_restore_taskbar() -> Result<(), String> {
         SetWindowLongA(taskbar, GWL_EXSTYLE, style | WS_EX_LAYERED.0 as i32);
         // Imposta l'alpha a 255 (visibile)
         SetLayeredWindowAttributes(
-            taskbar, 
-            windows::Win32::Foundation::COLORREF(0), 
-            255, 
+            taskbar,
+            windows::Win32::Foundation::COLORREF(0),
+            255,
             LWA_ALPHA
         ).map_err(|e| format!("Error setting layeredWindowAttributes: {e}"))?;
 
@@ -80,9 +89,9 @@ pub fn new_restore_taskbar() -> Result<(), String> {
 
         let mut rect = RECT::default();
         SystemParametersInfoA(
-            SPI_GETWORKAREA, 
-            0, 
-            Some(&mut rect as *mut RECT as *mut _), 
+            SPI_GETWORKAREA,
+            0,
+            Some(&mut rect as *mut RECT as *mut _),
             SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)
         ).map_err(|e| format!("Error obtaining workarea: {e}"))?;
     }
@@ -120,11 +129,11 @@ pub fn new_hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
         let style = GetWindowLongA(taskbar, GWL_EXSTYLE);
         SetWindowLongA(taskbar, GWL_EXSTYLE, style | WS_EX_LAYERED.0 as i32);
         SetLayeredWindowAttributes(
-            taskbar, 
-            windows::Win32::Foundation::COLORREF(0), 
-            0, 
+            taskbar,
+            windows::Win32::Foundation::COLORREF(0),
+            0,
             LWA_ALPHA
-        ).map_err(|e| format!("Error while setting layeredWindowAttributes: {e}"))?; 
+        ).map_err(|e| format!("Error while setting layeredWindowAttributes: {e}"))?;
 
         // Mantienila visibile logicamente
         ShowWindow(taskbar, SW_SHOW)
@@ -275,7 +284,8 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     restore_taskbar()?;
 
     let class_name = b"Shell_TrayWnd\0".as_ptr();
-    let taskbar = unsafe { FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())? };
+    let taskbar =
+        unsafe { FindWindowA(PCSTR(class_name), PCSTR::null()).map_err(|e| e.to_string())? };
 
     if taskbar.is_invalid() {
         return Err(WinError::from_win32().to_string());
@@ -291,7 +301,8 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
             0,
             0,
             SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE,
-        ).map_err(|e| e.to_string())?;
+        )
+        .map_err(|e| e.to_string())?;
 
         // Abilita l'autohide
         let mut abd = APPBARDATA {
@@ -315,7 +326,8 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     }
     pmonitor.set_workarea(&workarea)?;
 
-    let overlay_window = app_handle.get_window("overlay")
+    let overlay_window = app_handle
+        .get_window("overlay")
         .ok_or("Error obtaining overlay window".to_string())?;
 
     let overlay_hwnd = overlay_window
@@ -326,20 +338,26 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     set_window_topmost(overlay_hwnd)?;
 
     // Set position to monitor top-left (0,0)
-    overlay_window.set_position(PhysicalPosition {
-        x: pmonitor.rect.left,
-        y: pmonitor.rect.top
-    }).map_err(|e| format!("Error setting window position: {e}"))?;
+    overlay_window
+        .set_position(PhysicalPosition {
+            x: pmonitor.rect.left,
+            y: pmonitor.rect.top,
+        })
+        .map_err(|e| format!("Error setting window position: {e}"))?;
 
     let size = PhysicalSize {
         height: pmonitor.rect.height() as u32 - 1,
-        width: pmonitor.rect.width() as u32 - 1
+        width: pmonitor.rect.width() as u32 - 1,
     };
 
-    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
+    overlay_window
+        .set_max_size(Some(size))
+        .map_err(|e| format!("Error setting monitor max size: {e}"))?;
 
     // Force overlay window to use full monitor dimensions
-    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
+    overlay_window
+        .set_size(size)
+        .map_err(|e| format!("Error setting monitor size: {e}"))?;
 
     Ok(())
 }
@@ -357,7 +375,8 @@ pub fn show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     }
     pmonitor.set_workarea(&workarea)?;
 
-    let overlay_window = app_handle.get_window("overlay")
+    let overlay_window = app_handle
+        .get_window("overlay")
         .ok_or("Error obtaining overlay window".to_string())?;
 
     let overlay_hwnd = overlay_window
@@ -368,20 +387,26 @@ pub fn show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     set_window_topmost(overlay_hwnd)?;
 
     // Set position to monitor top-left (0,0)
-    overlay_window.set_position(PhysicalPosition {
-        x: pmonitor.rect.left,
-        y: pmonitor.rect.top
-    }).map_err(|e| format!("Error setting window position: {e}"))?;
+    overlay_window
+        .set_position(PhysicalPosition {
+            x: pmonitor.rect.left,
+            y: pmonitor.rect.top,
+        })
+        .map_err(|e| format!("Error setting window position: {e}"))?;
 
     let size = PhysicalSize {
         height: pmonitor.rect.height() as u32,
-        width: pmonitor.rect.width() as u32
+        width: pmonitor.rect.width() as u32,
     };
 
-    overlay_window.set_max_size(Some(size)).map_err(|e| format!("Error setting monitor max size: {e}"))?;
+    overlay_window
+        .set_max_size(Some(size))
+        .map_err(|e| format!("Error setting monitor max size: {e}"))?;
 
     // Force overlay window to use full monitor dimensions
-    overlay_window.set_size(size).map_err(|e| format!("Error setting monitor size: {e}"))?;
+    overlay_window
+        .set_size(size)
+        .map_err(|e| format!("Error setting monitor size: {e}"))?;
 
     Ok(())
 }

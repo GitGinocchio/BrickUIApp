@@ -5,7 +5,7 @@ use std::{fs, path::PathBuf};
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup, load_yaml, plugins::Plugins, settings::Settings},
-    winapi::icons::IconsMap,
+    winapi::{bluetooth::BTState, icons::IconsMap},
 };
 use serde::Serialize;
 
@@ -101,17 +101,20 @@ pub struct BrickUIState {
     settings: Settings,
     backup: Backup,
     bricks: Vec<Brick>,
-    icons_map: IconsMap
+    icons_map: IconsMap,
+    ble_state: BTState,
 }
 
 impl BrickUIState {
     pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
         fs::create_dir_all(path)
             .map_err(|e| format!("Errore nella creazione della directory di dati: {e}"))?;
-        fs::create_dir_all(path.join("bricks"))
-            .map_err(|e| format!("Errore nella creazione della directory per i widgets (bricks): {e}"))?;
-        fs::create_dir_all(path.join("walls"))
-            .map_err(|e| format!("Errore nella creazione della directory per i widgets (walls): {e}"))?;
+        fs::create_dir_all(path.join("bricks")).map_err(|e| {
+            format!("Errore nella creazione della directory per i widgets (bricks): {e}")
+        })?;
+        fs::create_dir_all(path.join("walls")).map_err(|e| {
+            format!("Errore nella creazione della directory per i widgets (walls): {e}")
+        })?;
         fs::create_dir_all(path.join(".schemas"))
             .map_err(|e| format!("Errore nella creazione della directory per gli schemas: {e}"))?;
         fs::create_dir_all(path.join("cache").join("icons"))
@@ -127,11 +130,14 @@ impl BrickUIState {
         let settings = load_yaml::<Settings>(&path.join("settings.yml"))
             .map_err(|e| format!("Errore durante il caricamento dei settings: {e}"))?;
 
-        let icons_map = load_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
-            .map_err(|e| format!("Errore durante il caricamento dell'icon map: {e}"))?;
+        let icons_map =
+            load_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
+                .map_err(|e| format!("Errore durante il caricamento dell'icon map: {e}"))?;
 
         let backup = load_yaml::<Backup>(&path.join("backup.yml"))
             .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
+
+        let ble_state = tauri::async_runtime::block_on(async move { BTState::new().await })?;
 
         Ok(Self {
             resource_path: resource_path.clone(),
@@ -139,7 +145,8 @@ impl BrickUIState {
             settings,
             backup,
             bricks: vec![],
-            icons_map: icons_map
+            icons_map: icons_map,
+            ble_state,
         })
     }
 
@@ -150,6 +157,8 @@ impl BrickUIState {
     pub fn get_resource_path(&self) -> &PathBuf {
         &self.resource_path
     }
+
+    // Bricks
 
     pub fn get_bricks(&self) -> &[Brick] {
         &self.bricks
@@ -163,6 +172,8 @@ impl BrickUIState {
         &mut self.bricks
     }
 
+    // Settings
+
     pub fn get_settings(&self) -> &Settings {
         &self.settings
     }
@@ -170,6 +181,8 @@ impl BrickUIState {
     pub fn get_mut_settings(&mut self) -> &mut Settings {
         &mut self.settings
     }
+
+    // Backup
 
     pub fn get_backup(&self) -> &Backup {
         &self.backup
@@ -179,6 +192,8 @@ impl BrickUIState {
         &mut self.backup
     }
 
+    // Icons
+
     pub fn get_icons_map(&self) -> &IconsMap {
         &self.icons_map
     }
@@ -187,9 +202,13 @@ impl BrickUIState {
         &mut self.icons_map
     }
 
-    /*
-    pub fn get_overlay(&self) -> PathBuf {
-        return self.path.clone();
+    // BTState
+
+    pub fn get_bluetooth_state(&self) -> &BTState {
+        &self.ble_state
     }
-    */
+
+    pub fn get_mut_bluetooth_state(&mut self) -> &mut BTState {
+        &mut self.ble_state
+    }
 }

@@ -3,34 +3,32 @@ use tokio::sync::Mutex;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::{state::BrickUIState, winapi::{self, taskbar::apps::App, taskbar::tray::TrayIcon}};
-
+use crate::{
+    state::BrickUIState,
+    winapi::{self, taskbar::apps::App, taskbar::tray::TrayIcon},
+};
 
 #[tauri::command]
-pub fn hide_taskbar(
-    app_handle: AppHandle
-) -> Result<(), String> {
+pub fn hide_taskbar(app_handle: AppHandle) -> Result<(), String> {
     winapi::taskbar::hide_taskbar(&app_handle)
 }
 
 #[tauri::command]
-pub fn show_taskbar(
-    app_handle: AppHandle
-) -> Result<(), String> {
+pub fn show_taskbar(app_handle: AppHandle) -> Result<(), String> {
     winapi::taskbar::show_taskbar(&app_handle)
 }
 
 #[tauri::command(async)]
-pub async fn get_active_taskbar_apps(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<App>, String> {
+pub async fn get_active_taskbar_apps(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+) -> Result<Vec<App>, String> {
     let mut state_guard = state.lock().await;
     let icon_cache_path = state_guard.get_path().clone().join("cache").join("icons");
     let icons_map = state_guard.get_mut_icons_map();
 
-    let apps = crate::winapi::taskbar::apps::get_active_taskbar_apps(
-        &icon_cache_path,
-        50,
-        icons_map,
-    ).await;
+    let apps =
+        crate::winapi::taskbar::apps::get_active_taskbar_apps(&icon_cache_path, 50, icons_map)
+            .await;
 
     Ok(apps)
 }
@@ -92,16 +90,12 @@ pub fn is_taskbar_autohide() -> bool {
 
 #[tauri::command(async)]
 pub async fn get_tray_icons(
-    state: State<'_, Arc<Mutex<BrickUIState>>>
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
 ) -> Result<Vec<TrayIcon>, String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
     let icon_cache_path = path.join("cache").join("icons");
     let icons_map = state_guard.get_mut_icons_map();
 
-    crate::winapi::taskbar::tray::get_tray_icons(
-        &icon_cache_path, 
-        icons_map, 
-        50
-    )
+    crate::winapi::taskbar::tray::get_tray_icons(&icon_cache_path, icons_map, 50)
 }

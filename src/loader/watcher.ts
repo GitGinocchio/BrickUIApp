@@ -18,8 +18,12 @@ export async function initBrickWatcher() {
       event.paths.forEach(async (path) => {
         if (!path.endsWith(".vue")) return;
 
+        const parts = path.split(/[/\\]/);
+        const bricksIndex = parts.indexOf("bricks");
+        const brickName = parts[bricksIndex + 1];
+
         const brick = await invoke<Brick>("get_brick_by_name", {
-          name: filename(dirname(path)),
+          name: brickName,
         });
 
         await reloadBrick(brick);

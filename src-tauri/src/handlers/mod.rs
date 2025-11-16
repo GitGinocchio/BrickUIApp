@@ -25,52 +25,54 @@ use monitor::*;
 mod workarea;
 use workarea::*;
 
-pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
+mod bluetooth;
+use bluetooth::*;
+
+pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static
+{
     tauri::generate_handler![
         // Taskbar
         show_taskbar,
         hide_taskbar,
         is_taskbar_autohide,
-
         // Taskbar / Apps
         get_active_taskbar_apps,
         get_pinned_taskbar_apps,
         get_taskbar_apps,
-
         // Taskbar / Tray icons
         get_tray_icons,
-
+        // Bluetooth
+        bluetooth_scan,
+        bluetooth_classic_scan,
+        /*
+        get_default_adapter,
+        get_adapters,
+        get_devices,
+        */
         // Explorer
         get_explorer_recents,
-
         // Start Menu
         open_start_menu,
         get_start_menu_favorites,
-
         // Cursor
         hide_all_cursors,
         restore_all_cursors,
-
         // Window
         get_monitor_maximized_window,
         get_maximized_windows,
         get_monitor_windows,
         get_all_windows,
-
         // Workarea
         set_workarea_margins,
         set_workareas_margins,
-
         // Monitor
         get_all_monitors,
         get_monitor_from_point,
         get_primary_monitor,
         get_monitor,
-
         // Settings
         get_settings,
         save_settings,
-
         // Bricks
         get_bricks,
         get_brick_by_name,
@@ -85,4 +87,3 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         unpack_brick
     ]
 }
-

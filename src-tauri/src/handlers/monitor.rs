@@ -1,7 +1,5 @@
 use crate::winapi::monitor::Monitor;
 
-
-
 #[tauri::command]
 pub fn get_all_monitors() -> Result<Vec<Monitor>, String> {
     crate::winapi::monitor::get_all_monitors()

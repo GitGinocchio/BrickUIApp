@@ -5,8 +5,8 @@ use crate::state::BrickUIState;
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tauri::State;
+use tokio::sync::Mutex;
 
 #[tauri::command(async)]
 pub async fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
@@ -39,7 +39,10 @@ pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<V
 }
 
 #[tauri::command(async)]
-pub async fn save_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+pub async fn save_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    brick: Brick,
+) -> Result<(), String> {
     let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
@@ -81,7 +84,10 @@ pub async fn rename_brick(
 }
 
 #[tauri::command(async)]
-pub async fn duplicate_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+pub async fn duplicate_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    brick: Brick,
+) -> Result<(), String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
 
@@ -106,7 +112,10 @@ pub async fn open_brick(
 }
 
 #[tauri::command(async)]
-pub async fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+pub async fn delete_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    brick: Brick,
+) -> Result<(), String> {
     let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
@@ -120,7 +129,10 @@ pub async fn delete_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Bri
 }
 
 #[tauri::command(async)]
-pub async fn new_brick(state: State<'_, Arc<Mutex<BrickUIState>>>, brick: Brick) -> Result<(), String> {
+pub async fn new_brick(
+    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    brick: Brick,
+) -> Result<(), String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
     let res_path = state_guard.get_resource_path();
@@ -151,7 +163,7 @@ pub async fn pack_brick(
 pub async fn unpack_brick(
     state: State<'_, Arc<Mutex<BrickUIState>>>,
     brick_path: String,
-    brick_name: String
+    brick_name: String,
 ) -> Result<(), String> {
     let state_guard = state.lock().await;
     let path = state_guard.get_path();

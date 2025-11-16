@@ -119,13 +119,13 @@ function handleMouseLeave() {
 const option = ref('/bricks')
 const menuOptions = computed(() => [
   { label: t('bricks'),           key: '/bricks',       icon: () => h(Cuboid) },
-  { label: 'Walls',               key: '/walls',        icon: () => h(LayoutDashboard) },
+  { label: t('walls'),            key: '/walls',        icon: () => h(LayoutDashboard) },
   { label: t('marketplace'),      key: '/marketplace',  icon: () => h(StoreIcon) }
 ]);
 
 const bottomMenuOptions = computed(() => [
-  { label: 'User',              key: '/user',    icon: () => h(CircleUser) },
-  { label: t('settings'),       key: '/settings',    icon: () => h(SettingsIcon) },
+  { label: t('user'),             key: '/user',         icon: () => h(CircleUser) },
+  { label: t('settings'),         key: '/settings',     icon: () => h(SettingsIcon) },
 ]);
 
 function onMenuSelect(key: string) {
@@ -139,12 +139,11 @@ onMounted(async () => {
   // in caso di brick formattati male
   bricks.value = await invoke<Brick[]>("load_bricks", {});
 
+  locale.value = settings.value.language;
+
   watch(() => settings.value.taskbar.behavior, async (value) => {
     await invoke(value === 'hide' ? "hide_taskbar" : "show_taskbar");
   });
-
-  await currentWindow.hide();
-  await currentWindow.show();
 });
 
 const showAddBrickModal = ref<boolean>(false);

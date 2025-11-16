@@ -1,19 +1,38 @@
-use std::{ptr::null_mut, sync::{Arc, Mutex}};
 use serde::{Deserialize, Serialize};
-use windows::{Win32::{
-    Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
-    Graphics::Gdi::{GetMonitorInfoA, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MONITORINFOEXW, MonitorFromPoint, MonitorFromWindow},
-    UI::WindowsAndMessaging::{
-        EnumWindows, FindWindowA, FindWindowExA, GWL_EXSTYLE, GWL_STYLE, GetParent, GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, HWND_TOPMOST, IsWindowVisible, IsZoomed, SIZE_RESTORED, SMTO_NORMAL, SW_MAXIMIZE, SW_MINIMIZE, SW_RESTORE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SendMessageTimeoutA, SendMessageW, SetForegroundWindow, SetParent, SetWindowLongPtrW, SetWindowPos, ShowWindow, WM_ACTIVATE, WM_SETTINGCHANGE, WM_SIZE, WM_WINDOWPOSCHANGED, WS_CAPTION, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_THICKFRAME
-    },
-}, core::BOOL};
+use std::{
+    ptr::null_mut,
+    sync::{Arc, Mutex},
+};
 use windows::core::PCSTR;
+use windows::{
+    Win32::{
+        Foundation::{HWND, LPARAM, POINT, RECT, WPARAM},
+        Graphics::Gdi::{
+            GetMonitorInfoA, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO,
+            MONITORINFOEXW, MonitorFromPoint, MonitorFromWindow,
+        },
+        UI::WindowsAndMessaging::{
+            EnumWindows, FindWindowA, FindWindowExA, GWL_EXSTYLE, GWL_STYLE, GetParent,
+            GetWindowLongPtrW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, HWND_TOPMOST,
+            IsWindowVisible, IsZoomed, SIZE_RESTORED, SMTO_NORMAL, SW_MAXIMIZE, SW_MINIMIZE,
+            SW_RESTORE, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+            SendMessageTimeoutA, SendMessageW, SetForegroundWindow, SetParent, SetWindowLongPtrW,
+            SetWindowPos, ShowWindow, WM_ACTIVATE, WM_SETTINGCHANGE, WM_SIZE, WM_WINDOWPOSCHANGED,
+            WS_CAPTION, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_THICKFRAME,
+        },
+    },
+    core::BOOL,
+};
 
 pub mod overlay;
-pub mod wallpaper;
 pub mod utils;
+pub mod wallpaper;
 
-use crate::winapi::{monitor::{Monitor, get_monitor_friendly_name, get_monitor_from_hwnd}, rect::Rect, window::utils::{get_window_class, is_tauri_window}};
+use crate::winapi::{
+    monitor::{Monitor, get_monitor_friendly_name, get_monitor_from_hwnd},
+    rect::Rect,
+    window::utils::{get_window_class, is_tauri_window},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Window {
@@ -25,7 +44,7 @@ pub struct Window {
     pub is_taskbar: bool,
     pub is_self: bool,
     pub rect: Option<Rect>,
-    pub monitor: Option<Monitor>
+    pub monitor: Option<Monitor>,
 }
 
 impl Window {
@@ -124,7 +143,8 @@ impl Window {
                 rect.right - rect.left,
                 rect.bottom - rect.top,
                 SWP_NOZORDER | SWP_NOACTIVATE,
-            ).map_err(|e| format!("Error setting window position: {e}"))?;
+            )
+            .map_err(|e| format!("Error setting window position: {e}"))?;
         }
 
         Ok(())
@@ -165,9 +185,14 @@ impl Window {
 
             // Notifica che la posizione della finestra è cambiata
             SendMessageW(hwnd, WM_WINDOWPOSCHANGED, Some(WPARAM(0)), Some(LPARAM(0)));
-            
+
             // Notifica un ridimensionamento (anche se non cambia)
-            SendMessageW(hwnd, WM_SIZE, Some(WPARAM(SIZE_RESTORED as _)), Some(LPARAM(0)));
+            SendMessageW(
+                hwnd,
+                WM_SIZE,
+                Some(WPARAM(SIZE_RESTORED as _)),
+                Some(LPARAM(0)),
+            );
         }
 
         Ok(())
@@ -223,28 +248,30 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL 
     let mut monitor_info = MONITORINFOEXW::default();
     monitor_info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
 
-    let monitor = if unsafe { GetMonitorInfoW(hmon, &mut monitor_info as *mut _ as *mut _).as_bool() } {
-        let device_name = String::from_utf16_lossy(
-            &monitor_info.szDevice
-                .iter()
-                .take_while(|&&c| c != 0) // filtro fino allo zero terminatore
-                .cloned()                  // <-- copia i valori, non i riferimenti
-                .collect::<Vec<u16>>(),
-        );
+    let monitor =
+        if unsafe { GetMonitorInfoW(hmon, &mut monitor_info as *mut _ as *mut _).as_bool() } {
+            let device_name = String::from_utf16_lossy(
+                &monitor_info
+                    .szDevice
+                    .iter()
+                    .take_while(|&&c| c != 0) // filtro fino allo zero terminatore
+                    .cloned() // <-- copia i valori, non i riferimenti
+                    .collect::<Vec<u16>>(),
+            );
 
-        let friendly_name = get_monitor_friendly_name(&device_name);
+            let friendly_name = get_monitor_friendly_name(&device_name);
 
-        Some(Monitor {
-            hmonitor: hmon.0 as isize,
-            is_primary: (monitor_info.monitorInfo.dwFlags & 1) != 0,
-            rect: monitor_info.monitorInfo.rcMonitor.into(),
-            workarea: monitor_info.monitorInfo.rcWork.into(),
-            device_name,
-            friendly_name
-        })
-    } else {
-        None
-    };
+            Some(Monitor {
+                hmonitor: hmon.0 as isize,
+                is_primary: (monitor_info.monitorInfo.dwFlags & 1) != 0,
+                rect: monitor_info.monitorInfo.rcMonitor.into(),
+                workarea: monitor_info.monitorInfo.rcWork.into(),
+                device_name,
+                friendly_name,
+            })
+        } else {
+            None
+        };
 
     let window = Window {
         hwnd: hwnd.0 as isize,
@@ -255,7 +282,7 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL 
         is_self: is_tauri_window(hwnd).unwrap_or(false),
         is_taskbar: is_taskbar_window(hwnd).unwrap_or(false),
         rect: rect_opt,
-        monitor: monitor
+        monitor: monitor,
     };
 
     if let Ok(mut vec) = windows_vec.lock() {
@@ -270,17 +297,12 @@ pub fn get_maximized_windows() -> Result<Vec<Window>, String> {
     Ok(all
         .into_iter()
         .filter(|w| w.is_visible && w.is_maximized)
-        .collect()
-    )
+        .collect())
 }
 
 pub fn get_visible_windows() -> Result<Vec<Window>, String> {
     let all = get_all_windows()?;
-    Ok(all
-        .into_iter()
-        .filter(|w| w.is_visible)
-        .collect()
-    )
+    Ok(all.into_iter().filter(|w| w.is_visible).collect())
 }
 
 pub fn get_monitor_maximized_window(monitor: &Monitor) -> Result<Option<Window>, String> {
@@ -309,8 +331,7 @@ pub fn get_monitor_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
                 false
             }
         })
-        .collect()
-    )
+        .collect())
 }
 
 pub fn get_monitor_visible_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
@@ -318,12 +339,15 @@ pub fn get_monitor_visible_windows(monitor: &Monitor) -> Result<Vec<Window>, Str
     Ok(all
         .into_iter()
         .filter(|w| {
-            if let Some(wm) = &w.monitor && wm.hmonitor != monitor.hmonitor { return false; }
+            if let Some(wm) = &w.monitor
+                && wm.hmonitor != monitor.hmonitor
+            {
+                return false;
+            }
 
             true
         })
-        .collect()
-    )
+        .collect())
 }
 
 pub fn get_monitor_taskbar_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
@@ -331,12 +355,15 @@ pub fn get_monitor_taskbar_windows(monitor: &Monitor) -> Result<Vec<Window>, Str
     Ok(all
         .into_iter()
         .filter(|w| {
-            if let Some(wm) = &w.monitor && wm.hmonitor != monitor.hmonitor { return false; }
+            if let Some(wm) = &w.monitor
+                && wm.hmonitor != monitor.hmonitor
+            {
+                return false;
+            }
 
             true
         })
-        .collect()
-    )
+        .collect())
 }
 
 pub fn get_taskbar_windows() -> Result<Vec<Window>, String> {
@@ -344,12 +371,13 @@ pub fn get_taskbar_windows() -> Result<Vec<Window>, String> {
     Ok(all
         .into_iter()
         .filter(|w| {
-            if !w.is_taskbar { return false; }
+            if !w.is_taskbar {
+                return false;
+            }
 
             true
         })
-        .collect()
-    )
+        .collect())
 }
 
 pub fn get_all_windows() -> Result<Vec<Window>, String> {
@@ -359,10 +387,8 @@ pub fn get_all_windows() -> Result<Vec<Window>, String> {
     let ptr = Arc::as_ptr(&windows_vec);
 
     unsafe {
-        EnumWindows(
-            Some(enum_windows_proc),
-            LPARAM(ptr as isize),
-        ).map_err(|e| format!("Error during the windows enumeration:{e}"))?;
+        EnumWindows(Some(enum_windows_proc), LPARAM(ptr as isize))
+            .map_err(|e| format!("Error during the windows enumeration:{e}"))?;
     }
 
     let result = windows_vec.lock().unwrap().clone();
@@ -374,7 +400,9 @@ pub fn is_taskbar_window(hwnd: HWND) -> Result<bool, String> {
         let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32;
         let parent = GetParent(hwnd).unwrap_or(HWND::default());
 
-        Ok(IsWindowVisible(hwnd).as_bool() && parent.0.is_null() && (style & WS_EX_TOOLWINDOW.0) == 0)
+        Ok(IsWindowVisible(hwnd).as_bool()
+            && parent.0.is_null()
+            && (style & WS_EX_TOOLWINDOW.0) == 0)
     }
 }
 
@@ -390,9 +418,8 @@ fn force_window_style_refresh(hwnd: HWND) {
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
         );
     }
-} 
+}
 
-// Rendere il metodo generico che prende un HWND
 pub fn remove_titlebar(hwnd: HWND) {
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
@@ -427,7 +454,6 @@ pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
     }
     Ok(())
 }
-
 
 pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
     let mut workerw = HWND(null_mut());

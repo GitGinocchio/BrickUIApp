@@ -1,10 +1,18 @@
-use std::{ffi::{CStr, CString}};
-use windows::{Win32::{
-    Foundation::{CloseHandle, HANDLE, HWND, LPARAM}, System::Threading::{OpenProcess, PROCESS_NAME_FORMAT, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW}, UI::WindowsAndMessaging::{
-        EnumChildWindows, EnumWindows, FindWindowA, FindWindowExA, GetClassNameA, GetClassNameW
-    }
-}, core::{BOOL, PWSTR}};
+use std::ffi::{CStr, CString};
 use windows::core::PCSTR;
+use windows::{
+    Win32::{
+        Foundation::{CloseHandle, HANDLE, HWND, LPARAM},
+        System::Threading::{
+            OpenProcess, PROCESS_NAME_FORMAT, PROCESS_QUERY_LIMITED_INFORMATION,
+            QueryFullProcessImageNameW,
+        },
+        UI::WindowsAndMessaging::{
+            EnumChildWindows, EnumWindows, FindWindowA, FindWindowExA, GetClassNameA, GetClassNameW,
+        },
+    },
+    core::{BOOL, PWSTR},
+};
 
 pub fn dump_children(hwnd: HWND) -> Result<(), String> {
     fn recurse(hwnd: HWND, depth: usize) -> Result<(), String> {
@@ -29,13 +37,9 @@ pub fn dump_children(hwnd: HWND) -> Result<(), String> {
         }
 
         unsafe {
-            EnumChildWindows(
-                Some(hwnd),
-                Some(enum_proc),
-                LPARAM(depth as isize),
-            )
-            .ok()
-            .map_err(|e| format!("Error enumerating child windows: {e}"))?;
+            EnumChildWindows(Some(hwnd), Some(enum_proc), LPARAM(depth as isize))
+                .ok()
+                .map_err(|e| format!("Error enumerating child windows: {e}"))?;
         }
         Ok(())
     }
@@ -44,12 +48,9 @@ pub fn dump_children(hwnd: HWND) -> Result<(), String> {
 }
 
 pub fn get_process_exe_path(pid: u32) -> Result<String, String> {
-    let handle: HANDLE = unsafe { 
-        OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION, 
-            false, 
-            pid
-        ).map_err(|e| format!("Error obtaining process handle: {e}"))?
+    let handle: HANDLE = unsafe {
+        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+            .map_err(|e| format!("Error obtaining process handle: {e}"))?
     };
 
     if handle.is_invalid() {
@@ -59,32 +60,28 @@ pub fn get_process_exe_path(pid: u32) -> Result<String, String> {
     let mut buf = vec![0u16; 260];
     let mut size = buf.len() as u32;
 
-    unsafe { 
+    unsafe {
         QueryFullProcessImageNameW(
-            handle, 
-            PROCESS_NAME_FORMAT(0), 
-            PWSTR(buf.as_mut_ptr()), 
-            &mut size
-        ).map_err(|e| format!("Error obtaining FullProcessImageNameW: {e}"))?
+            handle,
+            PROCESS_NAME_FORMAT(0),
+            PWSTR(buf.as_mut_ptr()),
+            &mut size,
+        )
+        .map_err(|e| format!("Error obtaining FullProcessImageNameW: {e}"))?
     };
 
-    unsafe { 
-        CloseHandle(handle) 
-        .map_err(|e| format!("Error obtaining FullProcessImageNameW: {e}"))?
+    unsafe {
+        CloseHandle(handle).map_err(|e| format!("Error obtaining FullProcessImageNameW: {e}"))?
     };
 
     String::from_utf16(&buf[..size as usize]).map_err(|e| format!("Utf16 Error: {e}"))
 }
 
 pub fn is_explorer_process(pid: u32) -> Result<bool, String> {
-    let exe_path = get_process_exe_path(pid)
-        .map_err(|e| format!("Error obtaining process exe path: {e}"))?;
+    let exe_path =
+        get_process_exe_path(pid).map_err(|e| format!("Error obtaining process exe path: {e}"))?;
 
-    let exe_name = exe_path
-        .rsplit('\\')
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let exe_name = exe_path.rsplit('\\').next().unwrap_or("").to_lowercase();
 
     Ok(exe_name == "explorer.exe")
 }
@@ -143,7 +140,7 @@ pub fn find_childw(parent: HWND, class_name: &str) -> Result<Option<HWND>, Strin
 /// Trova tutte le Shell_TrayWnd attive
 pub fn find_all_shell_traywnds() -> Result<Vec<HWND>, String> {
     let mut results = Vec::new();
-    
+
     extern "system" fn enum_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
         unsafe {
             let mut buf = [0u8; 256];
@@ -159,11 +156,9 @@ pub fn find_all_shell_traywnds() -> Result<Vec<HWND>, String> {
         }
     }
 
-    unsafe { 
-        EnumWindows(
-            Some(enum_proc), 
-            LPARAM(&mut results as *mut _ as isize)
-        ).map_err(|e| format!("Error enumerating windows: {e}"))?
+    unsafe {
+        EnumWindows(Some(enum_proc), LPARAM(&mut results as *mut _ as isize))
+            .map_err(|e| format!("Error enumerating windows: {e}"))?
     }
 
     Ok(results)
@@ -172,8 +167,8 @@ pub fn find_all_shell_traywnds() -> Result<Vec<HWND>, String> {
 // Ricerca ricorsiva di una classe figlia
 pub fn find_childw_recursive(parent: HWND, target: &str) -> Result<Option<HWND>, String> {
     let result: Option<HWND> = None;
-    
-    extern "system" fn enum_proc(hwnd: HWND, lparam: LPARAM) ->  BOOL {
+
+    extern "system" fn enum_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
         unsafe {
             let (target, result_ptr) = &mut *(lparam.0 as *mut (&str, Option<HWND>));
             let mut buf = [0u8; 256];
@@ -186,13 +181,9 @@ pub fn find_childw_recursive(parent: HWND, target: &str) -> Result<Option<HWND>,
                 }
             }
 
-            EnumChildWindows(
-                Some(hwnd), 
-                Some(enum_proc), 
-                LPARAM(lparam.0)
-            )
-            .ok()
-            .map_err(|e| format!("Error enumerating child windows: {e}"));
+            EnumChildWindows(Some(hwnd), Some(enum_proc), LPARAM(lparam.0))
+                .ok()
+                .map_err(|e| format!("Error enumerating child windows: {e}"));
 
             BOOL(1)
         }
@@ -201,9 +192,9 @@ pub fn find_childw_recursive(parent: HWND, target: &str) -> Result<Option<HWND>,
 
     unsafe {
         EnumChildWindows(
-            Some(parent), 
-            Some(enum_proc), 
-            LPARAM(&mut data as *mut _ as isize)
+            Some(parent),
+            Some(enum_proc),
+            LPARAM(&mut data as *mut _ as isize),
         )
         .ok()
         .map_err(|e| format!("Error enumerating child windows: {e}"))?
@@ -211,8 +202,6 @@ pub fn find_childw_recursive(parent: HWND, target: &str) -> Result<Option<HWND>,
 
     Ok(data.1)
 }
-
-
 
 pub fn find_tray_toolbar_window() -> Result<HWND, String> {
     unsafe {
@@ -250,13 +239,8 @@ pub fn find_tray_toolbar_window() -> Result<HWND, String> {
 
         dump_children(tray_notify)?;
 
-        let sys_pager = FindWindowExA(
-            Some(tray_notify),
-            None,
-            PCSTR(b"SysPager\0".as_ptr()),
-            None,
-        )
-        .map_err(|e| format!("Error finding SysPager: {e}"))?;
+        let sys_pager = FindWindowExA(Some(tray_notify), None, PCSTR(b"SysPager\0".as_ptr()), None)
+            .map_err(|e| format!("Error finding SysPager: {e}"))?;
         if sys_pager.is_invalid() {
             return Err("SysPager not found".into());
         }
@@ -298,9 +282,5 @@ pub fn get_window_class(hwnd: HWND) -> Option<String> {
 }
 
 pub fn is_tauri_window(hwnd: HWND) -> Result<bool, String> {
-    get_window_class(hwnd)
-    .map_or(
-        Ok(false), 
-        |class_name| Ok(class_name.starts_with("Tauri"))
-    )
+    get_window_class(hwnd).map_or(Ok(false), |class_name| Ok(class_name.starts_with("Tauri")))
 }

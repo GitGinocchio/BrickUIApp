@@ -1,23 +1,26 @@
-use windows::Win32::UI::WindowsAndMessaging::{
-    SPI_SETWORKAREA, SPIF_SENDCHANGE, SPIF_SENDWININICHANGE, SPIF_UPDATEINIFILE, SWP_NOACTIVATE, SWP_NOZORDER, SetWindowPos, SystemParametersInfoW
-};
 use windows::Win32::Foundation::{HWND, RECT};
+use windows::Win32::UI::WindowsAndMessaging::{
+    SPI_SETWORKAREA, SPIF_SENDCHANGE, SPIF_SENDWININICHANGE, SPIF_UPDATEINIFILE, SWP_NOACTIVATE,
+    SWP_NOZORDER, SetWindowPos, SystemParametersInfoW,
+};
 
 use crate::winapi::taskbar::is_taskbar_autohide;
 use crate::winapi::window::get_monitor_taskbar_windows;
 use crate::winapi::{
     desktop::refresh_desktop_icons,
     rect::{OptionalRect, Rect},
-    taskbar::get_taskbar_rect
+    taskbar::get_taskbar_rect,
 };
 
-use super::{get_all_monitors, get_primary_monitor, Monitor};
+use super::{Monitor, get_all_monitors, get_primary_monitor};
 
 fn notify_all_monitor_windows(monitor: &Monitor) -> Result<(), String> {
     let mut windows = get_monitor_taskbar_windows(monitor)?;
 
     for window in &mut windows {
-        if window.is_self { continue; }
+        if window.is_self {
+            continue;
+        }
         if let Some(rect) = window.rect.as_mut() {
             let win_hwnd = HWND(window.hwnd as *mut _);
 
@@ -25,28 +28,28 @@ fn notify_all_monitor_windows(monitor: &Monitor) -> Result<(), String> {
             // e un redraw, in modo che la finestra si adatti alla nuova workarea
             unsafe {
                 match SetWindowPos(
-                    win_hwnd, 
-                    None, 
-                    rect.left, 
-                    rect.top, 
-                    rect.width() + 1, 
-                    rect.height(), 
-                    SWP_NOZORDER | SWP_NOACTIVATE
+                    win_hwnd,
+                    None,
+                    rect.left,
+                    rect.top,
+                    rect.width() + 1,
+                    rect.height(),
+                    SWP_NOZORDER | SWP_NOACTIVATE,
                 ) {
                     Ok(_) => (),
-                    Err(e) => eprintln!("Could not resize window: {e}")
+                    Err(e) => eprintln!("Could not resize window: {e}"),
                 };
                 match SetWindowPos(
-                    win_hwnd, 
-                    None, 
-                    rect.left, 
-                    rect.top, 
-                    rect.width(), 
-                    rect.height(), 
-                    SWP_NOZORDER | SWP_NOACTIVATE
+                    win_hwnd,
+                    None,
+                    rect.left,
+                    rect.top,
+                    rect.width(),
+                    rect.height(),
+                    SWP_NOZORDER | SWP_NOACTIVATE,
                 ) {
                     Ok(_) => (),
-                    Err(e) => eprintln!("Could not resize window: {e}")
+                    Err(e) => eprintln!("Could not resize window: {e}"),
                 };
             }
         }
@@ -93,7 +96,12 @@ fn apply_workarea(monitor: &Monitor, rect: &Rect) -> Result<Rect, String> {
             Some((&mut win_rect) as *mut _ as *mut _),
             SPIF_SENDWININICHANGE,
         )
-        .map_err(|e| format!("Error sending WININICHANGE for {}: {e}", monitor.device_name))?;
+        .map_err(|e| {
+            format!(
+                "Error sending WININICHANGE for {}: {e}",
+                monitor.device_name
+            )
+        })?;
     }
 
     // Refresh desktop e finestre massimizzate
@@ -134,17 +142,20 @@ pub fn reset_workareas() -> Result<(), String> {
 pub fn set_workarea(workarea: &Rect, monitor: Option<&Monitor>) -> Result<Rect, String> {
     let monitor = match monitor {
         Some(monitor) => monitor,
-        None => &get_primary_monitor()?
+        None => &get_primary_monitor()?,
     };
     let applied = apply_workarea(monitor, workarea)?;
 
     Ok(applied)
 }
 
-pub fn set_workarea_margins(margins: &OptionalRect, monitor: Option<&Monitor>) -> Result<Rect, String> {
+pub fn set_workarea_margins(
+    margins: &OptionalRect,
+    monitor: Option<&Monitor>,
+) -> Result<Rect, String> {
     let monitor = match monitor {
         Some(monitor) => monitor,
-        None => &get_primary_monitor()?
+        None => &get_primary_monitor()?,
     };
     let rect = monitor.workarea.apply_margins(margins, &monitor.rect);
     apply_workarea(monitor, &rect)

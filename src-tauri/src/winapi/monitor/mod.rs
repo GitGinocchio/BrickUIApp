@@ -1,7 +1,18 @@
 use std::{ffi::OsString, os::windows::ffi::OsStringExt};
 
 use serde::{Deserialize, Serialize};
-use windows::{core::{BOOL, PCWSTR}, Win32::{Foundation::{HWND, LPARAM, POINT, RECT}, Graphics::Gdi::{EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW, MonitorFromPoint, MonitorFromWindow, DISPLAY_DEVICEW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_FROM_FLAGS}, UI::WindowsAndMessaging::MONITORINFOF_PRIMARY}};
+use windows::{
+    Win32::{
+        Foundation::{HWND, LPARAM, POINT, RECT},
+        Graphics::Gdi::{
+            DISPLAY_DEVICEW, EnumDisplayDevicesW, EnumDisplayMonitors, GetMonitorInfoW, HDC,
+            HMONITOR, MONITOR_FROM_FLAGS, MONITORINFO, MONITORINFOEXW, MonitorFromPoint,
+            MonitorFromWindow,
+        },
+        UI::WindowsAndMessaging::MONITORINFOF_PRIMARY,
+    },
+    core::{BOOL, PCWSTR},
+};
 
 use crate::winapi::rect::{OptionalRect, Rect};
 
@@ -14,7 +25,7 @@ pub struct Monitor {
     pub workarea: Rect,
     pub device_name: String,
     pub friendly_name: Option<String>,
-    pub hmonitor: isize
+    pub hmonitor: isize,
 }
 
 impl TryFrom<HMONITOR> for Monitor {
@@ -29,7 +40,11 @@ impl TryFrom<HMONITOR> for Monitor {
                 .ok()
                 .map_err(|e| format!("Error obtaining monitor info: {e}"))?;
 
-            let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+            let len = info
+                .szDevice
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or(info.szDevice.len());
             let device_name = OsString::from_wide(&info.szDevice[..len])
                 .to_string_lossy()
                 .to_string();
@@ -59,13 +74,16 @@ impl TryFrom<HMONITOR> for Monitor {
 }
 
 enum MonitorTarget {
-    All(Vec<Monitor>),          // raccoglie tutti i monitor
-    Single {                     // cerca un monitor specifico
-        index: usize,           // o criterio qualsiasi
+    All(Vec<Monitor>), // raccoglie tutti i monitor
+    Single {
+        // cerca un monitor specifico
+        index: usize, // o criterio qualsiasi
         found: Option<Monitor>,
         current_index: usize,
     },
-    Primary { found: Option<Monitor> }
+    Primary {
+        found: Option<Monitor>,
+    },
 }
 
 unsafe extern "system" fn enum_monitors_proc(
@@ -111,7 +129,11 @@ unsafe extern "system" fn enum_monitors_proc(
             vec.push(monitor);
             BOOL(1)
         }
-        MonitorTarget::Single { index, current_index, found } => {
+        MonitorTarget::Single {
+            index,
+            current_index,
+            found,
+        } => {
             if *current_index == *index {
                 *found = Some(monitor);
                 return BOOL(-1);
@@ -142,13 +164,21 @@ pub fn get_monitor_friendly_name(device_name: &str) -> Option<String> {
     };
 
     // device_name: es. "\\\\.\\DISPLAY1"
-    let device_w: Vec<u16> = device_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let device_w: Vec<u16> = device_name
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
 
-    if unsafe { EnumDisplayDevicesW(PCWSTR(device_w.as_ptr()), 0, &mut display_device, 0).as_bool() } {
+    if unsafe {
+        EnumDisplayDevicesW(PCWSTR(device_w.as_ptr()), 0, &mut display_device, 0).as_bool()
+    } {
         // DeviceString è un [u16; 128] → convertilo in Rust String
         let friendly_name = String::from_utf16_lossy(
-            &display_device.DeviceString
-                [..display_device.DeviceString.iter().position(|&c| c == 0).unwrap_or(128)],
+            &display_device.DeviceString[..display_device
+                .DeviceString
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or(128)],
         );
         return Some(friendly_name);
     }
@@ -163,8 +193,10 @@ pub fn get_all_monitors() -> Result<Vec<Monitor>, String> {
             Some(HDC(std::ptr::null_mut())),
             Some(std::ptr::null()),
             Some(enum_monitors_proc),
-            LPARAM(&mut target as *mut _ as isize)
-        ).ok().map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
+            LPARAM(&mut target as *mut _ as isize),
+        )
+        .ok()
+        .map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
     };
 
     match target {
@@ -185,56 +217,67 @@ pub fn get_monitor(index: usize) -> Result<Monitor, String> {
             Some(HDC(std::ptr::null_mut())),
             Some(std::ptr::null()),
             Some(enum_monitors_proc),
-            LPARAM(&mut target as *mut _ as isize)
-        ).ok().map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
+            LPARAM(&mut target as *mut _ as isize),
+        )
+        .ok()
+        .map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
     };
 
     match target {
-        MonitorTarget::Single { found, .. } => found.ok_or_else(|| format!("Monitor with index {} not found", index)),
+        MonitorTarget::Single { found, .. } => {
+            found.ok_or_else(|| format!("Monitor with index {} not found", index))
+        }
         _ => unreachable!(),
     }
 }
 
 pub fn get_monitor_from_point(x: i32, y: i32) -> Result<Monitor, String> {
-        let pt = POINT { x, y };
-        let hmon: HMONITOR = unsafe { MonitorFromPoint(pt, MONITOR_FROM_FLAGS(0)) };
-        if hmon.0 == std::ptr::null_mut() {
-            return Err("No monitor found at the given point".into());
-        }
+    let pt = POINT { x, y };
+    let hmon: HMONITOR = unsafe { MonitorFromPoint(pt, MONITOR_FROM_FLAGS(0)) };
+    if hmon.0 == std::ptr::null_mut() {
+        return Err("No monitor found at the given point".into());
+    }
 
-        let mut miex = MONITORINFOEXW {
-            monitorInfo: MONITORINFO {
-                cbSize: size_of::<MONITORINFOEXW>() as u32,
-                ..Default::default()
-            },
-            szDevice: [0; 32],
-        };
+    let mut miex = MONITORINFOEXW {
+        monitorInfo: MONITORINFO {
+            cbSize: size_of::<MONITORINFOEXW>() as u32,
+            ..Default::default()
+        },
+        szDevice: [0; 32],
+    };
 
-        if !unsafe { GetMonitorInfoW(hmon, &mut miex.monitorInfo as *mut _ as *mut _).as_bool() } {
-            return Err("Failed to get monitor info".into());
-        }
+    if !unsafe { GetMonitorInfoW(hmon, &mut miex.monitorInfo as *mut _ as *mut _).as_bool() } {
+        return Err("Failed to get monitor info".into());
+    }
 
-        let mi = miex.monitorInfo;
-        let len = miex.szDevice.iter().position(|&c| c == 0).unwrap_or(miex.szDevice.len());
-        let device_name = String::from_utf16_lossy(&miex.szDevice[..len]);
-        let friendly_name = get_monitor_friendly_name(&device_name);
-        let is_primary = (mi.dwFlags & 1) != 0;
+    let mi = miex.monitorInfo;
+    let len = miex
+        .szDevice
+        .iter()
+        .position(|&c| c == 0)
+        .unwrap_or(miex.szDevice.len());
+    let device_name = String::from_utf16_lossy(&miex.szDevice[..len]);
+    let friendly_name = get_monitor_friendly_name(&device_name);
+    let is_primary = (mi.dwFlags & 1) != 0;
 
-        Ok(Monitor {
-            is_primary,
-            rect: mi.rcMonitor.into(),
-            workarea: mi.rcWork.into(),
-            device_name,
-            friendly_name,
-            hmonitor: hmon.0 as isize,
-        })
+    Ok(Monitor {
+        is_primary,
+        rect: mi.rcMonitor.into(),
+        workarea: mi.rcWork.into(),
+        device_name,
+        friendly_name,
+        hmonitor: hmon.0 as isize,
+    })
 }
 
 pub fn get_monitor_from_hwnd(hwnd: isize) -> Result<Monitor, String> {
     unsafe {
         // Ottieni handle del monitor più vicino alla finestra
         const MONITOR_DEFAULTTONEAREST: u32 = 2;
-        let hmonitor: HMONITOR = MonitorFromWindow(HWND(hwnd as *mut _), MONITOR_FROM_FLAGS(MONITOR_DEFAULTTONEAREST));
+        let hmonitor: HMONITOR = MonitorFromWindow(
+            HWND(hwnd as *mut _),
+            MONITOR_FROM_FLAGS(MONITOR_DEFAULTTONEAREST),
+        );
 
         if hmonitor.is_invalid() {
             return Err("Impossibile ottenere l'handle del monitor".into());
@@ -279,8 +322,10 @@ pub fn get_primary_monitor() -> Result<Monitor, String> {
             Some(HDC(std::ptr::null_mut())),
             Some(std::ptr::null()),
             Some(enum_monitors_proc),
-            LPARAM(&mut target as *mut _ as isize)
-        ).ok().map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
+            LPARAM(&mut target as *mut _ as isize),
+        )
+        .ok()
+        .map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
     };
 
     match target {
@@ -297,12 +342,16 @@ pub fn get_primary_hmonitor() -> Result<isize, String> {
             Some(HDC(std::ptr::null_mut())),
             Some(std::ptr::null()),
             Some(enum_monitors_proc),
-            LPARAM(&mut target as *mut _ as isize)
-        ).ok().map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
+            LPARAM(&mut target as *mut _ as isize),
+        )
+        .ok()
+        .map_err(|e| format!("EnumDisplayMonitors fallita: {e}"))?
     };
 
     match target {
-        MonitorTarget::Primary { found } => found.and_then(|monitor| Some(monitor.hmonitor)).ok_or_else(|| "Primary monitor not found".into()),
+        MonitorTarget::Primary { found } => found
+            .and_then(|monitor| Some(monitor.hmonitor))
+            .ok_or_else(|| "Primary monitor not found".into()),
         _ => unreachable!(),
     }
 }

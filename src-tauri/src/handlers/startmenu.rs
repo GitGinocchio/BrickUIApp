@@ -2,11 +2,6 @@ use tauri::{AppHandle, Manager};
 
 use crate::winapi::startmenu::favorites::Favorites;
 
-
-
-
-
-
 #[tauri::command]
 pub fn open_start_menu() -> Result<(), String> {
     crate::winapi::startmenu::open_start_menu();

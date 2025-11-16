@@ -7,7 +7,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use windows::Win32::{Foundation::HWND};
+use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::WindowsAndMessaging::{
     GWL_STYLE, GetWindowLongPtrW, WS_CAPTION, WS_THICKFRAME,
 };

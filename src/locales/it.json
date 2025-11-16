@@ -1,6 +1,8 @@
 {
     "bricks" : "Blocchi",
+    "walls" : "Muri",
     "edit" : "Modifica",
+    "user" : "Utente",
     "delete" : "Elimina",
     "duplicate" : "Duplica",
     "description" : "Descrizione",

@@ -70,12 +70,13 @@ export function simulateFakeMousePressed(event: {
 }
 
 export function simulateFakeMouseMoved(element: Element, x: number, y: number) {
-  const event = new MouseEvent("mousemove", {
-    clientX: x,
-    clientY: y,
-    bubbles: true,
-    cancelable: true,
+  ["mousemove", "mouseover"].forEach((type) => {
+    const event = new MouseEvent(type, {
+      clientX: x,
+      clientY: y,
+      bubbles: true,
+      cancelable: true,
+    });
+    (element ?? document).dispatchEvent(event);
   });
-
-  (element ?? document).dispatchEvent(event);
 }

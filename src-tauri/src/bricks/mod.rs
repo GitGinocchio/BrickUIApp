@@ -2,10 +2,10 @@ pub mod brick;
 pub mod props;
 
 use fs_extra::dir::{CopyOptions, copy};
-use zip::ZipArchive;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
+use zip::ZipArchive;
 use zip::write::SimpleFileOptions;
 
 use crate::bricks::brick::Brick;
@@ -190,8 +190,8 @@ fn entry_relative_path<'a>(path: &'a PathBuf, base_path: &'a PathBuf) -> String 
 pub fn pack_brick(path: &PathBuf, brick_name: String, output_path: &PathBuf) -> Result<(), String> {
     let brick_path = path.join("bricks").join(&brick_name);
 
-    let file = File::create(output_path)
-        .map_err(|e| format!("Error while creating .brick file: {e}"))?;
+    let file =
+        File::create(output_path).map_err(|e| format!("Error while creating .brick file: {e}"))?;
 
     let mut zip = zip::ZipWriter::new(file);
 
@@ -207,14 +207,14 @@ pub fn pack_brick(path: &PathBuf, brick_name: String, output_path: &PathBuf) -> 
 }
 
 pub fn unpack_brick(input_path: &PathBuf, output_dir: &PathBuf) -> Result<(), String> {
-    let file = File::open(input_path)
-        .map_err(|e| format!("Error opening .brick file: {e}"))?;
+    let file = File::open(input_path).map_err(|e| format!("Error opening .brick file: {e}"))?;
 
-    let mut archive = ZipArchive::new(file)
-        .map_err(|e| format!("Error reading zip archive: {e}"))?;
-    
+    let mut archive =
+        ZipArchive::new(file).map_err(|e| format!("Error reading zip archive: {e}"))?;
+
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i)
+        let mut file = archive
+            .by_index(i)
             .map_err(|e| format!("Error accessing file in archive: {e}"))?;
 
         let outpath = output_dir.join(file.name());

@@ -1,16 +1,21 @@
-use windows::core::{PCWSTR};
-use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, SendMessageTimeoutW, WM_SETTINGCHANGE, SMTO_ABORTIFHUNG};
 use windows::Win32::Foundation::{LPARAM, WPARAM};
+use windows::Win32::UI::WindowsAndMessaging::{
+    FindWindowW, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE,
+};
+use windows::core::PCWSTR;
 
 pub fn refresh_desktop_icons() -> Result<(), String> {
-    let progman = unsafe { 
+    let progman = unsafe {
         FindWindowW(
-            PCWSTR::from_raw("Progman\0".encode_utf16().collect::<Vec<u16>>().as_ptr()), 
-            None
-        ).ok()
+            PCWSTR::from_raw("Progman\0".encode_utf16().collect::<Vec<u16>>().as_ptr()),
+            None,
+        )
+        .ok()
     };
 
-    if let Some(hwnd) = progman && !hwnd.is_invalid() {
+    if let Some(hwnd) = progman
+        && !hwnd.is_invalid()
+    {
         let mut result: usize = 0;
         unsafe {
             SendMessageTimeoutW(

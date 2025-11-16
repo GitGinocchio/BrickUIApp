@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
+    env,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
     sync::Arc,
-    env,
 };
 use tokio::sync::Mutex;
 use windows::Win32::UI::Shell::{
@@ -202,8 +202,7 @@ pub fn get_icon(
 
     std::fs::create_dir_all(icon_cache_dir)
         .map_err(|e| format!("Error creating cache dir: {e}"))?;
-    std::fs::write(&icon_path, &png_bytes)
-        .map_err(|e| format!("Error writing PNG file: {e}"))?;
+    std::fs::write(&icon_path, &png_bytes).map_err(|e| format!("Error writing PNG file: {e}"))?;
 
     let now = chrono::Local::now();
     icons_map.entries.insert(
@@ -230,7 +229,10 @@ pub async fn get_icon_async(
     let cached_path = {
         if let Some(entry) = icons_map.entries.get_mut(&key) {
             let cached_icon_path = icon_cache_dir.join(format!("{}.png", entry.hash));
-            if tokio::fs::try_exists(&cached_icon_path).await.map_err(|e| e.to_string())? {
+            if tokio::fs::try_exists(&cached_icon_path)
+                .await
+                .map_err(|e| e.to_string())?
+            {
                 Some(cached_icon_path)
             } else {
                 None
@@ -248,13 +250,19 @@ pub async fn get_icon_async(
 
     let png_bytes = match tokio::task::spawn_blocking(move || {
         extract_icon_png_bytes(&file_path_clone, icon_index)
-    }).await {
+    })
+    .await
+    {
         Ok(Ok(bytes)) => bytes,
         Ok(Err(e)) => {
             eprintln!("Failed to extract icon for {:?}: {}", file_path, e);
             return Ok(None);
-        },
-        Err(e) => return Err(format!("Error in spawn_blocking while extracting icon png bytes: {e}"))
+        }
+        Err(e) => {
+            return Err(format!(
+                "Error in spawn_blocking while extracting icon png bytes: {e}"
+            ));
+        }
     };
 
     let mut hasher = Sha256::new();
@@ -297,7 +305,13 @@ fn extract_icon_png_bytes(file_path: &Path, icon_index: Option<i32>) -> Result<V
         // If an explicit icon index was supplied (e.g. shell32.dll,3) prefer ExtractIconExW
         if let Some(idx) = icon_index {
             unsafe {
-                ExtractIconExW(PCWSTR(path_utf16.as_ptr()), idx, Some(&mut large_icon), None, 1);
+                ExtractIconExW(
+                    PCWSTR(path_utf16.as_ptr()),
+                    idx,
+                    Some(&mut large_icon),
+                    None,
+                    1,
+                );
             }
         } else {
             let mut sfi = SHFILEINFOW::default();
@@ -314,7 +328,13 @@ fn extract_icon_png_bytes(file_path: &Path, icon_index: Option<i32>) -> Result<V
                 large_icon = sfi.hIcon;
             } else {
                 unsafe {
-                    ExtractIconExW(PCWSTR(path_utf16.as_ptr()), 0, Some(&mut large_icon), None, 1);
+                    ExtractIconExW(
+                        PCWSTR(path_utf16.as_ptr()),
+                        0,
+                        Some(&mut large_icon),
+                        None,
+                        1,
+                    );
                 }
             }
         }
@@ -403,8 +423,12 @@ pub fn hicon_to_png_bytes(hicon: HICON) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Error writing PNG: {e}"))?;
 
     unsafe {
-        DeleteObject(icon_info.hbmColor.into()).ok().map_err(|e| format!("{e}"))?;
-        DeleteObject(icon_info.hbmMask.into()).ok().map_err(|e| format!("{e}"))?;
+        DeleteObject(icon_info.hbmColor.into())
+            .ok()
+            .map_err(|e| format!("{e}"))?;
+        DeleteObject(icon_info.hbmMask.into())
+            .ok()
+            .map_err(|e| format!("{e}"))?;
         DestroyIcon(hicon).map_err(|e| format!("{e}"))?;
     }
 

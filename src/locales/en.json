@@ -1,6 +1,8 @@
 {
     "bricks" : "Bricks",
+    "walls" : "Walls",
     "edit" : "Edit",
+    "user" : "User",
     "delete" : "Delete",
     "duplicate" : "Duplicate",
     "description" : "Description",

@@ -1,15 +1,13 @@
 use crate::{
-    config::settings::TaskBarBehavior,
-    state::BrickUIState,
-    winapi::taskbar::hide_taskbar,
+    config::settings::TaskBarBehavior, state::BrickUIState, winapi::taskbar::hide_taskbar,
 };
 use crossbeam::channel;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
+use tokio::sync::Mutex;
 
-mod mouse;
 mod keyboard;
+mod mouse;
 mod window;
 
 #[derive(Debug, Clone)]
@@ -77,13 +75,19 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
                     let _ = app_handle_clone.emit_to("overlay", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown { x, y, button } => {
-                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_pressed", (x, y, button));
+                    let _ =
+                        app_handle_clone.emit_to("overlay", "global_mouse_pressed", (x, y, button));
                 }
                 GlobalEvent::MouseButtonUp { x, y, button } => {
-                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_released", (x, y, button));
+                    let _ = app_handle_clone.emit_to(
+                        "overlay",
+                        "global_mouse_released",
+                        (x, y, button),
+                    );
                 }
                 GlobalEvent::MouseWheel { x, y, notches } => {
-                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
+                    let _ =
+                        app_handle_clone.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
                 }
                 GlobalEvent::KeyDown(key) => {
                     let _ = app_handle_clone.emit_to("overlay", "global_key_pressed", key);

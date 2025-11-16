@@ -1,6 +1,6 @@
-use tokio::sync::Mutex;
 use std::sync::Arc;
 use tauri::{Emitter, Manager, WindowEvent};
+use tokio::sync::Mutex;
 
 mod state;
 use state::BrickUIState;
@@ -14,14 +14,13 @@ use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
 //use crate::winapi::window::{remove_titlebar, set_window_topmost};
 
 mod config;
-use crate::config::settings::{TaskBarBehavior};
+use crate::config::settings::TaskBarBehavior;
 
 mod bricks;
 
 mod handlers;
 use crate::handlers::generate_handlers;
 use crate::winapi::monitor::workarea::reset_workareas;
-use crate::winapi::window::utils::get_window_class;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,8 +31,8 @@ pub fn run() {
     }
     */
 
-    // Aggiungi i plugin dopo l'inizializzazione dello stato
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             initialize_com()?;
 
@@ -61,7 +60,11 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_blec::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -80,19 +83,24 @@ pub fn run() {
             if let Some(slice) = args.get(1..) {
                 let bricks: Option<(&String, String)> = slice
                     .iter()
-                    .filter(|f| f.ends_with(".brick") ||
-                                f.ends_with(".brk") ||
-                                f.ends_with(".brck") ||
-                                f.ends_with(".bk")
-                    )
-                    .map(|b| (b, b.split("\\")
-                                    .last()
-                                    .unwrap_or("Brick")
-                                    .split(".")
-                                    .next()
-                                    .unwrap_or("Brick")
-                                    .to_string())
-                    )
+                    .filter(|f| {
+                        f.ends_with(".brick")
+                            || f.ends_with(".brk")
+                            || f.ends_with(".brck")
+                            || f.ends_with(".bk")
+                    })
+                    .map(|b| {
+                        (
+                            b,
+                            b.split("\\")
+                                .last()
+                                .unwrap_or("Brick")
+                                .split(".")
+                                .next()
+                                .unwrap_or("Brick")
+                                .to_string(),
+                        )
+                    })
                     .last();
 
                 println!("{bricks:?}");
@@ -105,7 +113,9 @@ pub fn run() {
         }))
         .invoke_handler(generate_handlers())
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event && window.label() == "main" {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+            {
                 api.prevent_close();
 
                 let app_handle = window.app_handle();
@@ -114,9 +124,12 @@ pub fn run() {
 
                 let (settings, backup) = tauri::async_runtime::block_on(async {
                     let state_guard = state.lock().await;
-                    (state_guard.get_settings().clone(), state_guard.get_backup().clone())
+                    (
+                        state_guard.get_settings().clone(),
+                        state_guard.get_backup().clone(),
+                    )
                 });
-                
+
                 if settings.systemtray.enabled && settings.systemtray.hidetaskbaricon {
                     if let Some(window) = app_handle.get_window(&window_label) {
                         window.hide().expect("Error hiding main window:");
@@ -139,14 +152,13 @@ pub fn run() {
                 reset_workareas().unwrap();
                 if settings.taskbar.behavior != TaskBarBehavior::Show {
                     show_taskbar(app_handle).expect("Error showing taskbar:");
-                    //reset_taskbar().expect("Error restoring taskbar:");
                 }
 
                 restore_cursors(&backup.cursors).expect("Error restoring cursors:");
                 uninitialize_com();
 
-                app_handle.cleanup_before_exit();
-                
+                //app_handle.cleanup_before_exit();
+
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                     std::process::exit(0);
@@ -154,5 +166,5 @@ pub fn run() {
             }
         })
         .run(context)
-        .expect("error while running tauri application");
+        .expect("error while running brickui application");
 }

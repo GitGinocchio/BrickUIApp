@@ -1,11 +1,15 @@
 use std::path::PathBuf;
 use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, CoCreateInstance};
 use windows::Win32::System::Variant::VARIANT;
-use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationElement, TreeScope_Descendants, UIA_ButtonControlTypeId, UIA_ControlTypePropertyId, UIA_CustomControlTypeId, UIA_ToolTipControlTypeId};
+use windows::Win32::UI::Accessibility::{
+    CUIAutomation, IUIAutomation, IUIAutomationElement, TreeScope_Descendants,
+    UIA_ButtonControlTypeId, UIA_ControlTypePropertyId, UIA_CustomControlTypeId,
+    UIA_ToolTipControlTypeId,
+};
+use windows::Win32::UI::WindowsAndMessaging::FindWindowA;
 use windows::core::{BSTR, PCSTR};
-use windows::Win32::UI::WindowsAndMessaging::{FindWindowA};
 
-use crate::winapi::icons::{IconsMap};
+use crate::winapi::icons::IconsMap;
 use crate::winapi::rect::Rect;
 //use crate::config::{save_yaml, save_yaml_async};
 
@@ -14,7 +18,7 @@ pub struct TrayIcon {
     pub pid: i32,
     pub name: String,
     pub tooltip: String,
-    pub rect: Rect
+    pub rect: Rect,
 }
 
 pub fn get_tray_icons(
@@ -43,13 +47,12 @@ pub fn get_tray_icons(
         SHAppBarMessage(ABM_SETSTATE, &mut abd);
         */
 
-        let automation: IUIAutomation = CoCreateInstance(
-            &CUIAutomation,
-            None,
-            CLSCTX_INPROC_SERVER,
-        ).map_err(|e| format!("Error creating UIAutomation instance: {e}"))?;
+        let automation: IUIAutomation =
+            CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER)
+                .map_err(|e| format!("Error creating UIAutomation instance: {e}"))?;
 
-        let root: IUIAutomationElement = automation.ElementFromHandle(shell)
+        let root: IUIAutomationElement = automation
+            .ElementFromHandle(shell)
             .map_err(|e| format!("Error obtaining Shell_TrayWnd element: {e}"))?;
 
         // 1️⃣ Raccogli tutte le icone (Button o Custom)
@@ -68,14 +71,10 @@ pub fn get_tray_icons(
         let icon_elements = root
             .FindAll(TreeScope_Descendants, &cond_icons)
             .map_err(|e| format!("{e}"))?;
-        let icon_count = icon_elements
-            .Length()
-            .map_err(|e| format!("{e}"))?;
+        let icon_count = icon_elements.Length().map_err(|e| format!("{e}"))?;
 
         for i in 0..icon_count {
-            let element = icon_elements
-                .GetElement(i)
-                .map_err(|e| format!("{e}"))?;
+            let element = icon_elements.GetElement(i).map_err(|e| format!("{e}"))?;
 
             let pid = element.CurrentProcessId().map_err(|e| format!("{e}"))?;
             let name: BSTR = element.CurrentName().unwrap_or_default();
@@ -104,15 +103,11 @@ pub fn get_tray_icons(
         let tt_elements = root
             .FindAll(TreeScope_Descendants, &cond_tt)
             .map_err(|e| format!("{e}"))?;
-        let tt_count = tt_elements
-            .Length()
-            .map_err(|e| format!("{e}"))?;
+        let tt_count = tt_elements.Length().map_err(|e| format!("{e}"))?;
 
         // 3️⃣ Abbina tooltip all’icona più vicina (geometria)
         for j in 0..tt_count {
-            let tt_elem = tt_elements
-                .GetElement(j)
-                .map_err(|e| format!("{e}"))?;
+            let tt_elem = tt_elements.GetElement(j).map_err(|e| format!("{e}"))?;
             let tt_name: BSTR = tt_elem.CurrentName().unwrap_or_default();
             let tt_text = tt_name.to_string();
             if tt_text.is_empty() {
@@ -126,7 +121,7 @@ pub fn get_tray_icons(
             for (idx, icon) in results.iter().enumerate() {
                 let dx = (icon.rect.left - tt_rect.left).abs() as f64;
                 let dy = (icon.rect.top - tt_rect.top).abs() as f64;
-                let dist = (dx*dx + dy*dy).sqrt();
+                let dist = (dx * dx + dy * dy).sqrt();
                 if dist < min_dist {
                     min_dist = dist;
                     best_idx = Some(idx);

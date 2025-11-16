@@ -13,6 +13,13 @@ const allowedCommands = new Set<string>([
   "get_active_taskbar_apps",
   "get_pinned_taskbar_apps",
 
+  // Bluetooth
+  "bluetooth_scan",
+  "bluetooth_classic_scan",
+  //"get_default_adapter",
+  //"get_adapters",
+  //"get_devices",
+
   // Taskbar / Tray icons
   //"get_tray_icons",
 
@@ -26,7 +33,7 @@ const allowedCommands = new Set<string>([
   // Cursors
   "hide_all_cursors",
   "restore_all_cursors",
-
+ 
   // Window
   "get_maximized_window_for_monitor",
   "get_maximized_windows",

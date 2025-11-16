@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
-use winreg::enums::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use windows::Win32::UI::WindowsAndMessaging::{SPI_SETCURSORS, SystemParametersInfoW};
 use winreg::RegKey;
-use windows::Win32::UI::WindowsAndMessaging::{SystemParametersInfoW, SPI_SETCURSORS};
+use winreg::enums::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, JsonSchema)]
 pub enum CursorType {
@@ -21,7 +21,7 @@ pub enum CursorType {
     SizeNS,
     SizeNWSE,
     SizeWE,
-    UpArrow
+    UpArrow,
 }
 
 impl CursorType {
@@ -68,11 +68,12 @@ impl CursorType {
 fn apply_cursor_changes() -> Result<(), String> {
     unsafe {
         SystemParametersInfoW(
-            SPI_SETCURSORS, 
-            0, 
-            None, 
-            windows::Win32::UI::WindowsAndMessaging::SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)
-        ).map_err(|e| format!("Error while applying cursor changes: {e}"))?;
+            SPI_SETCURSORS,
+            0,
+            None,
+            windows::Win32::UI::WindowsAndMessaging::SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        )
+        .map_err(|e| format!("Error while applying cursor changes: {e}"))?;
     }
 
     Ok(())

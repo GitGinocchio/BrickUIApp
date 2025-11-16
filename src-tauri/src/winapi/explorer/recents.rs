@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 use std::{fs, path::PathBuf, sync::Arc};
+use tokio::sync::Mutex;
 use windows::Win32::{
     System::Com::CoTaskMemFree,
     UI::Shell::{Common::ITEMIDLIST, SHGetNameFromIDList, SIGDN_NORMALDISPLAY},
@@ -156,7 +156,8 @@ pub async fn get_explorer_recents(
                 icons_map,
                 max_files,
             )
-            .await? {
+            .await?
+            {
                 Some(cached_icon_path) => cached_icon_path,
                 None => icon_path,
             };

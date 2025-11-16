@@ -26,7 +26,10 @@ export async function loadVueModuleToCJS(
   // 1. Fa il parse del file .vue
   const parsed = parse(source, { filename: componentPath });
   const descriptor = parsed.descriptor;
-  const id = btoa(componentPath);
+  const id = btoa(componentPath)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 
   const imports = extractImports(descriptor);
   
@@ -117,7 +120,7 @@ export async function loadVueModuleToCJS(
     errors.push(...css.errors);
 
     if (css.code) {
-      const code = processStyle(css.code, 'css', dirname(componentPath));
+      const code = processStyle(css.code, 'css', dirname(componentPath), id);
       const styleEl = document.createElement('style');
       styleEl.textContent = code;
       document.head.appendChild(styleEl);
@@ -129,6 +132,8 @@ export async function loadVueModuleToCJS(
     ${scriptContent}
     ${renderCode}
     if (typeof render !== 'undefined') __script.render = render;
+
+    __script.__scopeId = "data-v-${id}";
 
     ${brick !== null ? `
     __script.__brickContext = {
@@ -144,16 +149,7 @@ export async function loadVueModuleToCJS(
 
     module.exports = { 
       default: __script, 
-      render: __script.render,
-      ${/* componentPath !== brickFilePath 
-          ? Object.entries(bindings)
-              .map(([entry, type]) => {
-                if (type === "setup-ref") return;
-                return `${entry}:${entry},`;
-              })
-              .join("\n") 
-          : '' 
-      */''}
+      render: __script.render
     };
   `;
 

@@ -1,11 +1,9 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use tauri::{State};
+use tauri::State;
 
 use crate::{config::settings::Settings, state::BrickUIState};
-
-
 
 #[tauri::command(async)]
 pub async fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, String> {

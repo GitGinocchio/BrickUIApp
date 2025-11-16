@@ -1,9 +1,9 @@
+pub mod backup;
 pub mod plugins;
 pub mod settings;
-pub mod backup;
 
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -25,9 +25,10 @@ where
 
 pub fn save_yaml<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
-    T: Serialize
+    T: Serialize,
 {
-    let contents = serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
+    let contents =
+        serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
 
     // Ensure parent dir exists
     if let Some(parent) = path.parent() {
@@ -69,9 +70,10 @@ where
 
 pub async fn save_yaml_async<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
-    T: Serialize
+    T: Serialize,
 {
-    let contents = serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
+    let contents =
+        serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
 
     if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent)
@@ -99,7 +101,10 @@ where
     match tokio::fs::rename(&tmp_path, path).await {
         Ok(()) => Ok(()),
         Err(_) => {
-            if tokio::fs::try_exists(path).await.map_err(|e| e.to_string())? {
+            if tokio::fs::try_exists(path)
+                .await
+                .map_err(|e| e.to_string())?
+            {
                 tokio::fs::remove_file(path)
                     .await
                     .map_err(|e| format!("Failed to remove existing file {:?}: {e}", path))?;

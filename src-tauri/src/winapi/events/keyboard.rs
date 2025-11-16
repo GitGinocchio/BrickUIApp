@@ -30,9 +30,7 @@ pub async fn init_hook<R: tauri::Runtime>(
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
     let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
-    let state_guard = state
-        .lock()
-        .await;
+    let state_guard = state.lock().await;
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
     SETTINGS
         .set(state_guard.get_settings().clone())

@@ -1,6 +1,8 @@
-use std::{collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf, sync::Arc};
-use tokio::sync::Mutex;
 use futures::stream::{FuturesUnordered, StreamExt};
+use std::{
+    collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf, sync::Arc,
+};
+use tokio::sync::Mutex;
 use windows::{
     Win32::{Foundation::*, System::Threading::*, UI::WindowsAndMessaging::*},
     core::{BOOL, PWSTR},
@@ -181,7 +183,8 @@ async fn collect_pinned_taskbar_apps(
                         None => &exe,
                     };
 
-                    let (icon_pathbuf, icon_index) = crate::winapi::icons::parse_icon_location(icon_location);
+                    let (icon_pathbuf, icon_index) =
+                        crate::winapi::icons::parse_icon_location(icon_location);
 
                     let icon = crate::winapi::icons::get_icon_async(
                         &icon_pathbuf,
@@ -219,8 +222,7 @@ pub async fn get_taskbar_apps(
     icons_map: &mut IconsMap,
 ) -> Vec<App> {
     let results: HashMap<String, App> =
-        collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map)
-        .await;
+        collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map).await;
     collect_active_taskbar_apps(icon_cache_dir, max_files, Some(results), icons_map)
         .await
         .into_values()

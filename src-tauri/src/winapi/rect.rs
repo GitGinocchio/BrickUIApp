@@ -3,14 +3,22 @@ use std::ops::{Add, Sub};
 use serde::{Deserialize, Serialize};
 use windows::Win32::Foundation::RECT;
 
-
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    Default
+)]
 pub struct Rect {
-    pub left: i32, 
+    pub left: i32,
     pub right: i32,
     pub top: i32,
-    pub bottom: i32
+    pub bottom: i32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
@@ -38,10 +46,18 @@ impl OptionalRect {
 
     /// Applica i valori presenti a un Rect esistente
     pub fn apply_to(&self, base: &mut Rect) {
-        if let Some(l) = self.left { base.left = l; }
-        if let Some(r) = self.right { base.right = r; }
-        if let Some(t) = self.top { base.top = t; }
-        if let Some(b) = self.bottom { base.bottom = b; }
+        if let Some(l) = self.left {
+            base.left = l;
+        }
+        if let Some(r) = self.right {
+            base.right = r;
+        }
+        if let Some(t) = self.top {
+            base.top = t;
+        }
+        if let Some(b) = self.bottom {
+            base.bottom = b;
+        }
     }
 
     /// Crea un Rect completo usando valori di default per i campi None
@@ -56,8 +72,12 @@ impl OptionalRect {
 }
 
 impl Rect {
-    pub fn width(&self) -> i32 { self.right - self.left }
-    pub fn height(&self) -> i32 { self.bottom - self.top }
+    pub fn width(&self) -> i32 {
+        self.right - self.left
+    }
+    pub fn height(&self) -> i32 {
+        self.bottom - self.top
+    }
 
     /// Applica margini rispetto al Rect originale.
     /// - Some(v) → usa v
@@ -73,10 +93,10 @@ impl Rect {
 
     /// Controlla se `self` sia all'interno di `other`
     pub fn is_inside(&self, other: &Rect) -> bool {
-        self.left >= other.left &&
-        self.top >= other.top &&
-        self.right <= other.right &&
-        self.bottom <= other.bottom
+        self.left >= other.left
+            && self.top >= other.top
+            && self.right <= other.right
+            && self.bottom <= other.bottom
     }
 
     /// Sposta i lati del rect per farli rientrare in `other`.
