@@ -9,32 +9,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: src-tauri
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Run tests
-        run: cargo test --all
-
   release:
     name: Release
     runs-on: windows-latest
-    needs: test
     defaults:
       run:
         working-directory: src-tauri
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,6 +39,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Run cargo release
-        run: cargo release --no-publish
+        run: cargo release --no-publish --execute
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}

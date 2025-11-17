@@ -123,6 +123,21 @@
   "bundle": {
     "active": true,
     "targets": ["msi","nsis"],
+
+    "windows": {
+      "allowDowngrades": false,
+      "certificateThumbprint": null,
+      "digestAlgorithm": null,
+      "nsis": null,
+      "signCommand": null,
+      "timestampUrl": null,
+      "tsp": false,
+      "webviewInstallMode": {
+        "silent": true,
+        "type": "downloadBootstrapper"
+      },
+      "wix": null
+    },
     "resources" : [
       "./assets"
     ],
