@@ -43,6 +43,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Run cargo release
-        run: cargo release patch --no-publish --execute
+        run: cargo release --no-publish --execute --no-confirm
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
