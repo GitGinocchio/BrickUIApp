@@ -24,6 +24,9 @@ opt-level = 3 # Prioritizes small binary size (`"s"`). Use `3` if you prefer spe
 panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
+[dev-dependencies]
+cargo-release = "0.25.20"
+
 [build-dependencies]
 tauri-build = { version = "2.5.1", features = [ "codegen" ] }
 
@@ -45,21 +48,24 @@ serde_yaml = "0.9.34"
 schemars = "1.1.0"
 
 windows = { version = "0.61.1", features = [
+    "Win32_Foundation",
+
+    "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_WindowsProgramming",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
+    "Win32_System_Registry",
+    "Win32_System_Com",
+
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Input_KeyboardAndMouse",
-    "Win32_System_Diagnostics_Debug",
-    "Win32_System_Registry",
-    "Win32_Foundation",
     "Win32_UI_Shell_Common",
     "Win32_UI_Accessibility",
     "Win32_UI_Input",
-    "Win32_System_Threading",
-    "Win32_System_Diagnostics_ToolHelp",
-    "Win32_System_Com",
+    "Win32_UI_Shell",
+
     "Win32_Graphics_Gdi",
     "Win32_Storage_FileSystem",
-    "Win32_UI_Shell",
 
     "Win32_Devices_Bluetooth",
     "Win32_Devices_Enumeration",

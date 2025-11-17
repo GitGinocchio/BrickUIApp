@@ -1,4 +1,5 @@
-# Usa Conventional Commits per decidere il bump
-conventional-commits = true
 push = true
 tag = true
+tag-name = "v{{version}}"
+
+pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}" ]
