@@ -26,12 +26,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install git-cliff
-        shell: bash
-        run: cargo install git-cliff
+      - name: Set up git-cliff
+        uses: kenji-miyake/setup-git-cliff@v2
 
-      - name: Install cargo-release
-        run: cargo install cargo-release --version "^0.25"
+      - name: Install (binary) cargo-release
+        run: cargo binstall cargo-release --version "^0.25"
 
       - name: Set up Git user
         run: |
