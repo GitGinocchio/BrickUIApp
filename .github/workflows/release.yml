@@ -32,8 +32,12 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install cargo-release
-        run: cargo install cargo-release --version "^0.25"
+      - name: Install cargo-release if missing
+        run: |
+          if ! command -v cargo-release >/dev/null 2>&1; then
+            cargo install cargo-release --version "^0.25"
+          fi
+
 
       - name: Set up git-cliff
         uses: kenji-miyake/setup-git-cliff@v2
