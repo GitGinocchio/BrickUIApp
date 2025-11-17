@@ -1,4 +1,3 @@
-[release]
 # Usa Conventional Commits per decidere il bump
 conventional-commits = true
 push = true
