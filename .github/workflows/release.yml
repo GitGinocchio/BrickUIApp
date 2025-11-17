@@ -30,7 +30,7 @@ jobs:
         uses: kenji-miyake/setup-git-cliff@v2
 
       - name: Install (binary) cargo-release
-        run: cargo binstall cargo-release --version "^0.25"
+        run: cargo install cargo-release --version "^0.25"
 
       - name: Set up Git user
         run: |
