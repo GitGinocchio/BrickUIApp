@@ -45,8 +45,12 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install git-cliff
+        shell: bash
+        run: cargo install git-cliff
+
       - name: Install cargo-release
-        run: cargo install cargo-release
+        run: cargo install cargo-release --version "^0.25"
 
       - name: Set up Git user
         run: |
