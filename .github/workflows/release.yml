@@ -16,6 +16,7 @@ jobs:
     if: ${{ github.repository_owner == 'BrickUIApp' }}
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - &checkout
         name: Checkout repository
