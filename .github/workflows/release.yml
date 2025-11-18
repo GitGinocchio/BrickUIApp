@@ -8,49 +8,50 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-permissions:
-  contents: write
-
 jobs:
-  release:
-    name: Release
+  # Release unpublished packages.
+  create-release:
+    name: Create release
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src-tauri
-
+    if: ${{ github.repository_owner == 'BrickUIApp' }}
+    permissions:
+      contents: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Cache cargo bin
-        uses: actions/cache@v3
+      - &checkout
+        name: Checkout repository
+        uses: actions/checkout@v5
         with:
-          path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-bin-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.7
+          fetch-depth: 0
+          persist-credentials: false
+      - &install-rust
+        name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
         with:
-          toolchain: stable
-          override: true
-
-      - name: Install cargo-release if missing
-        run: |
-          if ! command -v cargo-release >/dev/null 2>&1; then
-            cargo install cargo-release --version "^0.25"
-          fi
-
-
-      - name: Set up git-cliff
-        uses: kenji-miyake/setup-git-cliff@v2
-      - name: Set up Git user
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Run cargo release
-        run: cargo release --no-publish --execute --no-confirm
+          command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # Create a PR with the new versions and changelog, preparing the next release.
+  create-release-pr:
+    name: Release pull request
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'BrickUIApp' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - *checkout
+      - *install-rust
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
