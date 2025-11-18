@@ -1,8 +1,0 @@
-push = true
-tag = true
-tag-name = "brickui-v{{version}}"
-
-pre-release-hook = [
-    "git", "-C", "..", "cliff", "-c", "cliff.toml", "-o", "CHANGELOG.md", "--tag", "{{version}}",
-    "git", "-C", "..", "add", "CHANGELOG.md"
-]
