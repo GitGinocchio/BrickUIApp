@@ -8,6 +8,7 @@ publish_timeout = "10m" # set a timeout for `cargo publish`
 release_commits = "^feat:" # prepare release only if at least one commit matches a regex
 changelog_config = "../cliff.toml"
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
+changelog_path = "../CHANGELOG.md"
 
 [changelog]
 protect_breaking_commits = true # always include commits with breaking changes in the changelog
