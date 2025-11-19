@@ -1,14 +1,13 @@
 [workspace]
-allow_dirty = true # allow updating repositories with uncommitted changes
 dependencies_update = true # update dependencies with `cargo update`
 pr_branch_prefix = "release-plz-" # PR branch prefix
+pr_name = "chore(release): {{ package }} v{{ version }}"
 pr_labels = ["release"] # add the `release` label to the release Pull Request
-publish_allow_dirty = true # add `--allow-dirty` to `cargo publish`
 publish = false
-publish_no_verify = true
-publish_timeout = "10m" # set a timeout for `cargo publish`
-release_commits = "^feat:" # prepare release only if at least one commit matches a regex
+#release_commits = "^feat:" # prepare release only if at least one commit matches a regex
 changelog_config = "./cliff.toml"
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
 changelog_path = "../CHANGELOG.md"
+
+git_release_type = "auto"
 git_release_enable = true
