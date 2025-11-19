@@ -16,7 +16,7 @@ env:
     -C lto
     -C opt-level=3
     -C panic=abort
-    -C strip
+    -C strip=symbols
   RUSTUP_MAX_RETRIES: 10
 
 defaults:
