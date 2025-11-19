@@ -68,3 +68,4 @@ jobs:
           tar: all
           zip: windows
           token: ${{ secrets.GITHUB_TOKEN }}
+          manifest_path: ./src-tauri/Cargo.toml
