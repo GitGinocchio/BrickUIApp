@@ -1,0 +1,69 @@
+name: CD # Continuous Deployment
+
+on:
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_GIT_FETCH_WITH_CLI: true
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: >
+    -D warnings
+    -C codegen-units=1
+    -C lto
+    -C opt-level=3
+    -C panic=abort
+    -C strip
+  RUSTUP_MAX_RETRIES: 10
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  upload-assets:
+    name: ${{ matrix.target }}
+    if: github.repository_owner == 'BrickUIApp'
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-pc-windows-msvc
+            os: windows-2022
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: taiki-e/setup-cross-toolchain-action@v1
+        if: startsWith(matrix.os, 'ubuntu') && !contains(matrix.target, '-musl')
+        with:
+          target: ${{ matrix.target }}
+
+      - uses: taiki-e/install-action@v2
+        if: contains(matrix.target, '-musl')
+        with:
+          tool: cross
+
+      - run: echo "RUSTFLAGS=${RUSTFLAGS} -C target-feature=+crt-static" >> "${GITHUB_ENV}"
+        if: endsWith(matrix.target, 'windows-msvc')
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: my-bin
+          target: ${{ matrix.target }}
+          tar: all
+          zip: windows
+          token: ${{ secrets.GITHUB_TOKEN }}
