@@ -22,6 +22,7 @@ env:
 defaults:
   run:
     shell: bash
+    working-directory: src-tauri
 
 jobs:
   upload-assets:
