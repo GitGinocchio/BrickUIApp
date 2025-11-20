@@ -11,6 +11,7 @@
     "core:window:allow-close",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-set-focus",
     "core:app:allow-default-window-icon",
 
     "autostart:allow-disable",
