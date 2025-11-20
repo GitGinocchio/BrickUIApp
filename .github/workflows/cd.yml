@@ -10,8 +10,8 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: true
   CARGO_NET_RETRY: 10
   RUST_BACKTRACE: 1
+  # -D warnings
   RUSTFLAGS: >
-    -D warnings
     -C codegen-units=1
     -C opt-level=3
     -C panic=abort
