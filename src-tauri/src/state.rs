@@ -102,7 +102,7 @@ pub struct BrickUIState {
     backup: Backup,
     bricks: Vec<Brick>,
     icons_map: IconsMap,
-    ble_state: BTState,
+    bt_state: BTState,
 }
 
 impl BrickUIState {
@@ -137,7 +137,7 @@ impl BrickUIState {
         let backup = load_yaml::<Backup>(&path.join("backup.yml"))
             .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
 
-        let ble_state = tauri::async_runtime::block_on(async move { BTState::new().await })?;
+        let bt_state = tauri::async_runtime::block_on(async move { BTState::new().await })?;
 
         Ok(Self {
             resource_path: resource_path.clone(),
@@ -146,7 +146,7 @@ impl BrickUIState {
             backup,
             bricks: vec![],
             icons_map: icons_map,
-            ble_state,
+            bt_state,
         })
     }
 
@@ -205,10 +205,10 @@ impl BrickUIState {
     // BTState
 
     pub fn get_bluetooth_state(&self) -> &BTState {
-        &self.ble_state
+        &self.bt_state
     }
 
     pub fn get_mut_bluetooth_state(&mut self) -> &mut BTState {
-        &mut self.ble_state
+        &mut self.bt_state
     }
 }
