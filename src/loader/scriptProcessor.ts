@@ -1,5 +1,5 @@
 import { SFCDescriptor } from "@vue/compiler-sfc";
-import { normalizePath } from "./utils";
+import { sanitizePath } from "../utils/path";
 
 interface ImportBinding {
   isType: boolean;
@@ -100,79 +100,88 @@ export function extractImports(descriptor: SFCDescriptor): ImportBinding[] {
   return bindings;
 }
 
-export function rewriteImports(code: string, moduleCache: Record<string, any>, brickDirName: string): string {
-  function moduleVar(moduleName: string): string {
-    if (moduleName.startsWith('./')) {
-      Object.entries(moduleCache).forEach(([path, _]) => {
-        if (path.endsWith(moduleName.replace('./', ''))) {
+export async function rewriteImports(
+  code: string,
+  moduleCache: Record<string, any>,
+  brickDirName: string
+): Promise<string> {
+  async function moduleVar(moduleName: string): Promise<string> {
+    if (moduleName.startsWith("./")) {
+      for (const [path, _] of Object.entries(moduleCache)) {
+        if (path.endsWith(moduleName.replace("./", ""))) {
           moduleName = path;
+          break;
         }
-      });
-    } 
-    else if (moduleName.startsWith('/')) {
-      moduleName = normalizePath(moduleName, { root: brickDirName }, false);
+      }
+    } else if (moduleName.startsWith("/")) {
+      moduleName = await sanitizePath(moduleName, { root: brickDirName, convertToAssetURL: false });
     }
 
-    // se il modulo è presente nel moduleCache, usalo
     return moduleCache[moduleName]
       ? `moduleCache["${moduleName}"]`
-      : moduleName; // fallback
+      : moduleName;
+  }
+
+  // Helper async per replace
+  async function replaceAsync(
+    str: string,
+    regex: RegExp,
+    asyncFn: (...args: any[]) => Promise<string>
+  ): Promise<string> {
+    const matches = Array.from(str.matchAll(regex));
+    const results = await Promise.all(
+      matches.map((m) => asyncFn(...m))
+    );
+
+    let out = str;
+    let offset = 0;
+    matches.forEach((m, i) => {
+      out = out.slice(0, m.index! + offset) + results[i] + out.slice(m.index! + offset + m[0].length);
+      offset += results[i].length - m[0].length;
+    });
+
+    return out;
   }
 
   // import { a, b as c } from "vue"
-  code = code.replace(
-    /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?/g,
-    (_, imports, moduleName) => {
+  code = await replaceAsync(code, /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?/g,
+    async (_, imports, moduleName) => {
       const names = imports
         .split(",")
         .map(s => s.trim())
         .filter(Boolean)
-        .map(s => {
-          if (s.includes(" as ")) {
-            const [orig, alias] = s.split(" as ").map(x => x.trim());
-            return `${orig}: ${alias}`;
-          }
-          return s;
-        })
+        .map(s => s.includes(" as ") ? s.split(" as ").map(x => x.trim()).join(": ") : s)
         .join(", ");
-      return `const { ${names} } = ${moduleVar(moduleName)};`;
+      return `const { ${names} } = ${await moduleVar(moduleName)};`;
     }
   );
 
   // import defaultExport from "vue"
-  code = code.replace(
-    /import\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+)['"];?/g,
-    (_, defaultName, moduleName) => {
-      return `const ${defaultName} = ${moduleVar(moduleName)}.default ?? ${moduleVar(moduleName)};`;
+  code = await replaceAsync(code, /import\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+)['"];?/g,
+    async (_, defaultName, moduleName) => {
+      const modVar = await moduleVar(moduleName);
+      return `const ${defaultName} = ${modVar}.default ?? ${modVar};`;
     }
   );
 
   // import * as name from "vue"
-  code = code.replace(
-    /import\s+\*\s+as\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+)['"];?/g,
-    (_, namespace, moduleName) => {
-      return `const ${namespace} = ${moduleVar(moduleName)};`;
+  code = await replaceAsync(code, /import\s+\*\s+as\s+([a-zA-Z0-9_$]+)\s+from\s+['"]([^'"]+)['"];?/g,
+    async (_, namespace, moduleName) => {
+      return `const ${namespace} = ${await moduleVar(moduleName)};`;
     }
   );
 
   // import defaultExport, { a, b as c } from "vue"
-  code = code.replace(
-    /import\s+([a-zA-Z0-9_$]+)\s*,\s*\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?/g,
-    (_, defaultName, imports, moduleName) => {
+  code = await replaceAsync(code, /import\s+([a-zA-Z0-9_$]+)\s*,\s*\{([^}]+)\}\s+from\s+['"]([^'"]+)['"];?/g,
+    async (_, defaultName, imports, moduleName) => {
+      const modVar = await moduleVar(moduleName);
       const names = imports
         .split(",")
         .map(s => s.trim())
         .filter(Boolean)
-        .map(s => {
-          if (s.includes(" as ")) {
-            const [orig, alias] = s.split(" as ").map(x => x.trim());
-            return `${orig}: ${alias}`;
-          }
-          return s;
-        })
+        .map(s => s.includes(" as ") ? s.split(" as ").map(x => x.trim()).join(": ") : s)
         .join(", ");
-      return `const ${defaultName} = ${moduleVar(moduleName)}.default ?? ${moduleVar(moduleName)}; 
-              const { ${names} } = ${moduleVar(moduleName)};`;
+      return `const ${defaultName} = ${modVar}.default ?? ${modVar}; const { ${names} } = ${modVar};`;
     }
   );
 

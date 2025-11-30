@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { NColorPicker, NButton, NInputNumber } from 'naive-ui'
-import { colorStringToRGBA } from '../utils';
+import { colorStringToRGBA } from '../utils/color';
 import { GradientType } from '../interfaces/brick';
 
 interface Stop {

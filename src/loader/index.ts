@@ -9,7 +9,8 @@ import { addBrickToCache, getBrickFromCache } from "./cache";
 import { Brick, Prop } from "interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
-import { appDataDir, formatPropValue, normalizePath } from "./utils";
+import { appDataDir, sanitizePath } from "../utils/path";
+import { formatPropValue } from "../utils/format";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { catchBrickError } from "../utils/errors";
@@ -37,10 +38,9 @@ export const app = createApp({
 export async function loadBrickComponent(brick: Brick, force: boolean = false) {
   let component = getBrickFromCache(brick.name);
 
-  const path = normalizePath(
+  const path = await sanitizePath(
     `./bricks/${brick.name}/brick.vue`,
-    { root: appDataDir },
-    false
+    { convertToAssetURL: false }
   );
 
   if (!component || force) {

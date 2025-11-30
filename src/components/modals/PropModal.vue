@@ -169,7 +169,8 @@ import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, Decima
 import { computed, h, ref } from 'vue';
 
 import { createProp, Prop, PropTypeValue, propTypeValues } from '../../interfaces/brick';
-import { colorStringToRGBA, deepEqual } from '../../utils';
+import { colorStringToRGBA } from '../../utils/color';
+import { deepEqual } from '../../utils/misc';
 import GradientPicker from '../GradientPicker.vue';
 import { DatePickerType } from 'naive-ui/es/date-picker/src/config';
 

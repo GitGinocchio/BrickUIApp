@@ -1,5 +1,5 @@
 import * as core from '@tauri-apps/api/core';
-import { normalizePath } from '../utils/normUtils';
+import { sanitizePath } from '../utils/path';
 
 const allowedCommands = new Set<string>([
   // Bricks
@@ -59,8 +59,10 @@ async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.Invoke
   return core.invoke(cmd, args, options);
 }
 
-function convertFileSrc(filePath: string, options?: { protocol?: string; root?: string }): string {
-  return normalizePath(filePath, options)
+async function convertFileSrc(filePath: string, options?: { protocol?: string; root?: string }): Promise<string> {
+  // Non e' del tutto sicuro, mettendo root -> null viene presa come root {appDataDir}/BrickUI/ 
+  // Ma non la cartella del brick chiamante
+  return await sanitizePath(filePath, { ...options, root: null })
 }
 
 export default { invoke, convertFileSrc };

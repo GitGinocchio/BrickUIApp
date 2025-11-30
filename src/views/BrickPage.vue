@@ -182,6 +182,7 @@ import { Brick, Prop } from "../interfaces/brick";
 import { useRouter } from "vue-router";
 import MarkdownIt from "markdown-it";
 import { emit, emitTo } from "@tauri-apps/api/event";
+import { appDataDir, sanitizePath } from "../utils/path";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -210,7 +211,7 @@ const defaultBanner = new URL(
 ).href;
 const backgroundUrl = ref(defaultBanner);
 
-watchEffect(() => {
+watchEffect(async () => {
   if (!brick.value?.banner) {
     backgroundUrl.value = defaultBanner;
     return;
@@ -218,10 +219,10 @@ watchEffect(() => {
 
   // Precarica l'immagine
   const img = new Image();
-  img.src = brick.value?.banner;
+  img.src = await sanitizePath(brick.value?.banner, { root: `${appDataDir}/bricks/${brick.value.name}` });
 
   img.onload = () => {
-    backgroundUrl.value = brick.value?.banner;
+    backgroundUrl.value = img.src;
   };
   img.onerror = () => {
     console.error(`Error loading banner image for brick: ${brick.value?.name}`);

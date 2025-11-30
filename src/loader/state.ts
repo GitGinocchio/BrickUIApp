@@ -1,7 +1,7 @@
 import { reactive } from "vue";
 import { BrickError, BrickState } from "./types";
 import { Brick } from "interfaces/brick";
-import { formatProps } from "./utils";
+import { formatProps } from "../utils/format";
 
 export const bricksState = reactive(new Map<string, BrickState>());
 
