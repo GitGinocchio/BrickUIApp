@@ -19,6 +19,11 @@
     "autostart:allow-is-enabled",
 
     {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://brickui.giulioo.workers.dev/" }]
+    },
+
+    {
       "identifier": "fs:allow-app-read-recursive",
       "allow": [
         {

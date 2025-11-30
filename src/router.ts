@@ -3,9 +3,10 @@ import BricksPage from './views/BricksPage.vue'
 import SettingsPage from './views/SettingsPage.vue'
 import Marketplace from './views/Marketplace.vue'
 import BrickPage from './views/BrickPage.vue'
-import User from './views/User.vue'
+import LoginMethods from './views/LoginMethods.vue'
 import Register from './views/Register.vue'
 import Login from './views/Login.vue'
+import User from './views/User.vue'
 
 export const router = createRouter({
   history: createWebHashHistory(),
@@ -15,9 +16,9 @@ export const router = createRouter({
     { path: '/brick/:name', props: true, component: BrickPage },
     { path: '/settings', component: SettingsPage },
     { path: '/marketplace', component: Marketplace },
-    { path: '/user', component: User },
+    { path: '/login-methods', component: LoginMethods },
     { path: '/register', component: Register },
-    { path: '/login', component: Login}
-
+    { path: '/login', component: Login},
+    { path: '/user', component: User}
   ]
 })

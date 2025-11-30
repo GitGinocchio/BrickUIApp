@@ -160,8 +160,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule } from 'naive-ui'
+import { inject, ref, Ref } from 'vue';
+import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule } from 'naive-ui';
+import { fetch } from '@tauri-apps/plugin-http';
+import { useRouter } from 'vue-router';
+import { User } from 'interfaces/user';
+
+const router = useRouter();
 
 const form = ref({
   username: '',
@@ -170,9 +175,11 @@ const form = ref({
   confirmPassword: ''
 })
 
-const formRef = ref<FormInst | null>(null)
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
+
+const formRef = ref<FormInst | null>(null);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+const user = inject("user") as Ref<User|null>;
 
 const validatePasswordMatch = (rule: FormItemRule, value: string): boolean | Error => {
   if (value !== form.value.password) {
@@ -206,8 +213,33 @@ const handleSubmit = async () => {
   try {
     await formRef.value?.validate()
     console.log('Valid form:', form.value)
-    // TODO: registration logic
-  } catch (err) {
+
+    const payload ={
+      username : form.value.username,
+      email : form.value.email,
+      password : form.value.password
+    };
+
+    // Trasformiamo tramite un encoder il payload in un array di variabili:
+    const encoder = new TextEncoder();
+    const body = encoder.encode(JSON.stringify(payload));
+    
+    const response = await fetch("https://brickui.giulioo.workers.dev/api/auth/register/classic", {
+      method: 'POST',
+      body: body
+    });
+
+    const registerResponse = await response.json();
+
+    switch(registerResponse.code){
+      case 422:
+        console.log("Credenziali non valide");
+        break;
+      case undefined:
+        router.push('/user');
+    }
+  }
+  catch (err) {
     console.warn('Invalid form:', err)
   }
 }
@@ -273,7 +305,7 @@ const handleSubmit = async () => {
 }
 
 .form-container :deep(.n-input .n-input__input-el) {
-  padding-top: 2px;
+  padding-top: 7px;
 }
 
 .form-container :deep(.n-input .n-input-wrapper) {

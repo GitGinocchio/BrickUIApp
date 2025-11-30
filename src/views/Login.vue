@@ -103,6 +103,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { NForm, NFormItem, NInput, NButton, FormInst, FormRules } from 'naive-ui'
+import { useRouter } from 'vue-router'
+
+const router = useRouter();
 
 const form = ref({
   email: '',
@@ -124,14 +127,16 @@ const rules: FormRules = {
   ]
 }
 
-const handleSubmit = async () => {
+const handleSubmit = () => {
+  /*
   try {
     await formRef.value?.validate()
     console.log('Valid form:', form.value)
-    // TODO: login logic
   } catch (err) {
     console.warn('Invalid form:', err)
   }
+    */
+   router.push('/user')
 }
 </script>
 
@@ -192,6 +197,10 @@ const handleSubmit = async () => {
 
 .form-container :deep(.n-input) {
   height: 48px;
+}
+
+.form-container :deep(.n-input .n-input__input-el) {
+  padding-top: 7px;
 }
 
 .form-container .n-button {

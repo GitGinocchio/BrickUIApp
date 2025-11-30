@@ -124,8 +124,8 @@ const menuOptions = computed(() => [
 ]);
 
 const bottomMenuOptions = computed(() => [
-  { label: t('user'),             key: '/user',         icon: () => h(CircleUser) },
-  { label: t('settings'),         key: '/settings',     icon: () => h(SettingsIcon) },
+  { label: 'User',              key: '/login-methods',    icon: () => h(CircleUser) },
+  { label: t('settings'),       key: '/settings',    icon: () => h(SettingsIcon) },
 ]);
 
 function onMenuSelect(key: string) {
