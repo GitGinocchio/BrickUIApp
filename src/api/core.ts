@@ -16,6 +16,8 @@ const allowedCommands = new Set<string>([
   // Bluetooth
   "bluetooth_scan",
   "bluetooth_classic_scan",
+  "bluetooth_connect",
+  "bluetooth_disconnect",
   //"get_default_adapter",
   //"get_adapters",
   //"get_devices",

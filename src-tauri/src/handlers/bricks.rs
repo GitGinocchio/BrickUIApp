@@ -1,7 +1,7 @@
 use crate::bricks;
 use crate::bricks::brick::Brick;
 
-use crate::state::BrickUIState;
+use crate::state::generic::BrickUIGenericState;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -9,15 +9,17 @@ use tauri::State;
 use tokio::sync::Mutex;
 
 #[tauri::command(async)]
-pub async fn get_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn get_bricks(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Vec<Brick>, String> {
     let state_guard = state.lock().await;
 
     Ok(state_guard.get_bricks().to_vec())
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_brick_by_name(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     name: String,
 ) -> Result<Option<Brick>, String> {
     let state_guard = state.lock().await;
@@ -26,7 +28,8 @@ pub async fn get_brick_by_name(
 }
 
 #[tauri::command(async)]
-pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Vec<Brick>, String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Vec<Brick>, String> {
     let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();
@@ -39,8 +42,9 @@ pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<V
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick: Brick,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().await;
@@ -64,8 +68,9 @@ pub async fn save_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn rename_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     old_name: String,
     new_name: String,
 ) -> Result<(), String> {
@@ -84,8 +89,9 @@ pub async fn rename_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn duplicate_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick: Brick,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().await;
@@ -101,8 +107,9 @@ pub async fn duplicate_brick(
 
 // Questo non serve a molto potrebbe essere sostituito con il plugin opener e basta
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn open_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick_name: String,
 ) -> Result<(), String> {
     let state_guard = state.lock().await;
@@ -112,8 +119,9 @@ pub async fn open_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn delete_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick: Brick,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().await;
@@ -129,8 +137,9 @@ pub async fn delete_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn new_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick: Brick,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().await;
@@ -146,8 +155,9 @@ pub async fn new_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn pack_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick_name: String,
     output_path: String,
 ) -> Result<Option<String>, String> {
@@ -160,8 +170,9 @@ pub async fn pack_brick(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn unpack_brick(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     brick_path: String,
     brick_name: String,
 ) -> Result<(), String> {

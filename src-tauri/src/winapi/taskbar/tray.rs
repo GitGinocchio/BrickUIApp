@@ -21,6 +21,7 @@ pub struct TrayIcon {
     pub rect: Rect,
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_tray_icons(
     _icon_cache_dir: &PathBuf,
     _icons_map: &mut IconsMap,

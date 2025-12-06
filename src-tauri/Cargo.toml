@@ -21,6 +21,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
+overflow-checks = true
 
 [profile.release]
 codegen-units = 1 # Allows LLVM to perform better optimization.
@@ -29,6 +30,9 @@ opt-level = 3 # Prioritizes small binary size (`"s"`). Use `3` if you prefer spe
 panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
+[features]
+profiling = ["tracing", "tracing-subscriber", "tracing-flame"]
+
 [dev-dependencies]
 cargo-release = "0.25.20"
 
@@ -36,6 +40,11 @@ cargo-release = "0.25.20"
 tauri-build = { version = "2.5.1", features = [ "codegen" ] }
 
 [dependencies]
+# Dipendenze opzionali per profiling
+tracing = { version = "0.1.43", optional = true }
+tracing-subscriber = { version = "0.3.22", optional = true }
+tracing-flame = { version = "0.2.0", optional = true }
+
 tauri = { version = "2.9.2", features = [
     "protocol-asset",
     "unstable",
@@ -54,6 +63,7 @@ schemars = "1.1.0"
 
 windows = { version = "0.61.1", features = [
     "Win32_Foundation",
+    "Foundation",
 
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_WindowsProgramming",
@@ -75,6 +85,18 @@ windows = { version = "0.61.1", features = [
     "Win32_Devices_Bluetooth",
     "Win32_Devices_Enumeration",
     "Win32_Devices",
+
+    "Devices_Enumeration",
+    "Devices_Bluetooth",
+    "Devices_Bluetooth_Rfcomm",
+    "Devices_Bluetooth_GenericAttributeProfile",
+    "Devices",
+
+    "Win32_Networking_WinSock",
+    
+    "Networking_Sockets",
+
+    "Storage_Streams"
 ] }
 winreg = "0.55.0"
 uuid = { version = "1.18.0", features = [ "v4"] }
@@ -94,3 +116,4 @@ tauri-plugin-blec = "0.8.1"
 btleplug = { version = "0.11.8", features = [ "serde" ] }
 tauri-plugin-shell = "2"
 tauri-plugin-http = "2"
+derivative = "2.2.0"

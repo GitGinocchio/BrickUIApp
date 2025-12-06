@@ -7,6 +7,7 @@ thread_local! {
     static COM_INITIALIZED: Cell<bool> = Cell::new(false);
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn initialize_com() -> Result<bool, String> {
     COM_INITIALIZED.with(|flag| {
         if flag.get() {
@@ -32,6 +33,7 @@ pub fn initialize_com() -> Result<bool, String> {
     })
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn uninitialize_com() {
     COM_INITIALIZED.with(|flag| {
         if flag.get() {

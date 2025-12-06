@@ -25,3 +25,5 @@ dist-ssr
 /src-tauri/gen
 /target
 .github/copilot-instructions.md
+src-tauri/trace.folded
+src-tauri/flamegraph.svg

@@ -4,23 +4,26 @@ use tokio::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    state::BrickUIState,
+    state::generic::BrickUIGenericState,
     winapi::{self, taskbar::apps::App, taskbar::tray::TrayIcon},
 };
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn hide_taskbar(app_handle: AppHandle) -> Result<(), String> {
     winapi::taskbar::hide_taskbar(&app_handle)
 }
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn show_taskbar(app_handle: AppHandle) -> Result<(), String> {
     winapi::taskbar::show_taskbar(&app_handle)
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_active_taskbar_apps(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
 ) -> Result<Vec<App>, String> {
     let mut state_guard = state.lock().await;
     let icon_cache_path = state_guard.get_path().clone().join("cache").join("icons");
@@ -34,9 +37,10 @@ pub async fn get_active_taskbar_apps(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_pinned_taskbar_apps(
     app_handle: AppHandle,
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
 ) -> Result<Vec<App>, String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
@@ -59,9 +63,10 @@ pub async fn get_pinned_taskbar_apps(
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_taskbar_apps(
     app_handle: AppHandle,
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
 ) -> Result<Vec<App>, String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();
@@ -84,13 +89,15 @@ pub async fn get_taskbar_apps(
 }
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn is_taskbar_autohide() -> bool {
     crate::winapi::taskbar::is_taskbar_autohide()
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_tray_icons(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
 ) -> Result<Vec<TrayIcon>, String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();

@@ -12,6 +12,7 @@ fn hiword(val: u32) -> u16 {
     (val >> 16) as u16
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
@@ -121,6 +122,7 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn unmount_hook() -> Result<(), String> {
     let hook = MOUSE_HOOK.swap(std::ptr::null_mut(), Ordering::SeqCst);
     if !hook.is_null() {

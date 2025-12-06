@@ -4,6 +4,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 };
 use windows::core::PCWSTR;
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn refresh_desktop_icons() -> Result<(), String> {
     let progman = unsafe {
         FindWindowW(

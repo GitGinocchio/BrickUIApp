@@ -10,9 +10,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::settings::Settings;
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn load_yaml<T>(path: &PathBuf) -> Result<T, String>
 where
-    T: DeserializeOwned,
+    T: DeserializeOwned + std::fmt::Debug,
 {
     let content =
         fs::read_to_string(path).map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
@@ -23,9 +24,10 @@ where
     Ok(data)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn save_yaml<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
-    T: Serialize,
+    T: Serialize + std::fmt::Debug,
 {
     let contents =
         serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
@@ -68,9 +70,10 @@ where
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_yaml_async<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
-    T: Serialize,
+    T: Serialize + std::fmt::Debug,
 {
     let contents =
         serde_yaml::to_string(&data).map_err(|e| format!("Error serializing YAML: {e}"))?;
@@ -116,6 +119,7 @@ where
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn save_settings(path: &PathBuf, settings: Settings) -> Result<(), String> {
     let settings_path = path.join("settings.yml");
     let settings_schema = settings.schema.clone();

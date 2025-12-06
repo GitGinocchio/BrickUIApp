@@ -3,12 +3,13 @@ use tokio::sync::Mutex;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::{state::BrickUIState, winapi::explorer::recents::Recent};
+use crate::{state::generic::BrickUIGenericState, winapi::explorer::recents::Recent};
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_handle: AppHandle,
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
 ) -> Result<Vec<Recent>, String> {
     let mut state_guard = state.lock().await;
     let path = state_guard.get_path();

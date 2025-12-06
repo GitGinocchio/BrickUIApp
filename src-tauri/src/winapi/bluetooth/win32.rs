@@ -1,17 +1,50 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use serde::Serialize;
+use std::fmt::Debug;
+use derivative::Derivative;
 use tauri::async_runtime::spawn_blocking;
-use windows::Win32::{
-    Devices::Bluetooth::{
-        BLUETOOTH_DEVICE_INFO, BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS,
-        BluetoothAuthenticateDevice, BluetoothFindDeviceClose, BluetoothFindFirstDevice,
-        BluetoothFindFirstRadio, BluetoothFindNextDevice, BluetoothFindNextRadio,
-        BluetoothFindRadioClose, BluetoothRemoveDevice,
-    },
-    Foundation::{ERROR_SUCCESS, HANDLE, SYSTEMTIME},
+use windows::{
+    Win32::{
+        Devices::Bluetooth::{
+            AF_BTH, 
+            AUTHENTICATION_REQUIREMENTS, 
+            BLUETOOTH_ADDRESS,
+            BLUETOOTH_DEVICE_INFO, 
+            BLUETOOTH_DEVICE_SEARCH_PARAMS,
+            BLUETOOTH_FIND_RADIO_PARAMS, 
+            BTHPROTO_RFCOMM, 
+            BluetoothAuthenticateDevice, 
+            BluetoothAuthenticateDeviceEx, 
+            BluetoothFindDeviceClose, 
+            BluetoothFindFirstDevice, 
+            BluetoothFindFirstRadio, 
+            BluetoothFindNextDevice, 
+            BluetoothFindNextRadio,
+            BluetoothFindRadioClose, 
+            BluetoothGetDeviceInfo,
+            BluetoothRemoveDevice, 
+            MITMProtectionNotRequired, 
+            MITMProtectionNotRequiredBonding, 
+            SOCKADDR_BTH
+        },
+        Foundation::{ERROR_SUCCESS, HANDLE, HWND, SYSTEMTIME}, 
+        Networking::WinSock::{
+            INVALID_SOCKET, 
+            SEND_RECV_FLAGS, 
+            SOCK_STREAM, 
+            SOCKADDR, SOCKET, 
+            SOCKET_ERROR, 
+            closesocket, 
+            connect, 
+            recv, 
+            send, 
+            socket
+        },
+    }, 
+    core::GUID
 };
 
-use crate::winapi::bluetooth::BTDevice;
+//use crate::winapi::bluetooth::BTDevice;
 
 fn systemtime_to_naive(s: &SYSTEMTIME) -> Option<NaiveDateTime> {
     NaiveDate::from_ymd_opt(s.wYear as i32, s.wMonth.into(), s.wDay.into()).and_then(|date| {
@@ -232,8 +265,9 @@ impl From<(MajorDeviceClass, u32)> for MinorDeviceClass {
     }
 }
 
-#[derive(Serialize, Clone)]
-pub struct ClassicDevice {
+#[derive(Serialize, Clone, Derivative)]
+#[derivative(Debug)]
+pub struct Win32Device {
     pub name: String,
     pub address: String,
     pub authenticated: bool,
@@ -246,10 +280,15 @@ pub struct ClassicDevice {
     pub services: u16,
 
     #[serde(skip)]
-    raw_device_info: BLUETOOTH_DEVICE_INFO,
+    #[derivative(Debug="ignore")]
+    pub socket: Option<SOCKET>,
+
+    #[serde(skip)]
+    #[derivative(Debug="ignore")]
+    pub raw_device_info: BLUETOOTH_DEVICE_INFO,
 }
 
-impl ClassicDevice {
+impl Win32Device {
     pub fn from_win32(info: &BLUETOOTH_DEVICE_INFO) -> Self {
         let name = String::from_utf16_lossy(
             &info
@@ -278,7 +317,7 @@ impl ClassicDevice {
 
         let major_device_class = MajorDeviceClass::from(major);
 
-        ClassicDevice {
+        Win32Device {
             name,
             address,
             authenticated: info.fAuthenticated.as_bool(),
@@ -293,16 +332,78 @@ impl ClassicDevice {
                 MinorDeviceClass::from((major_device_class, minor as u32)),
             ),
             raw_device_info: *info,
+            socket: None
+        }
+    }
+    
+    pub fn from_mac(address: String) -> Result<Self, String> {
+        let bytes: Vec<u8> = address
+            .split(':')
+            .filter_map(|b| u8::from_str_radix(b, 16).ok())
+            .collect();
+
+        if bytes.len() != 6 {
+            return Err("Invalid MAC Address".into());
+        }
+
+        // 2. Fill BLUETOOTH_ADDRESS (little endian!)
+        let mut bt_addr = BLUETOOTH_ADDRESS::default();
+        unsafe {
+            bt_addr.Anonymous.rgBytes[0] = bytes[5];
+            bt_addr.Anonymous.rgBytes[1] = bytes[4];
+            bt_addr.Anonymous.rgBytes[2] = bytes[3];
+            bt_addr.Anonymous.rgBytes[3] = bytes[2];
+            bt_addr.Anonymous.rgBytes[4] = bytes[1];
+            bt_addr.Anonymous.rgBytes[5] = bytes[0];
+        }
+
+        // 3. Find a radio
+        unsafe {
+            let mut radio_params = BLUETOOTH_FIND_RADIO_PARAMS {
+                dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
+            };
+
+            let mut radio_handle: HANDLE = HANDLE::default();
+
+            let radio_enum =
+                BluetoothFindFirstRadio(&mut radio_params, &mut radio_handle)
+                    .map_err(|e| format!("BluetoothFindFirstRadio Error: {e}"))?;
+
+            let mut device_info = BLUETOOTH_DEVICE_INFO {
+                dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_INFO>() as u32,
+                Address: bt_addr,
+                ..Default::default()
+            };
+
+            // 4. Query device info
+            let mut found = false;
+
+            loop {
+                if BluetoothGetDeviceInfo(Some(radio_handle), &mut device_info) == ERROR_SUCCESS.0 {
+                    found = true;
+                    break;
+                }
+
+                let mut next_radio = HANDLE::default();
+                if BluetoothFindNextRadio(radio_enum, &mut next_radio).is_err() {
+                    break;
+                }
+
+                radio_handle = next_radio;
+            }
+
+            BluetoothFindRadioClose(radio_enum)
+                .map_err(|e| format!("BluetoothFindRadioClose Error: {e}"))?;
+
+            if !found {
+                panic!("Device not found");
+            }
+
+            Ok(Win32Device::from_win32(&device_info))
         }
     }
 
-    pub fn from_mac(address: String) -> Self {
-        todo![]
-    }
-}
-
-impl BTDevice for ClassicDevice {
-    fn connect(&mut self) -> Result<(), std::string::String> {
+    pub fn register(&mut self, parent_window: Option<HWND>) -> Result<(), String> {
         unsafe {
             let mut adapter_params = BLUETOOTH_FIND_RADIO_PARAMS {
                 dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
@@ -313,13 +414,24 @@ impl BTDevice for ClassicDevice {
                 .map_err(|e| format!("BluetoothFindFirstRadioError: {e}"))?;
 
             loop {
-                // prova ad autenticare il dispositivo con questo adapter
-                let res = BluetoothAuthenticateDevice(
+                let req = AUTHENTICATION_REQUIREMENTS(
+                    MITMProtectionNotRequired.0 | MITMProtectionNotRequiredBonding.0,
+                );
+
+                let res = BluetoothAuthenticateDeviceEx(
+                    parent_window,
+                    Some(adapter_handle),
+                    &mut self.raw_device_info,
+                    None,
+                    req,
+                );
+
+                /*let res = BluetoothAuthenticateDevice(
                     None,
                     Some(adapter_handle),
                     &mut self.raw_device_info,
                     None,
-                );
+                );*/
 
                 if res == ERROR_SUCCESS.0 {
                     break; // successo
@@ -334,13 +446,16 @@ impl BTDevice for ClassicDevice {
                 adapter_handle = next_adapter;
             }
 
-            *self = ClassicDevice::from_win32(&self.raw_device_info)
+            *self = Win32Device::from_win32(&self.raw_device_info);
         }
 
         Ok(())
     }
+    pub fn remove(&mut self) -> Result<(), String> {
+        if self.connected {
+            self.disconnect()?;
+        }
 
-    fn disconnect(&mut self) -> Result<(), std::string::String> {
         unsafe {
             let res = BluetoothRemoveDevice(&self.raw_device_info.Address);
 
@@ -349,19 +464,97 @@ impl BTDevice for ClassicDevice {
             }
         }
 
+        self.connected = false;
+        self.authenticated = false;
+        self.remembered = false;
         Ok(())
     }
 
-    fn read(&mut self, uuid: &str) -> Result<Vec<u8>, String> {
-        todo!()
+    pub fn connect(&mut self, parent_window: Option<HWND>) -> Result<(), String> {
+        unsafe {
+            if !self.authenticated {
+                self.register(parent_window)?;
+            }
+
+            // 1. crea socket Bluetooth
+            let sock = socket(AF_BTH as i32, SOCK_STREAM, BTHPROTO_RFCOMM as i32)
+                .map_err(|e| format!("Error creating socket: {e}"))?;
+            
+            if sock == INVALID_SOCKET {
+                return Err("Failed to create socket".into());
+            }
+
+            // 2. crea sockaddr_bth
+            let addr = SOCKADDR_BTH {
+                addressFamily: AF_BTH as u16,
+                btAddr: self.raw_device_info.Address.Anonymous.ullLong,
+                serviceClassId: GUID::zeroed(),
+                port: 1, // RFCOMM channel
+            };
+
+            // 3. connetti
+            let res = connect(
+                sock,
+                &addr as *const _ as *const SOCKADDR, 
+                std::mem::size_of::<SOCKADDR_BTH>() as i32
+            );
+
+            if res == SOCKET_ERROR {
+                closesocket(sock);
+                return Err("Failed to connect RFCOMM".into());
+            }
+
+            self.socket = Some(sock);
+            self.connected = true;
+            Ok(())
+        }
+    }
+    pub fn disconnect(&mut self) -> Result<(), String> {
+        unsafe {
+            if let Some(sock) = self.socket.take() {
+                closesocket(sock);
+            }
+
+            self.connected = false;
+            Ok(())
+        }
     }
 
-    fn write(&mut self, uuid: &str, data: &[u8]) -> Result<(), std::string::String> {
-        todo!()
+    pub fn read(&mut self) -> Result<Vec<u8>, String> {
+        unsafe {
+            let sock = self.socket.ok_or("Not connected")?;
+
+            let mut buf = vec![];
+            let received = recv(
+                sock, 
+                buf.as_mut_slice(), 
+                SEND_RECV_FLAGS(0)
+            );
+
+            if received == SOCKET_ERROR {
+                return Err("Read failed".into());
+            }
+
+            Ok(buf[..received as usize].to_vec())
+        }
     }
+    pub fn write(&mut self, data: &[u8]) -> Result<(), String> {
+        unsafe {
+            let sock = self.socket.ok_or("Not connected")?;
+
+            let sent = send(sock, data, SEND_RECV_FLAGS(0));
+            if sent == SOCKET_ERROR {
+                return Err("Write failed".into());
+            }
+
+            Ok(())
+        }
+    }
+
 }
 
-pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn scan_win32(duration: Option<u8>) -> Result<Vec<Win32Device>, String> {
     let mut devices = Vec::new();
 
     unsafe {
@@ -418,7 +611,7 @@ pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> 
 
             if !h_find.is_invalid() {
                 loop {
-                    devices.push(ClassicDevice::from_win32(&device_info));
+                    devices.push(Win32Device::from_win32(&device_info));
 
                     if !BluetoothFindNextDevice(h_find, &mut device_info).is_ok() {
                         break;
@@ -438,15 +631,6 @@ pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> 
 
         let _ = BluetoothFindRadioClose(radio_enum);
     }
-
-    Ok(devices)
-}
-
-pub async fn async_scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
-    let devices =
-        tauri::async_runtime::spawn_blocking(move || scan_classic(duration))
-            .await
-            .map_err(|e| format!("Task join error: {e}"))??;
 
     Ok(devices)
 }

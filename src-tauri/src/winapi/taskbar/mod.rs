@@ -25,6 +25,7 @@ use crate::winapi::{
     window::{remove_titlebar, set_window_topmost},
 };
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_taskbar_rect() -> Option<Rect> {
     let mut data = APPBARDATA {
         cbSize: std::mem::size_of::<APPBARDATA>() as u32,
@@ -236,6 +237,7 @@ pub fn new_show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
 }
 */
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn restore_taskbar() -> Result<(), String> {
     unsafe {
         let class_name = b"Shell_TrayWnd\0".as_ptr();
@@ -276,6 +278,7 @@ pub fn restore_taskbar() -> Result<(), String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     let mut pmonitor = get_primary_monitor()?;
     let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
@@ -362,6 +365,7 @@ pub fn hide_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     let mut pmonitor = get_primary_monitor()?;
     let tbrect = get_taskbar_rect().ok_or("No taskbar rect".to_string())?;
@@ -411,6 +415,7 @@ pub fn show_taskbar(app_handle: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn is_taskbar_autohide() -> bool {
     let mut appbar_data = APPBARDATA {
         cbSize: std::mem::size_of::<APPBARDATA>() as u32,

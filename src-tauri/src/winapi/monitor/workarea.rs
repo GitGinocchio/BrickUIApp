@@ -14,6 +14,7 @@ use crate::winapi::{
 
 use super::{Monitor, get_all_monitors, get_primary_monitor};
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn notify_all_monitor_windows(monitor: &Monitor) -> Result<(), String> {
     let mut windows = get_monitor_taskbar_windows(monitor)?;
 
@@ -58,6 +59,7 @@ fn notify_all_monitor_windows(monitor: &Monitor) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn apply_workarea(monitor: &Monitor, rect: &Rect) -> Result<Rect, String> {
     let mut rect = rect.clone();
 
@@ -112,6 +114,7 @@ fn apply_workarea(monitor: &Monitor, rect: &Rect) -> Result<Rect, String> {
     Ok(rect)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workareas(workarea: &Rect) -> Result<(), String> {
     for monitor in get_all_monitors()? {
         apply_workarea(&monitor, workarea)?;
@@ -119,6 +122,7 @@ pub fn set_workareas(workarea: &Rect) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workareas_margins(margins: &OptionalRect) -> Result<(), String> {
     for monitor in get_all_monitors()? {
         let rect = monitor.workarea.apply_margins(margins, &monitor.rect);
@@ -127,6 +131,7 @@ pub fn set_workareas_margins(margins: &OptionalRect) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn reset_workareas() -> Result<(), String> {
     for monitor in get_all_monitors()?.iter_mut() {
         if monitor.is_primary {
@@ -139,6 +144,7 @@ pub fn reset_workareas() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workarea(workarea: &Rect, monitor: Option<&Monitor>) -> Result<Rect, String> {
     let monitor = match monitor {
         Some(monitor) => monitor,
@@ -149,6 +155,7 @@ pub fn set_workarea(workarea: &Rect, monitor: Option<&Monitor>) -> Result<Rect, 
     Ok(applied)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workarea_margins(
     margins: &OptionalRect,
     monitor: Option<&Monitor>,

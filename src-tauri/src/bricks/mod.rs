@@ -10,6 +10,7 @@ use zip::write::SimpleFileOptions;
 
 use crate::bricks::brick::Brick;
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
     let content =
         fs::read_to_string(path).map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
@@ -20,6 +21,7 @@ pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
     Ok(brick)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     let bricks_dir = path.join("bricks");
 
@@ -51,6 +53,7 @@ pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     Ok(bricks)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn create_brick(path: &PathBuf, res_path: &PathBuf, brick: &Brick) -> Result<(), String> {
     let src = res_path.join("assets").join("brick-template");
     let dst = path.join("bricks").join(brick.name.as_str());
@@ -71,6 +74,7 @@ pub fn create_brick(path: &PathBuf, res_path: &PathBuf, brick: &Brick) -> Result
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn delete_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
     let brick_dir = path.join("bricks").join(brick.name.as_str());
     fs::remove_dir_all(brick_dir)

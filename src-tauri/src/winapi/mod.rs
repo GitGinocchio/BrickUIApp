@@ -10,6 +10,7 @@ pub mod rect;
 pub mod startmenu;
 pub mod taskbar;
 pub mod window;
+pub mod sock;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
@@ -18,6 +19,7 @@ use std::path::PathBuf;
 use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
 use windows::core::PCSTR;
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
     let shortcut =
         ShellLink::open(lnk, WINDOWS_1252).map_err(|e| format!("Could not parse lnk file: {e}"))?;

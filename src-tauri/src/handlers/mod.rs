@@ -28,6 +28,7 @@ use workarea::*;
 mod bluetooth;
 use bluetooth::*;
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static
 {
     tauri::generate_handler![
@@ -43,12 +44,16 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         get_tray_icons,
         // Bluetooth
         bluetooth_scan,
-        bluetooth_classic_scan,
+        //bluetooth_classic_scan,
+        bluetooth_connect,
+        //bluetooth_classic_disconnect,
+
         /*
         get_default_adapter,
         get_adapters,
         get_devices,
         */
+
         // Explorer
         get_explorer_recents,
         // Start Menu

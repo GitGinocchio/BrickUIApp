@@ -3,17 +3,19 @@ use tokio::sync::Mutex;
 
 use tauri::State;
 
-use crate::{config::settings::Settings, state::BrickUIState};
+use crate::{config::settings::Settings, state::generic::BrickUIGenericState};
 
 #[tauri::command(async)]
-pub async fn get_settings(state: State<'_, Arc<Mutex<BrickUIState>>>) -> Result<Settings, String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn get_settings(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Settings, String> {
     let state_guard = state.lock().await;
     Ok(state_guard.get_settings().clone())
 }
 
 #[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_settings(
-    state: State<'_, Arc<Mutex<BrickUIState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     settings: Settings,
 ) -> Result<(), String> {
     let mut state_guard = state.lock().await;
