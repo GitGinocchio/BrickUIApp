@@ -45,17 +45,6 @@ tracing = { version = "0.1.43", optional = true }
 tracing-subscriber = { version = "0.3.22", optional = true }
 tracing-flame = { version = "0.2.0", optional = true }
 
-tauri = { version = "2.9.2", features = [
-    "protocol-asset",
-    "unstable",
-    "tray-icon",
-    "image-png"
-] }
-tauri-plugin-autostart = "2.5.1"
-tauri-plugin-single-instance = "2.3.6"
-tauri-plugin-dialog = "2.4.2"
-tauri-plugin-opener = "2.5.2"
-tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 serde_yaml = "0.9.34"
@@ -112,8 +101,21 @@ anyhow = "1.0.100"
 once_cell = "1.21.3"
 tokio = { version = "1.48.0", features = [ "fs", "time" ] }
 futures = "0.3.31"
-tauri-plugin-blec = "0.8.1"
 btleplug = { version = "0.11.8", features = [ "serde" ] }
+derivative = "2.2.0"
+
+
+tauri = { version = "2.9.2", features = [
+    "protocol-asset",
+    "unstable",
+    "tray-icon",
+    "image-png"
+] }
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-single-instance = "2.3.6"
+tauri-plugin-dialog = "2.4.2"
+tauri-plugin-opener = "2.5.2"
+tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 tauri-plugin-shell = "2"
 tauri-plugin-http = "2"
-derivative = "2.2.0"
+tauri-plugin-blec = "0.8.1"
