@@ -6,7 +6,7 @@
         <h2>Welcome to BrickUI!</h2>
         <div class="divider"></div>
         <cite class="subtitle">
-          Build your path by placing new bricks or continue from <br> where you left off.
+          Build your path by placing new bricks or continue from where you left off.
         </cite>
       </div>
 
