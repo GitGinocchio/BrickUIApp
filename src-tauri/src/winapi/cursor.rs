@@ -65,6 +65,7 @@ impl CursorType {
 }
 
 /// Applica le modifiche scritte nel registro
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn apply_cursor_changes() -> Result<(), String> {
     unsafe {
         SystemParametersInfoW(
@@ -80,6 +81,7 @@ fn apply_cursor_changes() -> Result<(), String> {
 }
 
 /// Salva i cursori correnti
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn backup_cursors() -> HashMap<CursorType, String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key = hkcu.open_subkey("Control Panel\\Cursors").unwrap();
@@ -94,6 +96,7 @@ pub fn backup_cursors() -> HashMap<CursorType, String> {
 }
 
 /// Imposta tutti i cursori a un file trasparente
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn hide_cursors(transparent_cur: &str) -> Result<(), String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key = hkcu
@@ -114,6 +117,7 @@ pub fn hide_cursors(transparent_cur: &str) -> Result<(), String> {
 // pub fn set_cursor(...) -> Result<(), String> {}
 
 /// Ripristina i cursori originali
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn restore_cursors(backup: &HashMap<CursorType, String>) -> Result<(), String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key = hkcu
