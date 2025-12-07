@@ -11,7 +11,7 @@
 <br> 
 <p align="center" style="font-weight: bold; background-color: transparent;">
 
-  <a href="https://brickui.giulioo.workers.dev/download/latest" target="_blank" style="text-decoration: none;">
+  <a href="https://brickui.giulioo.workers.dev/api/download/latest" target="_blank" style="text-decoration: none;">
     <img
       src="https://img.shields.io/badge/Download-red?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtZG93bmxvYWQtaWNvbiBsdWNpZGUtZG93bmxvYWQiPjxwYXRoIGQ9Ik0xMiAxNVYzIi8+PHBhdGggZD0iTTIxIDE1djRhMiAyIDAgMCAxLTIgMkg1YTIgMiAwIDAgMS0yLTJ2LTQiLz48cGF0aCBkPSJtNyAxMCA1IDUgNS01Ii8+PC9zdmc+"
       style="display: inline-block; border: none;"
