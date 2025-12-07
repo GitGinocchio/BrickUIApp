@@ -4,7 +4,7 @@
     <n-card class="login-container">
       <div class="log-slogan">
         <h1 class="title">{{ randomTitle }}</h1>
-
+        <div class="divider"></div>
         <cite class="subtitle">
           Lovely to see you again!  
           Log in to access your favorite bricks.
@@ -153,6 +153,7 @@ const handleSubmit = async () => {
 }
 
 .log-slogan{
+  color: white;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -163,6 +164,13 @@ const handleSubmit = async () => {
 .title{
   font-size: 40px;
   margin: 0 0 0.5rem 0;
+}
+
+.divider {
+  height: 0.1rem;
+  background: linear-gradient(to left, transparent, #cb4153ff);
+  margin-bottom: 0.75rem;
+  width: 100%;
 }
 
 .toggle-btn {

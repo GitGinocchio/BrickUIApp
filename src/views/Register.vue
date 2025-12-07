@@ -4,6 +4,7 @@
     <n-card class="card-container">
       <div class="reg-slogan">
         <h1 class="title">{{ randomTitle }}</h1>
+        <div class="divider"></div>
         <cite class="subtitle">
           lovely to see you here! 
           Register and be part of our family
@@ -199,6 +200,7 @@ const sections = computed(() => {
 }
 
 .reg-slogan{
+  color: white;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -209,6 +211,13 @@ const sections = computed(() => {
 .title{
   font-size: 40px;
   margin: 0 0 0.5rem 0;
+}
+
+.divider {
+  height: 0.1rem;
+  background: linear-gradient(to left, transparent, #cb4153ff);
+  margin-bottom: 0.75rem;
+  width: 100%;
 }
 
 .toggle-btn {

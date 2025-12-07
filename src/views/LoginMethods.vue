@@ -5,9 +5,9 @@
       <div class="description-container">
         <h2>Welcome to BrickUI!</h2>
         <div class="divider"></div>
-        <p class="subtitle">
+        <cite class="subtitle">
           Build your path by placing new bricks or continue from <br> where you left off.
-        </p>
+        </cite>
       </div>
 
       <div class="buttons-container">
@@ -57,23 +57,14 @@ const sections = computed(() => {
   gap: 1rem;
 }
 
-.card-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 55rem;
-}
-
 
 .description-container {
-  text-align: center;
   margin-bottom: 1rem;
 }
 
 .description-container h2 {
   font-size: 2.4rem;
-  margin-bottom: 0.7rem;
+  margin: 0 0 0.5rem 0;
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.5px;
@@ -86,10 +77,10 @@ const sections = computed(() => {
 }
 
 .divider {
-  height: 1px;
-  background: linear-gradient(to right, transparent, #555, transparent);
-  margin: 1rem auto;
-  width: 80%;
+  height: 0.1rem;
+  background: linear-gradient(to left, transparent, #cb4153ff);
+  margin-bottom: 0.75rem;
+  width: 100%;
 }
 
 .buttons-container {
@@ -102,10 +93,9 @@ const sections = computed(() => {
 /* Register button */
 .register-button {
   width: 100%;
-  max-width: 11rem;
   padding: 1.2rem;
   font-size: 1.2rem;
-  border-radius: 30px;
+  border-radius: 2px;
   transition: all 0.25s ease;
   background-color: #cb4153ff !important;
   color: #fff;
@@ -118,10 +108,9 @@ const sections = computed(() => {
 /* Login button */
 .login-button {
   width: 100%;
-  max-width: 11rem;
   padding: 1.15rem;
   font-size: 1.1rem;
-  border-radius: 30px;
+  border-radius: 2px;
   transition: all 0.25s ease;
   background-color: #333 !important;
   color: #fff;
