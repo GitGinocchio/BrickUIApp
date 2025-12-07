@@ -167,7 +167,7 @@ const handleSubmit = async () => {
 }
 
 .divider {
-  height: 0.1rem;
+  height: 0.07rem;
   background: linear-gradient(to left, transparent, #cb4153ff);
   margin-bottom: 0.75rem;
   width: 100%;

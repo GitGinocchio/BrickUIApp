@@ -209,12 +209,12 @@ const sections = computed(() => {
 }
 
 .title{
-  font-size: 40px;
+  font-size: 2.4rem;
   margin: 0 0 0.5rem 0;
 }
 
 .divider {
-  height: 0.1rem;
+  height: 0.07rem;
   background: linear-gradient(to left, transparent, #cb4153ff);
   margin-bottom: 0.75rem;
   width: 100%;
