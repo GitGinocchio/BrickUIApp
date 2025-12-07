@@ -1,7 +1,7 @@
 <template>
-    <HeaderUserPage />
+  <HeaderUserPage />
 </template>
 
 <script setup lang="ts">
-import HeaderUserPage from '../components/HeaderUserPage.vue'
+  import HeaderUserPage from '../components/HeaderUserPage.vue';
 </script>
