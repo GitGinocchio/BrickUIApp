@@ -16,6 +16,7 @@ fn hiword(val: u32) -> u16 {
 pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     extern "system" fn mouse_proc(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         if n_code >= 0 {
             let ms = unsafe { &*(l_param.0 as *const MSLLHOOKSTRUCT) };
