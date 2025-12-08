@@ -1,9 +1,20 @@
 <template>
   <div class="container" v-if="brick">
-    <div
-      class="thumbnail"
-      :style="{ backgroundImage: `url(${backgroundUrl})` }"
-    ></div>
+    <n-image 
+      class="banner"
+      :class="{ loaded: isBannerLoaded }"
+      object-fit="cover" 
+      :show-toolbar="false"
+      :preview-disabled="true"
+      :src="bannerUrl"
+      @load="onBannerLoad"
+      lazy
+    >
+      <template #placeholder>
+        <img class="banner" loading="lazy" @load="onBannerLoad" :src="defaultBannerUrl" />
+      </template>
+    </n-image>
+
     <Header :sections="sections" class="header">
       <template #actions>
         <div style="display: flex; align-items: center; gap: 1rem">
@@ -156,8 +167,8 @@
 </template>
 
 <script setup lang="ts">
-import { NTabs, NTabPane, NButton, NSwitch, NInput, NTag } from "naive-ui";
-import { computed, onMounted, ref, watchEffect } from "vue";
+import { NTabs, NTabPane, NButton, NSwitch, NInput, NTag, NImage } from "naive-ui";
+import { computed, nextTick, onBeforeMount, onMounted, ref, watch, watchEffect } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "vue-i18n";
 import {
@@ -201,37 +212,31 @@ const brick = ref<Brick>(null);
 const sections = computed(() => {
   return [
     { icon: Blocks, label: t("bricks"), onclick: () => router.push("/bricks") },
-    { icon: brick.value?.icon, defaultIcon: Cuboid, label: props.name },
+    { icon: iconUrl.value, defaultIcon: Cuboid, label: props.name },
   ];
 });
 
-const defaultBanner = new URL(
-  "../assets/images/banner-brick-iso.svg",
-  import.meta.url
-).href;
-const backgroundUrl = ref(defaultBanner);
+const isBannerLoaded = ref<boolean>(false);
+const bannerUrl = ref<string | null>(null);
+const defaultBannerUrl = new URL("../assets/images/banner-brick-iso.svg", import.meta.url).href;
 
-watchEffect(async () => {
-  if (!brick.value?.banner) {
-    backgroundUrl.value = defaultBanner;
-    return;
-  }
+const iconUrl = ref<string | null>(null);
 
-  // Precarica l'immagine
-  const img = new Image();
-  img.src = await sanitizePath(brick.value?.banner, { root: `${appDataDir}/bricks/${brick.value.name}` });
-
-  img.onload = () => {
-    backgroundUrl.value = img.src;
-  };
-  img.onerror = () => {
-    console.error(`Error loading banner image for brick: ${brick.value?.name}`);
-    backgroundUrl.value = defaultBanner;
-  };
-});
+function onBannerLoad() {
+  setTimeout(() => { isBannerLoaded.value = true; }, 15);
+}
 
 onMounted(async () => {
   brick.value = await invoke("get_brick_by_name", { name: props.name });
+
+  await nextTick();
+  
+  if (brick.value.banner) {
+    bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name ?? props.name}` });
+  }
+  if (brick.value.icon) {
+    iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? props.name}` });
+  }
 });
 
 /* Delete Modal */
@@ -411,13 +416,20 @@ async function deleteBrick() {
   margin: 0;
 }
 
-.thumbnail {
+.banner {
   width: 100%;
   height: 35vh;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.3;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.5;
   z-index: 0;
+
+  filter: blur(var(--blur, 20px));
+  transition: filter 0.5s ease;
+}
+
+.banner.loaded {
+  --blur: 0px;
 }
 
 .header {
