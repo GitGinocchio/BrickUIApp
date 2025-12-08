@@ -162,7 +162,7 @@ const handleSubmit = async () => {
 }
 
 .title{
-  font-size: 40px;
+  font-size: 2.4rem;
   margin: 0 0 0.5rem 0;
 }
 

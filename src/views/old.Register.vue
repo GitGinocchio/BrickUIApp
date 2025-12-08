@@ -10,83 +10,74 @@
           Register and be part of our family
         </cite>
       </div>
-      <n-tabs
-        default-value="signin"
-        size="large"
-        animated
+      <NForm
+        :model="form"
+        :rules="rules"
+        ref="formRef"
+        label-placement="top"
+        require-mark-placement="right-hanging"
       >
-        <n-tab-pane name="signin" tab="Sign In">
-          <n-form
-          :model="form"
-          :rules="rules"
-          ref="formRef"
+        <!-- USERNAME -->
+        <NFormItem label="Username" path="username">
+          <NInput
+            v-model:value="form.username"
+            placeholder="Enter your username"
+            type="text"
+            size="large"
+          />
+        </NFormItem>
+
+        <!-- EMAIL -->
+        <NFormItem label="Email" path="email">
+          <NInput
+            v-model:value="form.email"
+            placeholder="Enter your email"
+            type="text"
+            size="large"
+          />
+        </NFormItem>
+
+        <!-- PASSWORD -->
+        <NFormItem label="Password" path="password">
+          <NInput
+            v-model:value="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Enter your password"
+            size="large"
           >
-            <n-form-item-row label="Username">
-              <n-input v-model:value="form.username" placeholder="Username"/>
-            </n-form-item-row>
-            <n-form-item-row label="Password">
-              <n-input
-              v-model:value="form.password"
-              :type="showSignupPassword ? 'text' : 'password'"
-              placeholder="Password"
-            >
-              <template #suffix>
-                <button class="toggle-btn" @click.stop="showSigninPassword = !showSigninPassword">
-                  <EyesOpened v-if="showSigninPassword" />
-                  <EyesClosed v-else />
-                </button>
-              </template>
-            </n-input>
+            <template #suffix>
+              <button class="toggle-btn" @click="showPassword = !showPassword">
+                <EyesOpened v-if="showPassword" />
+                <EyesClosed v-else />
+              </button>
+            </template>
+          </NInput>
+        </NFormItem>
 
-            </n-form-item-row>
-            <NButton type="primary" block strong size="large" @click="handleSubmit">
-              Login
-            </NButton>
-          </n-form>
-        </n-tab-pane>
-        <n-tab-pane name="signup" tab="Sign Up">
-          <n-form>
-            <n-form-item-row label="Username" path="username">
-              <n-input v-model:value="form.username" placeholder="Username"/>
-            </n-form-item-row>
-            <n-form-item-row label="Email" path="email">
-              <n-input v-model:value="form.email" placeholder="Email"/>
-            </n-form-item-row>
-            <n-form-item-row label="Password" path="password">
-              <n-input
-                v-model:value="form.password"
-                :type="showSignupPassword ? 'text' : 'password'"
-                placeholder="Password"
+        <!-- CONFIRM PASSWORD -->
+        <NFormItem label="Confirm Password" path="confirmPassword">
+          <NInput
+            v-model:value="form.confirmPassword"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            placeholder="Confirm your password"
+            size="large"
+          >
+            <template #suffix>
+              <button
+                class="toggle-btn"
+                @click="showConfirmPassword = !showConfirmPassword"
               >
-                <template #suffix>
-                  <button class="toggle-btn" @click.stop="showSignupPassword = !showSignupPassword">
-                    <EyesOpened v-if="showSignupPassword" />
-                    <EyesClosed v-else />
-                  </button>
-                </template>
-              </n-input>
-            </n-form-item-row>
-            <n-form-item-row label="Confirm Password" path="confirmPassword">
-              <n-input
-                v-model:value="form.confirmPassword"
-                :type="showSignupConfirmPassword ? 'text' : 'password'"
-                placeholder="Confirm Password"
-              >
-                <template #suffix>
-                  <button class="toggle-btn" @click.stop="showSignupConfirmPassword = !showSignupConfirmPassword">
-                    <EyesOpened v-if="showSignupConfirmPassword" />
-                    <EyesClosed v-else />
-                  </button>
-                </template>
-              </n-input>
-            </n-form-item-row>
+                <EyesOpened v-if="showConfirmPassword" />
+                <EyesClosed v-else />
+              </button>
+            </template>
+          </NInput>
+        </NFormItem>
 
-            <NButton type="primary" block strong size="large" @click="handleSubmit">
-              Register
-            </NButton>
-          </n-form>
-        </n-tab-pane>
-      </n-tabs>
+        <NButton type="primary" block strong size="large" @click="handleSubmit">
+          Register
+        </NButton>
+      </NForm>
     </n-card>
   </div>
 </template>
@@ -94,7 +85,7 @@
 
 <script setup lang="ts">
 import { inject, Ref, ref, computed, onMounted } from 'vue'
-import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule, NCard, NTabs, NTabPane, NFormItemRow } from 'naive-ui'
+import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule, NCard } from 'naive-ui'
 import EyesClosed from '../components/icons/EyesClosed.vue'
 import EyesOpened from '../components/icons/EyesOpened.vue'
 import { fetch } from '@tauri-apps/plugin-http';
@@ -125,9 +116,8 @@ email: '',
 
 
 const formRef = ref<FormInst | null>(null);
-const showSigninPassword = ref(false)
-const showSignupPassword = ref(false)
-const showSignupConfirmPassword = ref(false)
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 const user = inject("user") as Ref<User|null>;
 
 const validatePasswordMatch = (rule: FormItemRule, value: string): boolean | Error => {
