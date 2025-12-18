@@ -3,9 +3,7 @@ import BricksPage from './views/BricksPage.vue'
 import SettingsPage from './views/SettingsPage.vue'
 import Marketplace from './views/Marketplace.vue'
 import BrickPage from './views/BrickPage.vue'
-import LoginMethods from './views/LoginMethods.vue'
-import Register from './views/Register.vue'
-import Login from './views/Login.vue'
+import GetStarted from './views/GetStarted.vue'
 import User from './views/User.vue'
 
 export const router = createRouter({
@@ -16,9 +14,7 @@ export const router = createRouter({
     { path: '/brick/:name', props: true, component: BrickPage },
     { path: '/settings', component: SettingsPage },
     { path: '/marketplace', component: Marketplace },
-    { path: '/login-methods', component: LoginMethods },
-    { path: '/register', component: Register },
-    { path: '/login', component: Login},
+    { path: '/get-started', component: GetStarted },
     { path: '/user', component: User}
   ]
 })
