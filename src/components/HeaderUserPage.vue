@@ -14,13 +14,9 @@
     </div>
 </template>
 
-<script>
-
+<script setup lang="ts">
 import { NImage } from 'naive-ui';
 
-export default {
-  name: 'HeaderUserPage'
-}
 </script>
 
 <style scoped>

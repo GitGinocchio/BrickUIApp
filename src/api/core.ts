@@ -15,12 +15,14 @@ const allowedCommands = new Set<string>([
 
   // Bluetooth
   "bluetooth_scan",
-  "bluetooth_classic_scan",
+  "bluetooth_win32_scan",
+  "bluetooth_winrt_scan",
+
+  "bluetooth_register",
+  "bluetooth_unregister",
+
   "bluetooth_connect",
   "bluetooth_disconnect",
-  //"get_default_adapter",
-  //"get_adapters",
-  //"get_devices",
 
   // Taskbar / Tray icons
   //"get_tray_icons",

@@ -20,7 +20,10 @@
 
     {
       "identifier": "http:default",
-      "allow": [{ "url": "https://brickui.giulioo.workers.dev/" }]
+      "allow": [
+        { "url": "https://brickui.giulioo.workers.dev/" },
+        { "url": "https://brickui.app" }
+      ]
     },
 
     {
