@@ -56,7 +56,7 @@
               </n-input>
             </n-form-item-row>
 
-            <NButton type="primary" block strong size="large" @click="handleRegister">
+            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="handleRegister">
               Register
             </NButton>
           </n-form>
@@ -85,7 +85,7 @@
                 </template>
               </n-input>
             </n-form-item-row>
-            <NButton type="primary" block strong size="large" @click="handleLogin">
+            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="handleLogin">
               Login
             </NButton>
           </n-form>
@@ -114,7 +114,7 @@ import EyesClosed from '../components/icons/EyesClosed.vue'
 import EyesOpened from '../components/icons/EyesOpened.vue'
 import { fetch } from '@tauri-apps/plugin-http';
 import { useI18n } from "vue-i18n";
-import { UserIcon, IdCard } from 'lucide-vue-next';
+import { UserIcon } from 'lucide-vue-next';
 import { User } from 'interfaces/user';
 import { useRouter } from "vue-router";
 import Header from '../components/Header.vue';
@@ -149,6 +149,8 @@ const showSignupPassword = ref(false);
 const showSignupConfirmPassword = ref(false);
 const activeTab = ref('signup');
 const user = inject("user") as Ref<User|null>;
+
+const loading = ref<boolean>(false);
 
 const showAlert = ref(false);
 const alertType = ref<"warning" | "error" | "success" | "default" | "info">('error');
@@ -193,7 +195,10 @@ const RegisterRules: FormRules = {
 
 async function handleRegister() {
   try {
-    await signupformRef.value?.validate();
+    loading.value = true;
+    await signupformRef.value?.validate().catch((warnings) => {
+      throw { code: -1, msg: warnings[0][0].message };
+    });
     const payload = {
       email : form.value.email,
       password : form.value.password,
@@ -206,26 +211,22 @@ async function handleRegister() {
       body: body
     });
 
-    console.log('HTTP response status:', (response as any).status, (response as any).statusText);
-    let registerResponse: any = {};
+    let registerResponse: { msg: string, code: number } = { 
+      msg: 'Something went wrong when sending the request', 
+      code: null 
+    };
     try {
       const text = await response.text();
       registerResponse = JSON.parse(text);
     }
     catch (e) {
-      alertTitle.value = 'Invalid Server Response';
-      alertMessage.value = `HTTP ${(response as any).status}`;
-      showAlert.value = true;
-      return;
+      throw { 
+        code: registerResponse.code ?? response.status, 
+        message: registerResponse.msg ?? response.statusText
+      };
     }
 
-    const code = registerResponse.code ?? (response as any).status;
-    const msg = registerResponse.msg ?? registerResponse.message ?? (response as any).statusText;
-    alertMessage.value = msg;
-
-    console.log('Parsed register response:', registerResponse, 'code fallback:', code);
-
-    if (code === 200 || code === '200' || (response as any).ok) {
+    if (registerResponse.code === 200 || (response as any).ok) {
       // success
       alertTitle.value = 'Successfully registered!';
       alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`
@@ -235,10 +236,15 @@ async function handleRegister() {
       return;
     }
 
+    throw registerResponse;
+  }
+  catch (err: any) {
     alertType.value = 'error';
+    showAlert.value = true;
 
-    // handle common error codes
-    switch (Number(code)) {
+    console.error(err);
+
+    switch (err.code) {
       case 500:
         alertTitle.value = 'Internal Server Error';
         break;
@@ -251,31 +257,27 @@ async function handleRegister() {
       case 409:
         alertTitle.value = 'Conflict';
         break;
+      case -1:
+        alertTitle.value = 'Client Error';
+        alertMessage.value = err.msg
+        break;
       default:
-        alertTitle.value = `Error ${code}` || 'Unhandled Error';
-        console.log('Unhandled Error', registerResponse);
+        alertTitle.value = `Login Error: ${err.code}` || 'Unhandled Error';
+        alertMessage.value = err.msg
         break;
     }
-
-    showAlert.value = true;
   }
-  catch (err) {
-    alertType.value = 'error';
-    alertTitle.value = 'Client Error';
-
-    if (Array.isArray(err)) {
-      alertMessage.value = String(err[0][0].message);
-    }
-    else {
-      alertMessage.value = String(err);
-    }
-    showAlert.value = true;
+  finally {
+    loading.value = false;
   }
 }
 
 async function handleLogin() {
   try {
-    await signinFormRef.value?.validate();
+    loading.value = true;
+    await signinFormRef.value?.validate().catch((warnings) => {
+      throw { code: -1, msg: warnings[0][0].message };
+    });
 
     let payload = {
       email : form.value.email,
@@ -291,52 +293,52 @@ async function handleLogin() {
       body: body
     });
 
-    const text = await response.text();
-    let loginResponse: any = {};
+    let loginResponse: { msg: string, code: number } = { 
+      msg: 'Something went wrong when sending the request', 
+      code: null 
+    };
     try {
+      const text = await response.text();
       loginResponse = JSON.parse(text);
     }
     catch (e) {
-      // non-JSON response: show raw text and HTTP status
-      alertTitle.value = 'Invalid Server Response';
-      alertMessage.value = text || `HTTP ${(response as any).status}`;
-      showAlert.value = true;
-      return;
+      throw { 
+        code: loginResponse.code ?? response.status, 
+        message: loginResponse.msg ?? response.statusText
+      };
     }
 
-    const code = loginResponse.code ?? (response as any).status;
-    const msg = loginResponse.msg ?? loginResponse.message ?? text ?? (response as any).statusText;
-    alertMessage.value = msg;
-
-    if(code === 200 || code === '200' || (response as any).ok){
+    if(loginResponse.code === 200 || (response as any).ok){
       // Ricordarsi di fare la logica del token
       router.push('/user');
       return;
     }
 
-    alertType.value = 'error';
-
-    switch (Number(code)){
-      // Gestire casi errori
-      default:
-        alertTitle.value = `Login Error ${code}` || 'Unhandled Error';
-        console.log('Login Error', loginResponse);
-        break;
-    }
-
-    showAlert.value = true;
+    throw loginResponse
   }
   catch (err) {
     alertType.value = 'error';
-    alertTitle.value = 'Client Error';
-
-    if (Array.isArray(err)) {
-      alertMessage.value = String(err[0][0].message);
-    }
-    else {
-      alertMessage.value = String(err);
-    }
     showAlert.value = true;
+
+    console.error(err);
+
+    switch (err.code) {
+      case -1:
+        alertTitle.value = 'Client Error';
+        alertMessage.value = err.msg;
+        break;
+      case 400:
+        alertTitle.value = err.msg;
+        alertMessage.value = 'Click the link we sent to your inbox to activate your account.'
+        break;
+      default:
+        alertTitle.value = `Login Error: ${err.code}` || 'Unhandled Error';
+        alertMessage.value = err.msg;
+        break;
+    }
+  }
+  finally {
+    loading.value = false;
   }
 }
 
@@ -390,4 +392,7 @@ async function handleLogin() {
   right: 1rem;
 }
 
+.form-button {
+  margin-top: 1rem;
+}
 </style>
