@@ -5,12 +5,12 @@ use std::{fs, path::PathBuf};
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup, plugins::Plugins, settings::Settings},
-    winapi::{icons::IconsMap},
+    winapi::icons::IconsMap,
 };
 use serde::Serialize;
 
-pub mod generic;
 pub mod bluetooth;
+pub mod generic;
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn write_schema_if_missing<T>(dir: &PathBuf, filename: &str) -> std::io::Result<()>

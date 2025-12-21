@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "flame": "cd src-tauri && cargo run --features profiling --bin brickui && npm run flamegraph", 
+    "flame": "cd src-tauri && cargo run --features profiling --bin brickui && npm run flamegraph",
     "dev:flame": "npm-run-all -p dev flame",
     "flamegraph": "inferno-flamegraph ./src-tauri/trace.folded > ./src-tauri/flamegraph.svg"
   },
@@ -17,6 +17,7 @@
     "@mnlphlp/plugin-blec": "^0.8.0",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-autostart": "^2.5.0",
+    "@tauri-apps/plugin-deep-link": "^2.4.5",
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
     "@tauri-apps/plugin-http": "^2.5.4",

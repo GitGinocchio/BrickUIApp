@@ -1,15 +1,9 @@
 use std::{fs, path::PathBuf};
 
 use crate::{
-    bricks::brick::Brick, 
-    config::{
-        backup::Backup, 
-        load_yaml, 
-        settings::Settings
-    }, 
-    winapi::{ 
-        icons::IconsMap
-    }
+    bricks::brick::Brick,
+    config::{backup::Backup, load_yaml, settings::Settings},
+    winapi::icons::IconsMap,
 };
 
 use super::generate_schemas_if_missing;
@@ -58,7 +52,7 @@ impl BrickUIGenericState {
 
         let backup = load_yaml::<Backup>(&path.join("backup.yml"))
             .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
-        
+
         Ok(Self {
             resource_path: resource_path.clone(),
             path: path.clone(),
@@ -69,31 +63,51 @@ impl BrickUIGenericState {
         })
     }
 
-    pub fn get_path(&self) -> &PathBuf { &self.path }
-    pub fn get_resource_path(&self) -> &PathBuf { &self.resource_path }
+    pub fn get_path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn get_resource_path(&self) -> &PathBuf {
+        &self.resource_path
+    }
 
     // Bricks
 
-    pub fn get_bricks(&self) -> &[Brick] { &self.bricks }
+    pub fn get_bricks(&self) -> &[Brick] {
+        &self.bricks
+    }
 
     pub fn get_brick_by_name(&self, name: &str) -> Option<Brick> {
         self.bricks.iter().find(|brick| brick.name == name).cloned()
     }
 
-    pub fn get_mut_bricks(&mut self) -> &mut Vec<Brick> { &mut self.bricks }
+    pub fn get_mut_bricks(&mut self) -> &mut Vec<Brick> {
+        &mut self.bricks
+    }
 
     // Settings
 
-    pub fn get_settings(&self) -> &Settings { &self.settings }
-    pub fn get_mut_settings(&mut self) -> &mut Settings { &mut self.settings }
+    pub fn get_settings(&self) -> &Settings {
+        &self.settings
+    }
+    pub fn get_mut_settings(&mut self) -> &mut Settings {
+        &mut self.settings
+    }
 
     // Backup
 
-    pub fn get_backup(&self) -> &Backup { &self.backup }
-    pub fn get_mut_backup(&mut self) -> &mut Backup { &mut self.backup }
+    pub fn get_backup(&self) -> &Backup {
+        &self.backup
+    }
+    pub fn get_mut_backup(&mut self) -> &mut Backup {
+        &mut self.backup
+    }
 
     // Icons
 
-    pub fn get_icons_map(&self) -> &IconsMap { &self.icons_map }
-    pub fn get_mut_icons_map(&mut self) -> &mut IconsMap { &mut self.icons_map }
+    pub fn get_icons_map(&self) -> &IconsMap {
+        &self.icons_map
+    }
+    pub fn get_mut_icons_map(&mut self) -> &mut IconsMap {
+        &mut self.icons_map
+    }
 }

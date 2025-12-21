@@ -1,4 +1,4 @@
-use windows::Win32::Networking::WinSock::{WSAStartup, WSADATA};
+use windows::Win32::Networking::WinSock::{WSADATA, WSAStartup};
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn inititalize_sockets() -> Result<(), String> {

@@ -93,42 +93,55 @@
       </n-tabs>
     </n-card>
     <div class="alert">
-        <n-alert
-    v-if="showAlert"
-    :type="alertType"
-    :title="alertTitle"
-    closable
-    @close="showAlert = false"
-  >
-    {{ alertMessage }}
-  </n-alert>
+      <n-alert
+        v-if="showAlert"
+        :type="alertType"
+        :title="alertTitle"
+        closable
+        @close="showAlert = false"
+      >
+        {{ alertMessage }}
+        <div class="resend-button" v-if="showAlertResendEmailBtn">
+          <n-button @click="handleResendEmail">
+            Resend email
+          </n-button>
+        </div>
+      </n-alert>
     </div>
   </div>
 </template>
 
 
 <script setup lang="ts">
-import { inject, Ref, ref, computed, onMounted } from 'vue'
-import { NForm, NFormItem, NInput, NButton, FormInst, FormRules, FormItemRule, NCard, NTabs, NTabPane, NFormItemRow, NAlert } from 'naive-ui'
+import { ref, computed, onMounted } from 'vue'
+import { NForm, NInput, NButton, FormInst, FormRules, FormItemRule, NCard, NTabs, NTabPane, NFormItemRow, NAlert } from 'naive-ui'
 import EyesClosed from '../components/icons/EyesClosed.vue'
 import EyesOpened from '../components/icons/EyesOpened.vue'
 import { fetch } from '@tauri-apps/plugin-http';
 import { useI18n } from "vue-i18n";
 import { UserIcon } from 'lucide-vue-next';
-import { User } from 'interfaces/user';
 import { useRouter } from "vue-router";
 import Header from '../components/Header.vue';
 
 const { t } = useI18n();
 const router = useRouter();
-const titles = ["Let’s Begin", "Welcome UIBricker!", 
-"Join Us", "Register", "Sign Up", "We’re happy to have you!", "Become a UIBricker", "Create Your Account"];
 
-const randomTitle = ref("");
+const API_URL = import.meta.env.VITE_API_URL;
 
-onMounted(() => {
-  randomTitle.value = titles[Math.floor(Math.random() * titles.length)];
-});
+const form = ref({ email: '', password: '', confirmPassword: '' })
+const signupformRef = ref<FormInst | null>(null);
+const signinFormRef = ref<FormInst | null>(null);
+const showSigninPassword = ref(false);
+const showSignupPassword = ref(false);
+const showSignupConfirmPassword = ref(false);
+const activeTab = ref('signup');
+const loading = ref<boolean>(false);
+
+const showAlert = ref(false);
+const showAlertResendEmailBtn = ref(false);
+const alertType = ref<"warning" | "error" | "success" | "default" | "info">('error');
+const alertTitle = ref<string>('');
+const alertMessage = ref<string>('');
 
 const sections = computed(() => {
   return [
@@ -136,34 +149,6 @@ const sections = computed(() => {
   ]
 });
 
-const form = ref({
-  email: '',
-  password: '',
-  confirmPassword: ''
-})
-
-const signupformRef = ref<FormInst | null>(null);
-const signinFormRef = ref<FormInst | null>(null);
-const showSigninPassword = ref(false);
-const showSignupPassword = ref(false);
-const showSignupConfirmPassword = ref(false);
-const activeTab = ref('signup');
-const user = inject("user") as Ref<User|null>;
-
-const loading = ref<boolean>(false);
-
-const showAlert = ref(false);
-const alertType = ref<"warning" | "error" | "success" | "default" | "info">('error');
-const alertTitle = ref<string>('');
-const alertMessage = ref<string>('');
-
-
-const validatePasswordMatch = (rule: FormItemRule, value: string): boolean | Error => {
-  if (value !== form.value.password) {
-    return new Error('Passwords do not match')
-  }
-  return true
-}
 
 const LoginRules: FormRules = {
   email: [
@@ -195,6 +180,7 @@ const RegisterRules: FormRules = {
 
 async function handleRegister() {
   try {
+    showAlertResendEmailBtn.value = false;
     loading.value = true;
     await signupformRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
@@ -206,9 +192,12 @@ async function handleRegister() {
     
     const encoder = new TextEncoder();
     const body = encoder.encode(JSON.stringify(payload));
-    const response = await fetch("https://brickui.app/api/auth/register/classic", {
+    const response = await fetch(`${API_URL}/api/auth/register/classic`, {
       method: 'POST',
-      body: body
+      body: body,
+      headers: {
+        "User-Agent": "BrickUIApp/1.0"
+      }
     });
 
     let registerResponse: { msg: string, code: number } = { 
@@ -228,6 +217,7 @@ async function handleRegister() {
 
     if (registerResponse.code === 200 || (response as any).ok) {
       // success
+      console.log(registerResponse);
       alertTitle.value = 'Successfully registered!';
       alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`
       alertType.value = 'success'
@@ -240,6 +230,7 @@ async function handleRegister() {
   }
   catch (err: any) {
     alertType.value = 'error';
+    alertMessage.value = err.msg || "An unexpected error occurred";
     showAlert.value = true;
 
     console.error(err);
@@ -255,15 +246,13 @@ async function handleRegister() {
         alertTitle.value = 'Email Exists';
         break;
       case 409:
-        alertTitle.value = 'Conflict';
+        alertTitle.value = 'Account Already Exists';
         break;
       case -1:
-        alertTitle.value = 'Client Error';
-        alertMessage.value = err.msg
+        alertTitle.value = 'Invalid Input';
         break;
       default:
-        alertTitle.value = `Login Error: ${err.code}` || 'Unhandled Error';
-        alertMessage.value = err.msg
+        alertTitle.value = err.code ? `Login Error: ${err.code}` : 'Unexptected Error';
         break;
     }
   }
@@ -274,6 +263,7 @@ async function handleRegister() {
 
 async function handleLogin() {
   try {
+    showAlertResendEmailBtn.value = false;
     loading.value = true;
     await signinFormRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
@@ -288,9 +278,12 @@ async function handleLogin() {
     const encoder = new TextEncoder();
     const body = encoder.encode(JSON.stringify(payload));
 
-    const response = await fetch("https://brickui.app/api/auth/login", {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
-      body: body
+      body: body,
+      headers: {
+        "User-Agent": "BrickUIApp/1.0"
+      }
     });
 
     let loginResponse: { msg: string, code: number } = { 
@@ -308,7 +301,7 @@ async function handleLogin() {
       };
     }
 
-    if(loginResponse.code === 200 || (response as any).ok){
+    if(loginResponse.code === 200 || response.ok){
       // Ricordarsi di fare la logica del token
       router.push('/user');
       return;
@@ -318,22 +311,29 @@ async function handleLogin() {
   }
   catch (err) {
     alertType.value = 'error';
+    alertMessage.value = err.msg;
     showAlert.value = true;
 
     console.error(err);
 
     switch (err.code) {
       case -1:
-        alertTitle.value = 'Client Error';
-        alertMessage.value = err.msg;
+        alertTitle.value = `Invalid input`;
         break;
       case 400:
-        alertTitle.value = err.msg;
-        alertMessage.value = 'Click the link we sent to your inbox to activate your account.'
+        switch (err.error_code) {
+          case "invalid_credentials":
+            alertTitle.value = `Invalid Credentials`;
+            break;
+          case "email_not_confirmed":
+            alertTitle.value = `Email not confirmed`;
+            alertMessage.value = "Your email hasn’t been confirmed yet. Check your inbox for the verification link to complete sign-in.";
+            showAlertResendEmailBtn.value = true;
+            break;
+        }
         break;
       default:
-        alertTitle.value = `Login Error: ${err.code}` || 'Unhandled Error';
-        alertMessage.value = err.msg;
+        alertTitle.value = `Login Error ${err.code}: Unexpected Error` || 'Unhandled Error';
         break;
     }
   }
@@ -342,6 +342,79 @@ async function handleLogin() {
   }
 }
 
+async function handleResendEmail() {
+  try {
+    let payload = {
+      email : form.value.email,
+    }
+
+    // Trasformiamo tramite un encoder il payload in un array di variabili:
+    const encoder = new TextEncoder();
+    const body = encoder.encode(JSON.stringify(payload));
+
+    const response = await fetch(`${API_URL}/api/auth/resend`, {
+      method: 'POST',
+      body: body,
+      headers: {
+        "User-Agent": "BrickUIApp/1.0"
+      }
+    });
+
+    let resendResponse: { msg: string, code: number } = { 
+      msg: 'Something went wrong when sending the request', 
+      code: null 
+    };
+    try {
+      const text = await response.text();
+      resendResponse = JSON.parse(text);
+    }
+    catch (e) {
+      throw { 
+        code: resendResponse.code ?? response.status, 
+        message: resendResponse.msg ?? response.statusText
+      };
+    }
+
+    if (resendResponse.code === 200 || response.ok) {
+      alertTitle.value = 'Email Sent!';
+      alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`
+      alertType.value = 'success';
+      showAlertResendEmailBtn.value = false;
+      showAlert.value = true;
+    }
+
+    throw resendResponse
+  }
+  catch (err: any) {
+    showAlertResendEmailBtn.value = false;
+    alertMessage.value = err.msg || "An unexpected error occurred";
+    showAlert.value = true;
+
+    console.error(err);
+
+    switch (err.code) {
+      default:
+        alertTitle.value = err.code ? `Login Error: ${err.code}` : 'Unexptected Error';
+        break;
+    }
+  }
+}
+
+function validatePasswordMatch(_rule: FormItemRule, value: string): boolean | Error {
+  if (value !== form.value.password) {
+    return new Error('Passwords do not match')
+  }
+  return true
+}
+
+const titles = ["Let’s Begin", "Welcome UIBricker!", 
+"Join Us", "Register", "Sign Up", "We’re happy to have you!", "Become a UIBricker", "Create Your Account"];
+
+const randomTitle = ref("");
+
+onMounted(() => {
+  randomTitle.value = titles[Math.floor(Math.random() * titles.length)];
+});
 </script>
 
 <style scoped>
@@ -390,6 +463,10 @@ async function handleLogin() {
   position: absolute;
   bottom: 1rem;
   right: 1rem;
+}
+
+.resend-button {
+  margin-top: 0.5rem;
 }
 
 .form-button {

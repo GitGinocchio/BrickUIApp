@@ -44,16 +44,12 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         get_tray_icons,
         // Bluetooth
         bluetooth_scan,
-        //bluetooth_classic_scan,
+        bluetooth_win32_scan,
+        bluetooth_winrt_scan,
+        bluetooth_register,
+        bluetooth_unregister,
         bluetooth_connect,
-        //bluetooth_classic_disconnect,
-
-        /*
-        get_default_adapter,
-        get_adapters,
-        get_devices,
-        */
-
+        bluetooth_disconnect,
         // Explorer
         get_explorer_recents,
         // Start Menu

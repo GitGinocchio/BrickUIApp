@@ -10,7 +10,9 @@ use tokio::sync::Mutex;
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn get_bricks(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Vec<Brick>, String> {
+pub async fn get_bricks(
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+) -> Result<Vec<Brick>, String> {
     let state_guard = state.lock().await;
 
     Ok(state_guard.get_bricks().to_vec())
@@ -29,7 +31,9 @@ pub async fn get_brick_by_name(
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn load_bricks(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Vec<Brick>, String> {
+pub async fn load_bricks(
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+) -> Result<Vec<Brick>, String> {
     let mut state_guard = state.lock().await;
 
     let path = state_guard.get_path();

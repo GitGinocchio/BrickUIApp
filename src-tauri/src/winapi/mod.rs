@@ -7,10 +7,10 @@ pub mod explorer;
 pub mod icons;
 pub mod monitor;
 pub mod rect;
+pub mod sock;
 pub mod startmenu;
 pub mod taskbar;
 pub mod window;
-pub mod sock;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;

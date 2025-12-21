@@ -1,9 +1,10 @@
 use crate::{
-    config::settings::TaskBarBehavior, state::generic::BrickUIGenericState, winapi::taskbar::hide_taskbar,
+    config::settings::TaskBarBehavior, state::generic::BrickUIGenericState,
+    winapi::taskbar::hide_taskbar,
 };
 use crossbeam::channel;
-use std::sync::Arc;
 use std::panic;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 
@@ -38,9 +39,11 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
             eprintln!("Errore nell'hook mouse: {:?}", e)
         }
 
-        tauri::async_runtime::block_on(async { keyboard::init_hook(tx.clone(), &app_handle_clone).await })
-            .map_err(|e| format!("Errore nell'hook keyboard: {e}"))
-            .unwrap();
+        tauri::async_runtime::block_on(async {
+            keyboard::init_hook(tx.clone(), &app_handle_clone).await
+        })
+        .map_err(|e| format!("Errore nell'hook keyboard: {e}"))
+        .unwrap();
 
         if let Err(e) = window::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook window: {:?}", e);
@@ -56,7 +59,8 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
             )
             .into()
             {
-                windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg).expect("Error transalting message");
+                windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg)
+                    .expect("Error transalting message");
                 windows::Win32::UI::WindowsAndMessaging::DispatchMessageW(&msg);
             }
         }
@@ -81,7 +85,8 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
                     let _ = app_handle_clone.emit_to("overlay", "global_mouse_moved", (x, y));
                 }
                 GlobalEvent::MouseButtonDown { x, y, button } => {
-                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_pressed", (x, y, button));
+                    let _ =
+                        app_handle_clone.emit_to("overlay", "global_mouse_pressed", (x, y, button));
                 }
                 GlobalEvent::MouseButtonUp { x, y, button } => {
                     let _ = app_handle_clone.emit_to(
@@ -91,7 +96,8 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
                     );
                 }
                 GlobalEvent::MouseWheel { x, y, notches } => {
-                    let _ = app_handle_clone.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
+                    let _ =
+                        app_handle_clone.emit_to("overlay", "global_mouse_wheel", (x, y, notches));
                 }
                 GlobalEvent::KeyDown(key) => {
                     let _ = app_handle_clone.emit_to("overlay", "global_key_pressed", key);
@@ -107,7 +113,9 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
                     println!("Window exited fullscreen!");
 
                     // Recupera stato solo ora, quando esiste
-                    if let Some(state) = app_handle_clone.try_state::<Arc<Mutex<BrickUIGenericState>>>() {
+                    if let Some(state) =
+                        app_handle_clone.try_state::<Arc<Mutex<BrickUIGenericState>>>()
+                    {
                         let settings = tauri::async_runtime::block_on(async {
                             let state_guard = state.lock().await;
                             state_guard.get_settings().clone()

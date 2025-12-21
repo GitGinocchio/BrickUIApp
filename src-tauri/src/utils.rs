@@ -1,4 +1,3 @@
-
 pub async fn spawn_blocking<T, E, F>(f: F) -> Result<T, E>
 where
     F: FnOnce() -> Result<T, E> + Send + 'static,

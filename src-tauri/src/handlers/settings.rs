@@ -7,7 +7,9 @@ use crate::{config::settings::Settings, state::generic::BrickUIGenericState};
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn get_settings(state: State<'_, Arc<Mutex<BrickUIGenericState>>>) -> Result<Settings, String> {
+pub async fn get_settings(
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+) -> Result<Settings, String> {
     let state_guard = state.lock().await;
     Ok(state_guard.get_settings().clone())
 }
