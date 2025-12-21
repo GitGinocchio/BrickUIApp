@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
 import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
-import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip } from 'naive-ui'
+import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip, NCard } from 'naive-ui'
 import { inject, onMounted, ref, Ref } from 'vue'
 
 const settings = inject("settings") as Ref<Settings>;
