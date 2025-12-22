@@ -125,7 +125,6 @@ import { UserIcon } from 'lucide-vue-next';
 import { useRouter } from "vue-router";
 import Header from '../components/Header.vue';
 import { debounce, throttle } from '../utils/misc'
-import { PassThrough } from 'stream';
 
 const { t } = useI18n();
 const router = useRouter();
