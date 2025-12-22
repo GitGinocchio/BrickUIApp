@@ -22,7 +22,7 @@
             :model="form" 
             :rules="RegisterRules"
             ref="signupformRef"
-            @keydown.enter.prevent="handleRegister"
+            @keydown.enter.prevent="throttledRegister"
           >
             <n-form-item-row label="Email" path="email">
               <n-input v-model:value="form.email" placeholder="Email"/>
@@ -56,17 +56,18 @@
               </n-input>
             </n-form-item-row>
 
-            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="handleRegister">
+            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="throttledRegister">
               Register
             </NButton>
           </n-form>
         </n-tab-pane>
+
         <n-tab-pane name="signin" tab="Sign In">
           <n-form
             :model="form"
             :rules="LoginRules"
             ref="signinFormRef"
-            @keydown.enter.prevent="handleLogin"
+            @keydown.enter.prevent="throttledLogin"
           >
             <n-form-item-row label="Email" path="email">
               <n-input v-model:value="form.email" placeholder="Email"/>
@@ -78,20 +79,21 @@
                 placeholder="Password"
               >
                 <template #suffix>
-                  <button class="toggle-btn" type="button" @click.left.stop="showSigninPassword = !showSigninPassword" @submit="() => {}">
+                  <button class="toggle-btn" type="button" @click.left.stop="showSigninPassword = !showSigninPassword">
                     <EyesOpened v-if="showSigninPassword" />
                     <EyesClosed v-else />
                   </button>
                 </template>
               </n-input>
             </n-form-item-row>
-            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="handleLogin">
+            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="throttledLogin">
               Login
             </NButton>
           </n-form>
         </n-tab-pane>
       </n-tabs>
     </n-card>
+
     <div class="alert">
       <n-alert
         v-if="showAlert"
@@ -102,7 +104,8 @@
       >
         {{ alertMessage }}
         <div class="resend-button" v-if="showAlertResendEmailBtn">
-          <n-button @click="handleResendEmail">
+          <n-button @click="debouncedResendEmail">
+            <span v-if="cooldown > 0">({{ cooldown }}s)</span>
             Resend email
           </n-button>
         </div>
@@ -110,7 +113,6 @@
     </div>
   </div>
 </template>
-
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
@@ -122,10 +124,11 @@ import { useI18n } from "vue-i18n";
 import { UserIcon } from 'lucide-vue-next';
 import { useRouter } from "vue-router";
 import Header from '../components/Header.vue';
+import { debounce, throttle } from '../utils/misc'
+import { PassThrough } from 'stream';
 
 const { t } = useI18n();
 const router = useRouter();
-
 const API_URL = import.meta.env.VITE_API_URL;
 
 const form = ref({ email: '', password: '', confirmPassword: '' })
@@ -137,18 +140,16 @@ const showSignupConfirmPassword = ref(false);
 const activeTab = ref('signup');
 const loading = ref<boolean>(false);
 
+const cooldown = ref(0); // secondi rimanenti per il cooldown
+const cooldownInterval = ref<number | null>(null);
+
 const showAlert = ref(false);
 const showAlertResendEmailBtn = ref(false);
 const alertType = ref<"warning" | "error" | "success" | "default" | "info">('error');
 const alertTitle = ref<string>('');
 const alertMessage = ref<string>('');
 
-const sections = computed(() => {
-  return [
-    { icon: UserIcon, label: t('User')}
-  ]
-});
-
+const sections = computed(() => [{ icon: UserIcon, label: t('User') }]);
 
 const LoginRules: FormRules = {
   email: [
@@ -163,72 +164,67 @@ const LoginRules: FormRules = {
 }
 
 const RegisterRules: FormRules = {
-  email: [
-    { required: true, message: 'Email is required', trigger: ['blur', 'input'] },
-    { type: 'email', message: 'Invalid email format', trigger: ['blur', 'input'] }
-  ],
-  password: [
-    { required: true, message: 'Password is required', trigger: ['blur', 'input'] },
-    { min: 8, message: 'Password must be at least 8 characters', trigger: 'input' },
-    { max: 128, message: 'Password too long', trigger: 'input' }
-  ],
+  email: LoginRules.email,
+  password: LoginRules.password,
   confirmPassword: [
     { required: true, message: 'Please confirm your password', trigger: ['blur', 'input'] },
     { validator: validatePasswordMatch, trigger: ['blur', 'input'] }
   ]
 }
 
+// Debounce combinato
+const debouncedResendEmail = debounce(() => handleResendEmail(), 500);
+
+const throttledLogin = throttle(() => handleLogin(), 5000);
+const throttledRegister = throttle(() => handleRegister(), 5000);
+
+const titles = ["Let’s Begin", "Welcome UIBricker!", "Join Us", "Register", "Sign Up", "We’re happy to have you!", "Become a UIBricker", "Create Your Account"];
+const randomTitle = ref("");
+onMounted(() => { randomTitle.value = titles[Math.floor(Math.random() * titles.length)]; });
+
 async function handleRegister() {
+  if (loading.value) return;
   try {
+    console.log("Sending register request...");
     showAlertResendEmailBtn.value = false;
     loading.value = true;
     await signupformRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
     });
-    const payload = {
-      email : form.value.email,
-      password : form.value.password,
-    };
-    
+    const payload = { email: form.value.email, password: form.value.password };
     const encoder = new TextEncoder();
     const body = encoder.encode(JSON.stringify(payload));
     const response = await fetch(`${API_URL}/api/auth/register/classic`, {
-      method: 'POST',
-      body: body,
-      headers: {
-        "User-Agent": "BrickUIApp/1.0"
-      }
+      connectTimeout: 10000,
+      method: 'POST', 
+      body, 
+      headers: { 
+        "User-Agent": "BrickUIApp/1.0" 
+      } 
     });
 
-    let registerResponse: { msg: string, code: number } = { 
-      msg: 'Something went wrong when sending the request', 
-      code: null 
-    };
-    try {
-      const text = await response.text();
-      registerResponse = JSON.parse(text);
-    }
-    catch (e) {
+    let registerResponse: { msg: string, code: number } = { msg: 'Something went wrong when sending the request', code: null };
+    try { 
+      registerResponse = JSON.parse(await response.text()); 
+    } 
+    catch {
       throw { 
         code: registerResponse.code ?? response.status, 
-        message: registerResponse.msg ?? response.statusText
+        message: registerResponse.msg ?? response.statusText 
       };
     }
 
     if (registerResponse.code === 200 || (response as any).ok) {
-      // success
-      console.log(registerResponse);
       alertTitle.value = 'Successfully registered!';
-      alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`
-      alertType.value = 'success'
+      alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`;
+      alertType.value = 'success';
       showAlert.value = true;
-      activeTab.value = 'signin'
+      activeTab.value = 'signin';
       return;
     }
 
     throw registerResponse;
-  }
-  catch (err: any) {
+  } catch (err: any) {
     alertType.value = 'error';
     alertMessage.value = err.msg || "An unexpected error occurred";
     showAlert.value = true;
@@ -236,80 +232,54 @@ async function handleRegister() {
     console.error(err);
 
     switch (err.code) {
-      case 500:
-        alertTitle.value = 'Internal Server Error';
-        break;
-      case 400:
-        alertTitle.value = 'Validation Failed';
-        break;
-      case 422:
-        alertTitle.value = 'Email Exists';
-        break;
-      case 409:
-        alertTitle.value = 'Account Already Exists';
-        break;
-      case -1:
-        alertTitle.value = 'Invalid Input';
-        break;
-      default:
-        alertTitle.value = err.code ? `Login Error: ${err.code}` : 'Unexptected Error';
-        break;
+      case 500: alertTitle.value = 'Internal Server Error'; break;
+      case 400: alertTitle.value = 'Validation Failed'; break;
+      case 422: alertTitle.value = 'Email Exists'; break;
+      case 409: alertTitle.value = 'Account Already Exists'; break;
+      case -1: alertTitle.value = 'Invalid Input'; break;
+      default: alertTitle.value = err.code ? `Login Error: ${err.code}` : 'Unexpected Error'; break;
     }
-  }
-  finally {
-    loading.value = false;
+  } 
+  finally { 
+    loading.value = false; 
   }
 }
 
 async function handleLogin() {
+  if (loading.value) return;
   try {
+    console.log("Sending login request...");
     showAlertResendEmailBtn.value = false;
     loading.value = true;
     await signinFormRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
     });
-
-    let payload = {
-      email : form.value.email,
-      password : form.value.password
-    }
-
-    // Trasformiamo tramite un encoder il payload in un array di variabili:
+    const payload = { email: form.value.email, password: form.value.password };
     const encoder = new TextEncoder();
     const body = encoder.encode(JSON.stringify(payload));
-
     const response = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      body: body,
-      headers: {
-        "User-Agent": "BrickUIApp/1.0"
-      }
+      connectTimeout: 10000,
+      method: 'POST', 
+      body, 
+      headers: { 
+        "User-Agent": "BrickUIApp/1.0" 
+      } 
     });
 
-    let loginResponse: { msg: string, code: number } = { 
-      msg: 'Something went wrong when sending the request', 
-      code: null 
-    };
-    try {
-      const text = await response.text();
-      loginResponse = JSON.parse(text);
-    }
-    catch (e) {
+    let loginResponse: { msg: string, code: number } = { msg: 'Something went wrong when sending the request', code: null };
+    try { 
+      loginResponse = JSON.parse(await response.text()); 
+    } 
+    catch { 
       throw { 
         code: loginResponse.code ?? response.status, 
-        message: loginResponse.msg ?? response.statusText
-      };
+        message: loginResponse.msg ?? response.statusText 
+      }; 
     }
 
-    if(loginResponse.code === 200 || response.ok){
-      // Ricordarsi di fare la logica del token
-      router.push('/user');
-      return;
-    }
-
-    throw loginResponse
-  }
-  catch (err) {
+    if(loginResponse.code === 200 || response.ok) { router.push('/user'); return; }
+    throw loginResponse;
+  } catch (err: any) {
     alertType.value = 'error';
     alertMessage.value = err.msg;
     showAlert.value = true;
@@ -317,13 +287,14 @@ async function handleLogin() {
     console.error(err);
 
     switch (err.code) {
-      case -1:
-        alertTitle.value = `Invalid input`;
+      case -1: alertTitle.value = `Invalid input`; break;
+      case 429:
+        showAlertResendEmailBtn.value = true;
         break;
       case 400:
         switch (err.error_code) {
-          case "invalid_credentials":
-            alertTitle.value = `Invalid Credentials`;
+          case "invalid_credentials": 
+            alertTitle.value = `Invalid Credentials`; 
             break;
           case "email_not_confirmed":
             alertTitle.value = `Email not confirmed`;
@@ -332,71 +303,74 @@ async function handleLogin() {
             break;
         }
         break;
-      default:
-        alertTitle.value = `Login Error ${err.code}: Unexpected Error` || 'Unhandled Error';
-        break;
+      default: alertTitle.value = `Login Error ${err.code}: Unexpected Error`; break;
     }
-  }
-  finally {
-    loading.value = false;
+  } 
+  finally { 
+    loading.value = false; 
   }
 }
 
-async function handleResendEmail() {
-  try {
-    let payload = {
-      email : form.value.email,
-    }
+function startCooldown(seconds: number) {
+  cooldown.value = seconds;
 
-    // Trasformiamo tramite un encoder il payload in un array di variabili:
+  if (cooldownInterval.value) clearInterval(cooldownInterval.value);
+
+  cooldownInterval.value = window.setInterval(() => {
+    cooldown.value -= 1;
+    if (cooldown.value <= 0) {
+      clearInterval(cooldownInterval.value!);
+      cooldownInterval.value = null;
+    }
+  }, 1000);
+}
+
+async function handleResendEmail() {
+  if (cooldown.value > 0) return; // blocca se in cooldown
+
+  try {
+    const payload = { email: form.value.email };
     const encoder = new TextEncoder();
     const body = encoder.encode(JSON.stringify(payload));
-
     const response = await fetch(`${API_URL}/api/auth/resend`, {
+      connectTimeout: 10000,
       method: 'POST',
-      body: body,
-      headers: {
-        "User-Agent": "BrickUIApp/1.0"
-      }
+      body,
+      headers: { "User-Agent": "BrickUIApp/1.0" }
     });
 
-    let resendResponse: { msg: string, code: number } = { 
-      msg: 'Something went wrong when sending the request', 
-      code: null 
-    };
-    try {
-      const text = await response.text();
-      resendResponse = JSON.parse(text);
+    let resendResponse: { msg: string, code: number, cooldown?: number } = { msg: 'Something went wrong', code: null };
+    try { 
+      resendResponse = JSON.parse(await response.text()) 
     }
-    catch (e) {
+    catch { 
       throw { 
         code: resendResponse.code ?? response.status, 
-        message: resendResponse.msg ?? response.statusText
+        message: resendResponse.msg ?? response.statusText 
       };
     }
 
     if (resendResponse.code === 200 || response.ok) {
       alertTitle.value = 'Email Sent!';
-      alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`
+      alertMessage.value = `We've sent a confirmation email to ${payload.email}.`;
       alertType.value = 'success';
-      showAlertResendEmailBtn.value = false;
       showAlert.value = true;
+      startCooldown(60); // 60 secondi di cooldown
+      return;
     }
 
-    throw resendResponse
-  }
-  catch (err: any) {
-    showAlertResendEmailBtn.value = false;
-    alertMessage.value = err.msg || "An unexpected error occurred";
+    // Se arriva 429 o altri errori temporanei, parte solo il countdown
+    if (resendResponse.code === 429) {
+      startCooldown(resendResponse.cooldown ?? 120);
+      return;
+    }
+
+    throw resendResponse;
+  } catch (err: any) {
+    // errori generici
+    alertTitle.value = err.code ? `Error ${err.code}` : 'Unexpected Error';
+    alertMessage.value = err.msg || 'An unexpected error occurred';
     showAlert.value = true;
-
-    console.error(err);
-
-    switch (err.code) {
-      default:
-        alertTitle.value = err.code ? `Login Error: ${err.code}` : 'Unexptected Error';
-        break;
-    }
   }
 }
 
@@ -406,16 +380,8 @@ function validatePasswordMatch(_rule: FormItemRule, value: string): boolean | Er
   }
   return true
 }
-
-const titles = ["Let’s Begin", "Welcome UIBricker!", 
-"Join Us", "Register", "Sign Up", "We’re happy to have you!", "Become a UIBricker", "Create Your Account"];
-
-const randomTitle = ref("");
-
-onMounted(() => {
-  randomTitle.value = titles[Math.floor(Math.random() * titles.length)];
-});
 </script>
+
 
 <style scoped>
 .container {
@@ -467,6 +433,10 @@ onMounted(() => {
 
 .resend-button {
   margin-top: 0.5rem;
+}
+
+.resend-button .n-button span {
+  margin-right: 0.3rem;
 }
 
 .form-button {

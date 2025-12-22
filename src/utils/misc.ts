@@ -51,3 +51,31 @@ export async function replaceAsync(
 
   return out;
 }
+
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  delay = 500
+): (...args: Parameters<T>) => void {
+  let timeoutId: number | undefined;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    timeoutId = window.setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+}
+
+export function throttle<T extends (...args: any[]) => void>(fn: T, limit = 600): (...args: Parameters<T>) => void {
+  let inThrottle = false;
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      fn(...args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+}
