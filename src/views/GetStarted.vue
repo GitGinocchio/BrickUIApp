@@ -219,6 +219,8 @@ async function handleRegister() {
       alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`;
       alertType.value = 'success';
       showAlert.value = true;
+      showAlertResendEmailBtn.value = true;
+      startCooldown(60);
       activeTab.value = 'signin';
       return;
     }
@@ -353,6 +355,7 @@ async function handleResendEmail() {
     if (resendResponse.code === 200 || response.ok) {
       alertTitle.value = 'Email Sent!';
       alertMessage.value = `We've sent a confirmation email to ${payload.email}.`;
+      showAlertResendEmailBtn.value = true;
       alertType.value = 'success';
       showAlert.value = true;
       startCooldown(60); // 60 secondi di cooldown
@@ -368,9 +371,13 @@ async function handleResendEmail() {
     throw resendResponse;
   } catch (err: any) {
     // errori generici
+    alertType.value = 'error';
     alertTitle.value = err.code ? `Error ${err.code}` : 'Unexpected Error';
     alertMessage.value = err.msg || 'An unexpected error occurred';
+    showAlertResendEmailBtn.value = false;
     showAlert.value = true;
+
+    console.error(err);
   }
 }
 
