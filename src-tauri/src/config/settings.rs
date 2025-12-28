@@ -15,6 +15,9 @@ pub struct Settings {
     pub language: Language,
 
     #[serde(default)]
+    pub sidebar: Sidebar,
+
+    #[serde(default)]
     #[schemars(description = "Notification settings.")]
     pub notifications: Notifications,
 
@@ -73,6 +76,7 @@ impl Default for Settings {
             startmenu: StartMenu::default(),
             autostart: false,
             systemtray: SystemTray::default(),
+            sidebar: Sidebar::default()
         }
     }
 }
@@ -126,6 +130,31 @@ impl Default for NotificationPosition {
     fn default() -> Self {
         NotificationPosition::TopRight
     }
+}
+
+/* Sidebar */
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Sidebar settings")]
+pub struct Sidebar {
+    position: SidebarPosition
+}
+
+impl Default for Sidebar {
+    fn default() -> Self {
+        Self {
+            position: SidebarPosition::Left
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(description = "Position of the app sidebar")]
+pub enum SidebarPosition {
+    #[serde(rename = "right")]
+    Right,
+    #[serde(rename = "left")]
+    Left
 }
 
 /* System Tray */

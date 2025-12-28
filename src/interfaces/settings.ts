@@ -7,6 +7,8 @@ export interface Settings {
 
   theme: Theme;
 
+  sidebar: Sidebar;
+
   /** Notification settings. */
   notifications: Notifications; // optional because of #[serde(default)]
 
@@ -20,6 +22,14 @@ export interface Settings {
   /** System tray icon settings */
   systemtray: SystemTray;
 }
+
+export interface Sidebar {
+  position: SidebarPosition
+}
+
+export const sidebarPositions = ["right", "left"] as const;
+
+export type SidebarPosition = (typeof sidebarPositions)[number]
 
 export const languages = ["it", "en"] as const;
 

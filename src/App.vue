@@ -11,6 +11,7 @@
         @expand="collapsed = false"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
+        :style="{ order: settings.sidebar.position === 'right' ? 1 : 0 }"
       > 
         <n-menu
           v-model:value="option"
@@ -98,6 +99,7 @@ const bricks = inject("bricks") as Ref<Brick[]>;
 const router = useRouter();
 const collapsed = ref(true);
 let hoverTimer: number | null = null
+
 
 function handleMouseEnter() {
   // Avvia il timer (es. 500ms prima di aprire)
