@@ -276,7 +276,6 @@ impl fmt::Display for Win32Device {
 }
 
 impl Win32Device {
-    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn from_info(info: &BLUETOOTH_DEVICE_INFO) -> Self {
         let name = String::from_utf16_lossy(
             &info

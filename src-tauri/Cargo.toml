@@ -31,7 +31,7 @@ panic = "abort" # Higher performance by disabling panic handlers.
 strip = true # Ensures debug symbols are removed.
 
 [features]
-profiling = ["tracing", "tracing-subscriber", "tracing-flame"]
+profiling = ["tracing", "tracing-subscriber", "tracing-flame", "inferno"]
 
 [dev-dependencies]
 cargo-release = "0.25.20"
@@ -44,6 +44,7 @@ tauri-build = { version = "2.5.1", features = [ "codegen" ] }
 tracing = { version = "0.1.43", optional = true }
 tracing-subscriber = { version = "0.3.22", optional = true }
 tracing-flame = { version = "0.2.0", optional = true }
+inferno = { version = "0.12.4", optional = true }
 
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"

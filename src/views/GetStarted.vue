@@ -278,7 +278,11 @@ async function handleLogin() {
       }; 
     }
 
-    if(loginResponse.code === 200 || response.ok) { router.push('/user'); return; }
+    if(loginResponse.code === 200 || response.ok) {
+      console.log(loginResponse);
+      router.push('/user');
+      return; 
+    }
     throw loginResponse;
   } catch (err: any) {
     alertType.value = 'error';
