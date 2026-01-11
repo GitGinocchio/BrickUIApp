@@ -1,31 +1,35 @@
-use std::{fmt, sync::Mutex};
+use std::{fmt, sync::{Arc, Mutex, mpsc::RecvTimeoutError}, time::Duration};
 
 use derivative::Derivative;
 use once_cell::sync::Lazy;
+use tauri::{AppHandle, Emitter as _};
+use tokio::{sync::{RwLock, oneshot}, time::timeout};
+use std::sync::mpsc;
+
 use serde::Serialize;
 use serde_json::json;
-use tauri::{AppHandle, Emitter as _};
 use windows::{
     Devices::{
-        Bluetooth::BluetoothDevice,
+        Bluetooth::{BluetoothConnectionStatus, BluetoothDevice},
         Enumeration::{
-            DeviceInformation, DeviceInformationCustomPairing, DeviceInformationPairing,
-            DevicePairingKinds, DevicePairingRequestedEventArgs, DevicePairingResultStatus,
-            DeviceUnpairingResultStatus,
+            DeviceClass, DeviceInformation, DeviceInformationCustomPairing, DeviceInformationKind, DeviceInformationPairing, DeviceInformationUpdate, DevicePairingKinds, DevicePairingRequestedEventArgs, DevicePairingResult, DevicePairingResultStatus, DeviceUnpairingResultStatus, DeviceWatcher
         },
     },
     Foundation::{Deferral, TypedEventHandler},
-    core::{HRESULT, HSTRING},
+    core::{HRESULT, HSTRING}
 };
 
-use crate::winapi::com::initialize_com;
+use crate::{state::bluetooth::BrickUIBluetoothState, winapi::{bluetooth::{AcceptPairingMessage, Device, PairingMessage}, com::initialize_com}};
 
 #[derive(Debug)]
 struct PendingPairing {
+    message: PairingMessage,
     args: DevicePairingRequestedEventArgs,
-    pin: Option<String>,
     deferral: Deferral,
 }
+
+static PENDING_PAIRING: Lazy<Mutex<Option<PendingPairing>>> = Lazy::new(|| Mutex::new(None));
+static PAIRING_SENDER: Lazy<Mutex<Option<mpsc::Sender<AcceptPairingMessage>>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Serialize, Clone, Derivative)]
 #[derivative(Debug)]
@@ -47,112 +51,54 @@ pub struct WinRTDevice {
 
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
-    pub raw_info: DeviceInformation,
-
-    #[serde(skip)]
-    #[derivative(Debug = "ignore")]
-    pub app_handle: AppHandle,
+    pub raw_info: DeviceInformation
 }
 
 impl fmt::Display for WinRTDevice {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "WinRTDevice(name={}, address={}, is_default={}, is_enabled={}, is_paired={}, kind={})",
-            self.name, self.address, self.is_default, self.is_enabled, self.is_paired, self.kind
+            "WinRTDevice(name={}, address={}, is_default={}, is_enabled={}, is_paired={}, can_pair={}, kind={})",
+            self.name, self.address, self.is_default, self.is_enabled, self.is_paired, self.can_pair, self.kind
         )
     }
 }
 
-static PENDING_PAIRING: Lazy<Mutex<Option<PendingPairing>>> = Lazy::new(|| Mutex::new(None));
-
-fn setup_pairing_handler()
--> TypedEventHandler<DeviceInformationCustomPairing, DevicePairingRequestedEventArgs> {
+fn setup_pairing_handler(app_handle: AppHandle) -> TypedEventHandler<DeviceInformationCustomPairing, DevicePairingRequestedEventArgs> {
     TypedEventHandler::<DeviceInformationCustomPairing, DevicePairingRequestedEventArgs>::new(
         move |_, args| {
-            initialize_com().map_err(|e| windows::core::Error::new(HRESULT(-1), e))?;
+            let args = args.as_ref().expect("Error obtaining args");
+            let deferral = args.GetDeferral().expect("Error obtaining Deferral");
 
-            let mut guard = PENDING_PAIRING.lock().map_err(|e| {
-                windows::core::Error::new(HRESULT(-1), format!("Error: lock poisoned: {e}"))
-            })?;
+            let mut pending_pairing_guard = PENDING_PAIRING.lock().expect("Pending pairing lock poisoned");
 
-            if let Some(old_pending) = guard.take() {
-                old_pending.deferral.Complete()?;
-            }
-
-            let args = args
-                .as_ref()
-                .ok_or::<windows::core::Error>(windows::core::Error::new(
-                    HRESULT(-1),
-                    "No args provided",
-                ))?;
-
-            let pairing_kind = args.PairingKind()?;
-
-            println!("Received pairing request with kind: {pairing_kind:?}");
-
-            match pairing_kind {
-                DevicePairingKinds::ConfirmOnly => {
-                    let deferral = args.GetDeferral()?;
-
-                    deferral.Complete()?;
-
-                    let pending = PendingPairing {
-                        args: args.clone(),
-                        pin: None,
-                        deferral,
-                    };
-
-                    *guard = Some(pending);
-
-                    //args.Accept()?;
-                }
-                DevicePairingKinds::ProvidePin => {
-                    // Ottieni subito il deferral
-                    let deferral = args.GetDeferral()?;
-
-                    // Salva args + deferral nel pending globale
-                    let pending = PendingPairing {
-                        args: args.clone(),
-                        pin: None,
-                        deferral,
-                    };
-
-                    *guard = Some(pending);
-                }
+            let message = match args.PairingKind().expect("Error obtaining pairing kind") {
+                DevicePairingKinds::ProvidePin => PairingMessage::ProvidePin,
+                DevicePairingKinds::ConfirmOnly => PairingMessage::ConfirmOnly,
                 DevicePairingKinds::DisplayPin => {
-                    let deferral = args.GetDeferral()?;
+                    let pin = args.Pin().unwrap().to_string_lossy().to_string();
+                    PairingMessage::DisplayPin { pin }
+                },
+                _ => PairingMessage::Failed { message: "Unsupported kind".into() },
+            };
 
-                    let pin = args.Pin()?.to_string_lossy().to_string();
+            println!("[winrt_handler] sending message");
+            app_handle
+                .emit("bluetooth_pairing_request", message.clone())
+                .expect("Error sending bluetooth_pairing_request event");
 
-                    let pending = PendingPairing {
-                        args: args.clone(),
-                        pin: Some(pin.clone()),
-                        deferral,
-                    };
-
-                    *guard = Some(pending);
-
-                    /*
-                    app_handle.emit_to(
-                        "overlay",
-                        "bluetooth_pairing_pin",
-                        json!({ "pin": pin })
-                    ).map_err(|e| windows::core::Error::new(HRESULT(-1), e.to_string()))?;
-                    */
-
-                    args.Accept()?;
-                }
-                kind => {
-                    println!("Not handled: {kind:?}")
-                }
-            }
+            *pending_pairing_guard = Some(PendingPairing {
+                message: message,
+                args: args.clone(),
+                deferral
+            });
+            
             Ok(())
         },
     )
 }
 
-fn extract_winrt_device_address(id: &str) -> String {
+pub fn extract_winrt_device_address(id: &str) -> String {
     id.split('#')
         .nth(1)
         .and_then(|s| s.strip_prefix("Bluetooth"))
@@ -161,43 +107,19 @@ fn extract_winrt_device_address(id: &str) -> String {
         .unwrap_or_else(|| id.to_string())
 }
 
-pub fn provide_pin(pin: String) -> Result<(), String> {
-    let pending = {
-        let mut guard = PENDING_PAIRING
-            .lock()
-            .map_err(|e| format!("Pending pairing lock poisoned: {e}"))?;
-        guard.take().ok_or("No pending pairing")?
-    };
-
-    pending
-        .args
-        .AcceptWithPin(&HSTRING::from(pin))
-        .map_err(|e| format!("Error accepting pin: {e}"))?;
-
-    pending
-        .deferral
-        .Complete()
-        .map_err(|e| format!("Error completing pending pairing: {e}"))?;
-
-    Ok(())
-}
-
 impl WinRTDevice {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub async fn from_info_and_app_handle(
-        info: &DeviceInformation,
-        app_handle: AppHandle,
-    ) -> Result<Self, String> {
+    pub fn from_info(info: &DeviceInformation) -> Result<Self, String> {
         let glyph_thumb = info
             .GetGlyphThumbnailAsync()
             .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
-            .await
+            .get()
             .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
 
         let thumb = info
             .GetThumbnailAsync()
             .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
-            .await
+            .get()
             .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
 
         let id = info
@@ -256,96 +178,131 @@ impl WinRTDevice {
             name,
             pairing,
             raw_info: info.clone(),
-            protection_level: None,
-            app_handle: app_handle,
+            protection_level: None
         })
     }
 
-    pub async fn register(&mut self) -> Result<(), std::string::String> {
-        if self
-            .pairing
-            .IsPaired()
-            .map_err(|e| format!("Error checking device IsPaired: {e}"))?
-        {
-            self.is_paired = true;
+    pub fn register(&mut self, app_handle: AppHandle) -> Result<PairingMessage, String> {
+        initialize_com()?;
+
+        if self.pairing.IsPaired().map_err(|e| format!("Error checking device IsPaired: {e}"))? {
+            return Ok(PairingMessage::AlreadyPaired);
+        }
+
+        if !self.pairing.CanPair().map_err(|e| format!("Error checking device CanPair: {e}"))? {
             self.can_pair = false;
-            return Ok(());
+            return Ok(PairingMessage::CantPair);
         }
 
-        if self
-            .pairing
-            .CanPair()
-            .map_err(|e| format!("Error checking device CanPair: {e}"))?
+        let (tx, rx) = mpsc::channel();
+
         {
-            if let Ok(op) = self.pairing.PairAsync() {
-                if let Ok(result) = op.await {
-                    if result
-                        .Status()
-                        .map_err(|e| format!("Error checking Status: {e}"))?
-                        == DevicePairingResultStatus::Paired
-                    {
-                        self.is_paired = true;
-                        self.can_pair = false;
-                        return Ok(());
-                    }
-                }
+            let mut pending_pairing_guard = PENDING_PAIRING
+                .lock()
+                .map_err(|e| format!("Error: pending_pairing lock poisoned: {e}"))?;
+
+            if let Some(old_pending) = pending_pairing_guard.take() {
+                old_pending.deferral
+                    .Complete()
+                    .map_err(|e| format!("Error completing deferral: {e}"))?;
             }
+
+            let mut pairing_sender_guard = PAIRING_SENDER
+                .lock()
+                .map_err(|e| format!("Error: lock poisoned: {e}"))?;
+
+            *pairing_sender_guard = Some(tx);
         }
 
-        eprintln!("Device can't pair!");
 
-        let custom = self
-            .pairing
+        let custom = self.pairing
             .Custom()
             .map_err(|e| format!("Error instantiating Custom pairing: {e}"))?;
 
-        // Siamo in un contesto async (Thread che possono essere avviati e interrotti al bisogno)
-        // tutto quello che viene creato in questo contesto deve avere il trait Send (quindi passabile tra thread)
-        // Se qualcosa non e' Send bisogna avviarlo come "task" sync e ritornare il risultato quando finisce
-        // custom e' necessario anche dopo quindi la task deve ritornare custom, che e' stato preso (borrowed)
-        // dalla task (grazie alla keyword move prima della closure)
-        let custom =
-            tokio::task::spawn_blocking::<_, Result<DeviceInformationCustomPairing, String>>(
-                move || {
-                    // handler COM no Send (non inviabile tra thread, quindi impossibile da usare in contesto async)
-                    let handler = setup_pairing_handler();
+        let handler = setup_pairing_handler(app_handle);
 
-                    // Metodo sync per registrare l'handler
-                    custom
-                        .PairingRequested(&handler)
-                        .map_err(|e| format!("Failed to register handler: {:?}", e))?;
+        // Metodo sync per registrare l'handler
+        let token = custom
+            .PairingRequested(&handler)
+            .map_err(|e| format!("Failed to register handler: {:?}", e))?;
+        
+        let pair_op = custom.PairAsync(
+            DevicePairingKinds::ConfirmOnly
+            | DevicePairingKinds::ProvidePin
+            | DevicePairingKinds::DisplayPin
+        ).map_err(|e| e.to_string())?;
 
-                    Ok(custom)
-                },
-            )
-            .await
-            .map_err(|_| "Thread panicked".to_string())??;
+        println!("[register] waiting message from frontend");
+        let accepted = match rx.recv_timeout(Duration::from_secs(30)) {
+            Ok(message) => {
+                let pairing_guard = PENDING_PAIRING.lock().map_err(|e| format!("watchdog async: lock poisoned: {e}"))?;
 
-        println!("Pre Pair Async");
+                if let Some(pending) = pairing_guard.as_ref() {
+                    match (&pending.message, message) {
+                        (PairingMessage::ProvidePin, AcceptPairingMessage::AcceptWithPin(pin)) => {
+                            println!("[register] accepting with pin: {pin}");
+                            pending.args
+                                .AcceptWithPin(&HSTRING::from(pin))
+                                .map_err(|e| format!("Error accepting with pin: {e}"))?;
+                        },
+                        (PairingMessage::DisplayPin { .. }, AcceptPairingMessage::Accept) |
+                        (PairingMessage::ConfirmOnly, AcceptPairingMessage::Accept) => {
+                            println!("[register] accepting");
+                            pending.args.Accept().map_err(|e| format!("Error accepting: {e}"))?;
+                        },
+                        _ => {
+                            return Err("Invalid pairing response for this device".into());
+                        }
+                    }
+                }
 
-        let result = custom
-            .PairAsync(
-                DevicePairingKinds::ConfirmOnly
-                    | DevicePairingKinds::DisplayPin
-                    | DevicePairingKinds::ProvidePin,
-            )
-            .map_err(|e| format!("Error in PairAsync: {e}"))?
-            .await
-            .map_err(|e| format!("Error awaiting PairAsync: {e}"))?;
+                true
+            },
 
-        println!("Post Pair Async");
+            Err(RecvTimeoutError::Timeout) => {
+                eprintln!("[register] Timeout waiting for response from WinRT handler");
 
-        match result
-            .Status()
-            .map_err(|e| format!("Error checking Status: {e}"))?
-        {
-            DevicePairingResultStatus::Paired => {
-                self.is_paired = true;
-                self.can_pair = false;
-                Ok(())
+                false
+            },
+
+            Err(RecvTimeoutError::Disconnected) => {
+                eprintln!("[register] Handshake channel disconnected");
+
+                false
             }
-            status => Err(format!("Pairing failed: {:?}", status)),
+        };
+
+        println!("[register] completing deferral");
+
+        let mut pairing_guard = PENDING_PAIRING.lock().map_err(|e| format!("Pending pairing lock poisoned: {e}"))?;
+        if let Some(pending) = pairing_guard.as_ref() {
+            pending.deferral
+                .Complete()
+                .map_err(|e| format!("[register] error completing deferral: {e}"))?;
         }
+
+        if !accepted {
+            pair_op.Cancel().map_err(|e| format!("Error canceling pair operation: {e}"))?;
+            pair_op.Close().map_err(|e| format!("Error closing pair operation: {e}"))?;
+        }
+
+        let result = pair_op.get().map_err(|e| format!("Error waiting pairing async to finish: {e}"))?;
+
+        let response = match result.Status().map_err(|e| format!("Error retreiving status: {e}"))? {
+            DevicePairingResultStatus::Paired => Ok(PairingMessage::Paired),
+            status => {
+                Ok(PairingMessage::Failed { message: format!("Error during pairing: {:#?}", status.0) })
+            }
+        };
+
+        custom.RemovePairingRequested(token).map_err(|e| format!("Error removing pairing requested handler: {e}"))?;
+
+        // cleanup
+        let mut sender_guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;
+        *sender_guard = None;
+        *pairing_guard = None;
+
+        response
     }
 
     pub async fn unregister(&mut self) -> Result<(), std::string::String> {
@@ -371,26 +328,24 @@ impl WinRTDevice {
             status => Err(format!("Unpairing failed: {:?}", status)),
         }
     }
-
-    pub fn connect(&mut self) -> Result<(), String> {
-        todo!()
-    }
-    pub fn disconnect(&mut self) -> Result<(), String> {
-        todo!()
-    }
-
-    pub fn read(&mut self) -> Result<Vec<u8>, String> {
-        todo!()
-    }
-    pub fn write(&mut self, data: &[u8]) -> Result<(), std::string::String> {
-        todo!()
-    }
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn scan_winrt(app_handle: AppHandle) -> Result<Vec<WinRTDevice>, String> {
-    let selector =
-        BluetoothDevice::GetDeviceSelectorFromPairingState(false).map_err(|e| format!("{e}"))?;
+pub async fn scan_winrt() -> Result<Vec<WinRTDevice>, String> {
+    // TODO: Get Devices dovrebbe ottenere quelli gia' paired
+    /*
+    let selector = BluetoothDevice::GetDeviceSelectorFromConnectionStatus(BluetoothConnectionStatus::Disconnected)
+        .map_err(|e| format!("{e}"))?;
+    */
+
+    //let selector = BluetoothDevice::GetDeviceSelectorFromPairingState(false)
+    //    .map_err(|e| format!("{e}"))?;
+
+    let selector = BluetoothDevice
+        ::GetDeviceSelectorFromConnectionStatus(BluetoothConnectionStatus::Disconnected)
+        .map_err(|e| format!("{e}"))?;
+
+    // let selector = HSTRING::from(r#"System.Devices.Aep.ProtocolId:="{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}""#);
 
     let devices_info = DeviceInformation::FindAllAsyncAqsFilter(&selector)
         .map_err(|e| format!("{e}"))?
@@ -402,11 +357,34 @@ pub async fn scan_winrt(app_handle: AppHandle) -> Result<Vec<WinRTDevice>, Strin
     let mut devices = vec![];
     for i in 0..size {
         let device_info = devices_info.GetAt(i).map_err(|e| format!("{e}"))?;
-        let device = WinRTDevice::from_info_and_app_handle(&device_info, app_handle.clone())
-            .await
+        let device = WinRTDevice::from_info(&device_info)
             .map_err(|e| format!("from_winrt Error: {e}"))?;
         devices.push(device);
     }
 
     Ok(devices)
+}
+
+pub fn register_provide_pin(pin: String) -> Result<(), String> {
+    println!("[provide_pin] Accepting");
+
+    let guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;
+
+    if let Some(sender) = guard.as_ref() {
+        sender.send(AcceptPairingMessage::AcceptWithPin(pin)).map_err(|e| format!("Error sending AcceptPairingMessage: {e}"))?;
+    }
+
+    Ok(())
+}
+
+pub fn register_confirm() -> Result<(), String> {
+    println!("[confirm] Accepting");
+
+    let guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;
+
+    if let Some(sender) = guard.as_ref() {
+        sender.send(AcceptPairingMessage::Accept).map_err(|e| format!("Error sending AcceptPairingMessage: {e}"))?;
+    }
+
+    Ok(())
 }

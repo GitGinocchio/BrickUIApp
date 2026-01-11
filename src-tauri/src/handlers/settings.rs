@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use tauri::State;
+use tauri::{AppHandle, Manager as _, State};
 
 use crate::{config::settings::Settings, state::generic::BrickUIGenericState};
 
@@ -18,16 +18,19 @@ pub async fn get_settings(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_settings(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     settings: Settings,
 ) -> Result<(), String> {
+    let resolver = app_handle.path();
+    let path = resolver
+        .app_data_dir()
+        .map_err(|e| format!("error obtaining config dir: {e}"))?;
+
+    crate::config::save_settings(&path, &settings)?;
+
     let mut state_guard = state.lock().await;
+    let current_settings = state_guard.get_mut_settings();
+    *current_settings = settings;
 
-    {
-        let current_settings = state_guard.get_mut_settings();
-        *current_settings = settings.clone();
-    }
-
-    let path = state_guard.get_path();
-
-    crate::config::save_settings(&path, settings)
+    Ok(())
 }

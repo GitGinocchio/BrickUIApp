@@ -29,7 +29,7 @@ pub enum GlobalEvent {
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
+pub async fn start_event_listeners(app_handle: &AppHandle) -> Result<(), String> {
     let (tx, rx) = channel::unbounded();
 
     let app_handle_clone = app_handle.clone();

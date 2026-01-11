@@ -24,6 +24,7 @@ where
     Ok(data)
 }
 
+// TODO: Passare una reference di T, evitando di droppare il valore
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn save_yaml<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
@@ -70,6 +71,8 @@ where
     }
 }
 
+
+// TODO: Passare una reference di T, evitando di droppare il valore
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_yaml_async<T>(path: &PathBuf, data: T) -> Result<(), String>
 where
@@ -120,11 +123,11 @@ where
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub fn save_settings(path: &PathBuf, settings: Settings) -> Result<(), String> {
+pub fn save_settings(path: &PathBuf, settings: &Settings) -> Result<(), String> {
     let settings_path = path.join("settings.yml");
     let settings_schema = settings.schema.clone();
 
-    let yaml_string = serde_yaml::to_string(&settings)
+    let yaml_string = serde_yaml::to_string(settings)
         .map_err(|e| format!("Failed to parse brick to YAML: {}", e))?;
 
     let content = format!(

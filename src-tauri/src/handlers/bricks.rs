@@ -5,13 +5,13 @@ use crate::state::generic::BrickUIGenericState;
 
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, Manager as _, State};
 use tokio::sync::Mutex;
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_bricks(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<BrickUIGenericState>>>
 ) -> Result<Vec<Brick>, String> {
     let state_guard = state.lock().await;
 
@@ -33,29 +33,32 @@ pub async fn get_brick_by_name(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn load_bricks(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle
 ) -> Result<Vec<Brick>, String> {
-    let mut state_guard = state.lock().await;
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
-    let path = state_guard.get_path();
     let bricks = bricks::load_bricks(&path)?;
 
-    let bricks_return = bricks.clone();
-    *state_guard.get_mut_bricks() = bricks;
+    let mut state_guard = state.lock().await;
+    *state_guard.get_mut_bricks() = bricks.clone();
 
-    Ok(bricks_return)
+    Ok(bricks)
 }
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().await;
-
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     bricks::save_brick(&path, &brick)?;
+
+    let mut state_guard = state.lock().await;
 
     // Aggiorna lo stato in memoria
     if let Some(existing) = state_guard
@@ -75,13 +78,16 @@ pub async fn save_brick(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn rename_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     old_name: String,
     new_name: String,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().await;
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     bricks::rename_brick(&path, &old_name, &new_name)?;
+
+    let mut state_guard = state.lock().await;
 
     let bricks = state_guard.get_mut_bricks();
 
@@ -96,13 +102,15 @@ pub async fn rename_brick(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn duplicate_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().await;
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     let new_brick = bricks::duplicate_brick(&path, brick)?;
-
+    
+    let mut state_guard = state.lock().await;
     let bricks = state_guard.get_mut_bricks();
     bricks.push(new_brick);
 
@@ -113,11 +121,11 @@ pub async fn duplicate_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn open_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick_name: String,
 ) -> Result<(), String> {
-    let state_guard = state.lock().await;
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     bricks::open_brick(&path, brick_name)
 }
@@ -126,14 +134,15 @@ pub async fn open_brick(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn delete_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().await;
-
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     bricks::delete_brick(&path, &brick)?;
 
+    let mut state_guard = state.lock().await;
     let bricks = state_guard.get_mut_bricks();
     bricks.retain(|b| b.name != brick.name);
 
@@ -144,14 +153,16 @@ pub async fn delete_brick(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn new_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
-    let mut state_guard = state.lock().await;
-    let path = state_guard.get_path();
-    let res_path = state_guard.get_resource_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
+    let res_path = resolver.resource_dir().map_err(|e| format!("Error resolving resource dir: {e}"))?;
 
     bricks::create_brick(&path, &res_path, &brick)?;
 
+    let mut state_guard = state.lock().await;
     let bricks = state_guard.get_mut_bricks();
     bricks.push(brick);
 
@@ -161,12 +172,12 @@ pub async fn new_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn pack_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick_name: String,
     output_path: String,
 ) -> Result<Option<String>, String> {
-    let state_guard = state.lock().await;
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     crate::bricks::pack_brick(&path, brick_name, &PathBuf::from(output_path))?;
 
@@ -177,17 +188,21 @@ pub async fn pack_brick(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn unpack_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    app_handle: AppHandle,
     brick_path: String,
     brick_name: String,
 ) -> Result<(), String> {
-    let state_guard = state.lock().await;
-    let path = state_guard.get_path();
+    let resolver = app_handle.path();
+    let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     let output_dir = path.join("bricks").join(brick_name);
-
-    println!("{brick_path:?}, {output_dir:?}");
-
     crate::bricks::unpack_brick(&PathBuf::from(brick_path), &output_dir)?;
+
+    let brick = crate::bricks::load_brick(&output_dir)?;
+
+    let mut state_guard = state.lock().await;
+    let bricks = state_guard.get_mut_bricks();
+    bricks.push(brick);
 
     Ok(())
 }

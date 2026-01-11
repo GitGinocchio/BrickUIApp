@@ -10,13 +10,15 @@ use zip::write::SimpleFileOptions;
 
 use crate::bricks::brick::Brick;
 
+// TODO: Rendere async le sezioni IO di questi metodi (dove possibile)
+
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
 
-    let brick =
-        serde_yaml::from_str(&content).map_err(|e| format!("Failed to parse YAML: {}", e))?;
+    let brick = serde_yaml::from_str(&content)
+        .map_err(|e| format!("Failed to parse YAML: {}", e))?;
 
     Ok(brick)
 }
@@ -213,8 +215,8 @@ pub fn pack_brick(path: &PathBuf, brick_name: String, output_path: &PathBuf) -> 
 pub fn unpack_brick(input_path: &PathBuf, output_dir: &PathBuf) -> Result<(), String> {
     let file = File::open(input_path).map_err(|e| format!("Error opening .brick file: {e}"))?;
 
-    let mut archive =
-        ZipArchive::new(file).map_err(|e| format!("Error reading zip archive: {e}"))?;
+    let mut archive = ZipArchive::new(file)
+        .map_err(|e| format!("Error reading zip archive: {e}"))?;
 
     for i in 0..archive.len() {
         let mut file = archive

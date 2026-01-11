@@ -27,6 +27,7 @@ use crate::state::bluetooth::BrickUIBluetoothState;
 use crate::state::generic::BrickUIGenericState;
 
 mod winapi;
+use crate::winapi::bluetooth::start_bluetooth_watcher;
 use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
 use crate::winapi::events::start_event_listeners;
@@ -98,8 +99,8 @@ pub fn run() {
             app.manage(Arc::new(Mutex::new(state)));
 
             // Bluetooth State
-            let bt_state = BrickUIBluetoothState::new()?;
-            app.manage(Arc::new(RwLock::new(bt_state)));
+            let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
+            app.manage(bt_state.clone());
 
             // Mostra o nascondi taskbar secondo settings
             if settings.taskbar.behavior == TaskBarBehavior::Show {
@@ -112,7 +113,14 @@ pub fn run() {
 
             // Avvia event listeners async
             tauri::async_runtime::spawn(
-                async move { start_event_listeners(app_handle_clone).await },
+                async move {
+                    start_event_listeners(&app_handle_clone).await?;
+
+                    let mut guard = bt_state.write().await;
+                    guard.watcher = Some(start_bluetooth_watcher(bt_state.clone(), &app_handle_clone).await?);
+
+                    Ok::<(), String>(())
+                },
             );
 
             Ok(())
@@ -170,7 +178,7 @@ pub fn run() {
         }))
         .invoke_handler(generate_handlers())
         .on_window_event(|window, event| {
-            println!("event: {event:?}");
+            //println!("event: {event:?}");
             if let WindowEvent::CloseRequested { api, .. } = event
                 && window.label() == "main"
             {

@@ -12,10 +12,9 @@ use super::generate_types_if_missing;
 
 #[derive(Clone, Debug)]
 pub struct BrickUIGenericState {
-    resource_path: PathBuf,
-    path: PathBuf,
     settings: Settings,
     backup: Backup,
+    // TODO: Forse sarebbe meglio trasformare questo Vec in un HashMap
     bricks: Vec<Brick>,
     icons_map: IconsMap,
 }
@@ -54,22 +53,13 @@ impl BrickUIGenericState {
             .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
 
         Ok(Self {
-            resource_path: resource_path.clone(),
-            path: path.clone(),
             settings,
             backup,
             bricks: vec![],
             icons_map: icons_map,
         })
     }
-
-    pub fn get_path(&self) -> &PathBuf {
-        &self.path
-    }
-    pub fn get_resource_path(&self) -> &PathBuf {
-        &self.resource_path
-    }
-
+    
     // Bricks
 
     pub fn get_bricks(&self) -> &[Brick] {

@@ -7,9 +7,7 @@ use crate::{
     state::bluetooth::BrickUIBluetoothState,
     utils::spawn_blocking,
     winapi::bluetooth::{
-        Device, scan,
-        win32::{Win32Device, scan_win32},
-        winrt::{WinRTDevice, scan_winrt},
+        Device, PairingMessage, scan, win32::{Win32Device, scan_win32}, winrt::{WinRTDevice, register_provide_pin, register_confirm, scan_winrt}
     },
 };
 
@@ -17,29 +15,29 @@ use crate::{
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_scan(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
     duration: Option<u8>,
 ) -> Result<HashMap<String, Device>, String> {
-    let mut state_guard = state.write().await;
-    state_guard.scanning = true;
+    {
+        let mut state_guard = state.write().await;
 
-    let new_devices = scan(app_handle, duration).await?;
+        println!("scanning");
+        let new_devices = scan(duration).await?;
 
-    for (addr, new_dev) in new_devices {
-        state_guard
-            .devices
-            .entry(addr)
-            .and_modify(|existing| existing.merge_from(new_dev.clone()))
-            .or_insert(new_dev);
+        for (addr, new_dev) in new_devices {
+            state_guard
+                .devices
+                .entry(addr)
+                .and_modify(|existing| existing.merge_from(new_dev.clone()))
+                .or_insert(new_dev);
+        }
+
+        for (_address, device) in &state_guard.devices {
+            println!("{}", device);
+        }
+
+        Ok(state_guard.devices.clone())
     }
-
-    state_guard.scanning = false;
-
-    for (_address, device) in &state_guard.devices {
-        println!("{}", device);
-    }
-
-    Ok(state_guard.devices.clone())
 }
 
 #[tauri::command(async)]
@@ -49,7 +47,6 @@ pub async fn bluetooth_win32_scan(
     duration: Option<u8>,
 ) -> Result<HashMap<String, Win32Device>, String> {
     let mut state_guard = state.write().await;
-    state_guard.scanning = true;
 
     let new_devices = spawn_blocking(move || scan_win32(duration))
         .await?
@@ -68,8 +65,6 @@ pub async fn bluetooth_win32_scan(
             .or_insert(new_dev);
     }
 
-    state_guard.scanning = false;
-
     let win32_devices = state_guard
         .devices
         .iter()
@@ -82,13 +77,11 @@ pub async fn bluetooth_win32_scan(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_winrt_scan(
-    state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
-    app_handle: AppHandle,
+    state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>
 ) -> Result<HashMap<String, WinRTDevice>, String> {
     let mut state_guard = state.write().await;
-    state_guard.scanning = true;
 
-    let new_devices = scan_winrt(app_handle)
+    let new_devices = scan_winrt()
         .await?
         .into_iter()
         .map(|device| {
@@ -105,8 +98,6 @@ pub async fn bluetooth_winrt_scan(
             .or_insert(new_dev);
     }
 
-    state_guard.scanning = false;
-
     let winrt_devices = state_guard
         .devices
         .iter()
@@ -116,14 +107,22 @@ pub async fn bluetooth_winrt_scan(
     Ok(winrt_devices)
 }
 
-pub async fn bluetooth_devices() {}
+#[tauri::command(async)]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn bluetooth_get_devices(
+    state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>
+) -> Result<HashMap<String, Device>, String> {
+    let guard = state.read().await;
+    Ok(guard.devices.clone())
+}
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_register(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
+    app_handle: AppHandle,
     address: String,
-) -> Result<(), String> {
+) -> Result<PairingMessage, String> {
     let mut state_guard = state.write().await;
 
     let device = state_guard
@@ -131,7 +130,21 @@ pub async fn bluetooth_register(
         .get_mut(&address)
         .ok_or_else(|| format!("Device {address} not found!"))?;
 
-    device.register().await
+    device.register(app_handle).await
+}
+
+#[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn bluetooth_register_provide_pin(
+    pin: String
+) -> Result<(), String> {
+    register_provide_pin(pin)
+}
+
+#[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn bluetooth_register_confirm() -> Result<(), String> {
+    register_confirm()
 }
 
 #[tauri::command(async)]
@@ -164,6 +177,11 @@ pub async fn bluetooth_connect(
         .ok_or_else(|| format!("Device {address} not found!"))?;
 
     device.connect().await
+}
+
+#[tauri::command(async)]
+pub async fn bluetooth_get_connected() -> Result<(), String> {
+    Ok(())
 }
 
 #[tauri::command(async)]

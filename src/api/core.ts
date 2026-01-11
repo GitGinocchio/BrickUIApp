@@ -14,11 +14,15 @@ const allowedCommands = new Set<string>([
   "get_pinned_taskbar_apps",
 
   // Bluetooth
-  "bluetooth_scan",
-  "bluetooth_win32_scan",
-  "bluetooth_winrt_scan",
+  "bluetooth_get_devices",
+  //"bluetooth_scan",
+  //"bluetooth_win32_scan",
+  //"bluetooth_winrt_scan",
 
   "bluetooth_register",
+  "bluetooth_register_confirm",
+  "bluetooth_register_provide_pin",
+
   "bluetooth_unregister",
 
   "bluetooth_connect",

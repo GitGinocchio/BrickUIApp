@@ -100,6 +100,27 @@ export function extractImports(descriptor: SFCDescriptor): ImportBinding[] {
   return bindings;
 }
 
+// Helper async per replace
+async function replaceAsync(
+  str: string,
+  regex: RegExp,
+  asyncFn: (...args: any[]) => Promise<string>
+): Promise<string> {
+  const matches = Array.from(str.matchAll(regex));
+  const results = await Promise.all(
+    matches.map((m) => asyncFn(...m))
+  );
+
+  let out = str;
+  let offset = 0;
+  matches.forEach((m, i) => {
+    out = out.slice(0, m.index! + offset) + results[i] + out.slice(m.index! + offset + m[0].length);
+    offset += results[i].length - m[0].length;
+  });
+
+  return out;
+}
+
 export async function rewriteImports(
   code: string,
   moduleCache: Record<string, any>,
@@ -115,32 +136,13 @@ export async function rewriteImports(
       }
     } else if (moduleName.startsWith("/")) {
       moduleName = await sanitizePath(moduleName, { root: brickDirName, convertToAssetURL: false });
+    } else if (moduleName.startsWith("http")) {
+      moduleName = `"${moduleName}"`;
     }
 
     return moduleCache[moduleName]
       ? `moduleCache["${moduleName}"]`
       : moduleName;
-  }
-
-  // Helper async per replace
-  async function replaceAsync(
-    str: string,
-    regex: RegExp,
-    asyncFn: (...args: any[]) => Promise<string>
-  ): Promise<string> {
-    const matches = Array.from(str.matchAll(regex));
-    const results = await Promise.all(
-      matches.map((m) => asyncFn(...m))
-    );
-
-    let out = str;
-    let offset = 0;
-    matches.forEach((m, i) => {
-      out = out.slice(0, m.index! + offset) + results[i] + out.slice(m.index! + offset + m[0].length);
-      offset += results[i].length - m[0].length;
-    });
-
-    return out;
   }
 
   // import { a, b as c } from "vue"

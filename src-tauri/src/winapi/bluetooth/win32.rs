@@ -326,7 +326,7 @@ impl Win32Device {
     }
 
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn from_mac(address: String) -> Result<Self, String> {
+    pub fn from_mac(address: &String) -> Result<Self, String> {
         let bytes: Vec<u8> = address
             .split(':')
             .filter_map(|b| u8::from_str_radix(b, 16).ok())
@@ -385,7 +385,7 @@ impl Win32Device {
                 .map_err(|e| format!("BluetoothFindRadioClose Error: {e}"))?;
 
             if !found {
-                panic!("Device not found");
+                return Err(format!("Win32 device not found: {}", address));
             }
 
             Ok(Win32Device::from_info(&device_info))

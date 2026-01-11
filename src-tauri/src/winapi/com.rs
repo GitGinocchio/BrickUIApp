@@ -9,6 +9,22 @@ thread_local! {
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn initialize_com() -> Result<bool, String> {
+    unsafe {
+        match CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok() {
+            Ok(_) => {
+                Ok(true)
+            }
+            Err(e) => {
+                if e.code() == RPC_E_CHANGED_MODE {
+                    // RPC_E_CHANGED_MODE → COM già inizializzato con modalità diversa
+                    Ok(false)
+                } else {
+                    Err(format!("Error initializing com: {e}"))
+                }
+            }
+        }
+    }
+    /*
     COM_INITIALIZED.with(|flag| {
         if flag.get() {
             Ok(false)
@@ -31,14 +47,18 @@ pub fn initialize_com() -> Result<bool, String> {
             }
         }
     })
+    */
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn uninitialize_com() {
+    unsafe { CoUninitialize() };
+    /*
     COM_INITIALIZED.with(|flag| {
         if flag.get() {
             unsafe { CoUninitialize() };
             flag.set(false);
         }
     });
+    */
 }

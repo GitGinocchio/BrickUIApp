@@ -164,7 +164,7 @@ export async function loadVueModuleToCJS(
     ],
     plugins: ['proposal-class-properties', 'transform-typescript'],
     filename: 'file.js',
-    sourceMaps: false
+    sourceMaps: true
   });
 
   errors.forEach(error => {

@@ -1,21 +1,21 @@
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 use std::{
     collections::HashMap,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Display, Formatter}, sync::Arc,
 };
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter as _};
 use windows::{
     Devices::{
-        Bluetooth::BluetoothConnectionStatus,
-        Enumeration::{DeviceInformation, DeviceWatcher},
+        Bluetooth::{BluetoothConnectionStatus, BluetoothDevice},
+        Enumeration::{DeviceInformation, DeviceInformationUpdate, DeviceWatcher},
     },
     Foundation::TypedEventHandler,
     core::HSTRING,
 };
 
 use crate::{
-    utils::spawn_blocking,
-    winapi::bluetooth::{win32::scan_win32, winrt::scan_winrt},
+    state::bluetooth::BrickUIBluetoothState, utils::spawn_blocking, winapi::bluetooth::{win32::{Win32Device, scan_win32}, winrt::{WinRTDevice, extract_winrt_device_address, scan_winrt}}
 };
 
 pub mod ble;
@@ -26,6 +26,29 @@ pub mod winrt;
 pub enum ConnectionType {
     Win32,
     WinRT,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum PairingMessage {
+    // Pairing modes
+    ConfirmOnly,
+    DisplayPin { pin: String },
+    ProvidePin,
+
+    // Messages
+    Paired,
+    CantPair,
+    AlreadyPaired,
+
+    // Errors
+    Failed { message: String }
+}
+
+#[derive(Clone, Debug)]
+pub enum AcceptPairingMessage {
+    AcceptWithPin(String),
+    Accept
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -48,9 +71,9 @@ impl Device {
 impl Display for Device {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match (&self.win32, &self.winrt) {
-            (Some(w32), Some(wrt)) => write!(f, "Device(win32: {}, winrt: {})", w32, wrt),
-            (Some(w32), None) => write!(f, "Device(win32: {})", w32),
-            (None, Some(wrt)) => write!(f, "Device(winrt: {})", wrt),
+            (Some(w32), Some(wrt)) => write!(f, "Device(win32: {}, winrt: {}, connection_type: {:?})", w32, wrt, self.connection_type),
+            (Some(w32), None) => write!(f, "Device(win32: {}, connection_type: {:?})", w32, self.connection_type),
+            (None, Some(wrt)) => write!(f, "Device(winrt: {}, connection_type: {:?})", wrt, self.connection_type),
             (None, None) => write!(f, "Device(empty)"),
         }
     }
@@ -63,10 +86,20 @@ impl Device {
             new.socket = existing.socket.take();
         }
 
+        // Se viene fatta un'altra scansione e viene rilevato che il device non e' piu' paired allora resettiamo il connection_type
+        if let Some(ConnectionType::Win32) = self.connection_type && !new.authenticated {
+            self.connection_type = None;
+        }
+
         self.win32 = Some(new);
     }
 
     pub fn merge_winrt(&mut self, new: winrt::WinRTDevice) {
+        // Se viene fatta un'altra scansione e viene rilevato che il device non e' piu' paired allora resettiamo il connection_type
+        if let Some(ConnectionType::WinRT) = self.connection_type && !new.is_paired {
+            self.connection_type = None;
+        }
+
         self.winrt = Some(new);
     }
 
@@ -79,31 +112,53 @@ impl Device {
         }
     }
 
-    pub async fn register(&mut self) -> Result<(), String> {
+    pub async fn register(&mut self, app_handle: AppHandle) -> Result<PairingMessage, String> {
         // TODO: Aggiungere una preferenza di registazione
         // L'utente puo' mostrare una preferenza su quale backend usare
         // Win32 o WinRT
 
+        if let Some(ConnectionType::Win32) = self.connection_type && let Some(win32) = &self.win32 && !win32.authenticated {
+            self.connection_type = None;
+        }
+        else if let Some(ConnectionType::WinRT) = self.connection_type && let Some(winrt) = &self.winrt && !winrt.is_paired {
+            self.connection_type = None;
+        }
+        
         if self.connection_type.is_some() {
-            return Ok(()); // Already connected
+            return Ok(PairingMessage::AlreadyPaired);
         }
 
+        // 1. Provo WinRT
         if let Some(winrt) = &mut self.winrt {
-            winrt
-                .register()
-                .await
-                .map_err(|e| format!("WinRT registration failed: {e}"))?;
-            self.connection_type = Some(ConnectionType::WinRT);
-        } else if let Some(win32) = &mut self.win32 {
-            win32
-                .register()
-                .map_err(|e| format!("Win32 registration failed: {e}"))?;
-            self.connection_type = Some(ConnectionType::Win32);
-        } else {
-            return Err(format!("Device has no backend available!"));
+            match winrt.register(app_handle) {
+                Ok(PairingMessage::CantPair) => {
+                    eprintln!("Device cant pair. Trying Win32...");
+                    // non ritorno subito, provo il fallback    
+                },
+                Err(e) => {
+                    eprintln!("WinRT registration failed: {e}. Trying Win32...");
+                    // non ritorno subito, provo il fallback
+                },
+                Ok(msg) => {
+                    self.connection_type = Some(ConnectionType::WinRT);
+
+                    return Ok(msg);
+                },
+            }
         }
 
-        Ok(())
+        // 2. Provo Win32 come fallback
+        if let Some(win32) = &mut self.win32 {
+            match win32.register() {
+                Ok(_) => {
+                    self.connection_type = Some(ConnectionType::Win32);
+                    return Ok(PairingMessage::Paired);
+                },
+                Err(e) => return Err(format!("Win32 registration failed: {e}")),
+            }
+        }
+
+        Err(format!("Device has no backend available!"))
     }
 
     pub async fn unregister(&mut self) -> Result<(), String> {
@@ -125,19 +180,19 @@ impl Device {
     }
 
     pub async fn connect(&mut self) -> Result<(), String> {
-        self.register().await
+        //self.register().await
+        Ok(())
     }
 
     pub async fn disconnect(&mut self) -> Result<(), String> {
-        self.unregister().await
+        // self.unregister().await
+        Ok(())
     }
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn scan(
-    app_handle: AppHandle,
-    duration: Option<u8>,
-) -> Result<HashMap<String, Device>, String> {
+pub async fn scan(duration: Option<u8>) -> Result<HashMap<String, Device>, String> {
+    /*
     let mut devices = spawn_blocking(move || scan_win32(duration))
         .await?
         .into_iter()
@@ -147,7 +202,7 @@ pub async fn scan(
         })
         .collect::<HashMap<String, Device>>();
 
-    let winrt_devices = scan_winrt(app_handle)
+    let winrt_devices = scan_winrt()
         .await?
         .into_iter()
         .map(|device| {
@@ -155,7 +210,7 @@ pub async fn scan(
             (address, Device::new(None, Some(device)))
         })
         .collect::<HashMap<String, Device>>();
-
+    
     for (address, winrt_device) in winrt_devices {
         devices
             .entry(address)
@@ -164,6 +219,140 @@ pub async fn scan(
             })
             .or_insert(winrt_device);
     }
+    */
+
+    let devices = scan_winrt()
+        .await?
+        .into_iter()
+        .map(|device| {
+            let address = device.address.clone();
+            (address, Device::new(None, Some(device)))
+        })
+        .collect::<HashMap<String, Device>>();
 
     Ok(devices)
+}
+
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn start_bluetooth_watcher(state: Arc<RwLock<BrickUIBluetoothState>>, app_handle: &AppHandle) -> Result<DeviceWatcher, String> {
+    // Selector AEP (Classic + audio/HID)
+    //let selector = HSTRING::from(r#"System.Devices.Aep.ProtocolId:="{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}""#);
+
+    let selector = BluetoothDevice
+        ::GetDeviceSelectorFromConnectionStatus(BluetoothConnectionStatus::Disconnected)
+        .map_err(|e| format!("{e}"))?;
+
+    let watcher: DeviceWatcher = DeviceInformation
+        ::CreateWatcherAqsFilter(&selector)
+        .map_err(|e| format!("Error creating device watcher: {e}"))?;
+
+    let state_arc = state.clone();
+    let app_handle_arc = app_handle.clone();
+
+    watcher.Added(&TypedEventHandler::<DeviceWatcher, DeviceInformation>::new(move |_watcher, info| {
+        let info = info.as_ref().expect("[watcher:added]: Error obtaining args");
+        let state_clone = state_arc.clone();
+        let app_handle_clone = app_handle_arc.clone();
+        let info_clone = info.clone();
+
+        tauri::async_runtime::spawn(async move {
+            let mut guard = state_clone.write().await;
+
+            let winrt = WinRTDevice::from_info(&info_clone)?;
+            let win32 = Win32Device::from_mac(&winrt.address)?;
+            let address = winrt.address.clone();
+
+            let device = Device::new(Some(win32), Some(winrt));
+
+            println!("Device added: {device:?}");
+
+            app_handle_clone
+                .emit("bluetooth_device_added", device.clone())
+                .map_err(|e| format!("Error sending new device: {e}"))?;
+
+            guard.devices.insert(address, device);
+            
+
+            Ok::<(), String>(())
+        });
+        Ok(())
+    })).map_err(|e| format!("Error setting Added watcher: {e}"))?;
+
+    let state_arc = state.clone();
+    let app_handle_arc = app_handle.clone();
+
+    watcher.Updated(&TypedEventHandler::<DeviceWatcher, DeviceInformationUpdate>::new(move |_watcher, uinfo| {
+        let uinfo = uinfo.as_ref().expect("[watcher:updated]: Error obtaining args");
+        let app_handle_clone = app_handle_arc.clone();
+        let state_clone = state_arc.clone();
+        let uinfo_clone = uinfo.clone();
+
+        println!("device updated: {:#?}", uinfo.Id()?);
+
+        tauri::async_runtime::spawn(async move {
+            let mut guard = state_clone.write().await;
+
+            let id = uinfo_clone
+                .Id()
+                .map_err(|e| format!("Error obtaining id: {e}"))?
+                .to_string_lossy()
+                .to_string();
+
+            let address = extract_winrt_device_address(&id);
+
+            if let Some(device) = guard.devices.get_mut(&address) && let Some(winrt) = &mut device.winrt {
+                let kind = uinfo_clone.Kind().map_err(|e| format!("Error obtaining kind: {e}"))?;
+                winrt.kind = format!("{:?}", kind);
+
+                device.win32 = Some(Win32Device::from_mac(&winrt.address)?);
+
+                app_handle_clone
+                    .emit("bluetooth_device_updated", device.clone())
+                    .map_err(|e| format!("Error sending new device: {e}"))?;
+            }
+
+            Ok::<(), String>(())
+        });
+
+        Ok(())
+    })).map_err(|e| format!("Error setting Added watcher: {e}"))?;
+
+    let state_arc = state.clone();
+    let app_handle_arc = app_handle.clone();
+
+    watcher.Removed(&TypedEventHandler::<DeviceWatcher, DeviceInformationUpdate>::new(move |_watcher, uinfo| {
+        let uinfo = uinfo.as_ref().expect("[watcher:updated]: Error obtaining args");
+        let app_handle_clone = app_handle_arc.clone();
+        let state_clone = state_arc.clone();
+        let uinfo_clone = uinfo.clone();
+
+        println!("device removed: {:#?}", uinfo.Id()?);
+
+        tauri::async_runtime::spawn(async move {
+            let mut guard = state_clone.write().await;
+
+            let id = uinfo_clone
+                .Id()
+                .map_err(|e| format!("Error obtaining id: {e}"))?
+                .to_string_lossy()
+                .to_string();
+
+            // NOTE: Here we are removing only the WinRT version of the Bluetooth device!
+            if let Some(device) = guard.devices.get_mut(&id) {
+                device.winrt = None;
+
+                app_handle_clone
+                    .emit("bluetooth_device_removed", device.clone())
+                    .map_err(|e| format!("Error sending new device: {e}"))?;
+            }
+
+            Ok::<(), String>(())
+        });
+        
+        Ok(())
+    })).map_err(|e| format!("Error setting Removed watcher: {e}"))?;
+
+    watcher.Start().map_err(|e| format!("Error starting watcher: {e}"))?;
+
+    Ok(watcher)
 }
