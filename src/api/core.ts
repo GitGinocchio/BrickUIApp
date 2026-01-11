@@ -15,15 +15,12 @@ const allowedCommands = new Set<string>([
 
   // Bluetooth
   "bluetooth_get_devices",
-  //"bluetooth_scan",
-  //"bluetooth_win32_scan",
-  //"bluetooth_winrt_scan",
+  "bluetooth_pair",
+  "bluetooth_pair_confirm",
+  "bluetooth_pair_provide_pin",
+  "bluetooth_pair_provide_address",
 
-  "bluetooth_register",
-  "bluetooth_register_confirm",
-  "bluetooth_register_provide_pin",
-
-  "bluetooth_unregister",
+  "bluetooth_unpair",
 
   "bluetooth_connect",
   "bluetooth_disconnect",

@@ -47,18 +47,19 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         get_tray_icons,
         // Bluetooth
         bluetooth_get_devices,
+        bluetooth_pair,
+        bluetooth_pair_confirm,
+        bluetooth_pair_provide_pin,
+        bluetooth_pair_provide_address,
+        
+        bluetooth_unpair,
+
         /*
         Metodi scan deprecati a favore del bluetooth_watcher
         bluetooth_scan,
         bluetooth_win32_scan,
         bluetooth_winrt_scan,
         */
-        
-        bluetooth_register,
-        bluetooth_register_confirm,
-        bluetooth_register_provide_pin,
-        
-        bluetooth_unregister,
 
         /*
         Al momento non supportiamo connessione diretta via socket

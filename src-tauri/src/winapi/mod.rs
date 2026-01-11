@@ -14,10 +14,7 @@ pub mod window;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;
-use std::ffi::CString;
 use std::path::PathBuf;
-use windows::Win32::{Foundation::*, System::Registry::*, UI::WindowsAndMessaging::*};
-use windows::core::PCSTR;
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
@@ -26,6 +23,8 @@ pub fn resolve_lnk(lnk: &PathBuf) -> Result<ShellLink, String> {
     Ok(shortcut)
 }
 
+/*
+// TODO: Vedere se questo metodo funziona e fa qualcosa
 pub fn set_snap_flyout(enabled: bool) -> windows::core::Result<()> {
     unsafe {
         let mut hkey = HKEY::default();
@@ -72,3 +71,4 @@ pub fn set_snap_flyout(enabled: bool) -> windows::core::Result<()> {
         Ok(())
     }
 }
+*/

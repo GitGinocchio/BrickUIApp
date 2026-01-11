@@ -1,16 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
-use tauri::{AppHandle, Manager as _, State};
+use tauri::{AppHandle, State};
 use tokio::sync::RwLock;
 
 use crate::{
     state::bluetooth::BrickUIBluetoothState,
-    utils::spawn_blocking,
     winapi::bluetooth::{
-        Device, PairingMessage, scan, win32::{Win32Device, scan_win32}, winrt::{WinRTDevice, register_provide_pin, register_confirm, scan_winrt}
+        Device, PairingMessage, winrt::{pair_provide_pin, pair_confirm, pair_provide_address}
     },
 };
 
+/*
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_scan(
@@ -106,6 +106,7 @@ pub async fn bluetooth_winrt_scan(
 
     Ok(winrt_devices)
 }
+*/
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
@@ -113,12 +114,16 @@ pub async fn bluetooth_get_devices(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>
 ) -> Result<HashMap<String, Device>, String> {
     let guard = state.read().await;
-    Ok(guard.devices.clone())
+    let devices = guard.devices.clone();
+    for device in &devices {
+        println!("{:?}, {:?}", device.0, device.1);
+    }
+    Ok(devices)
 }
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn bluetooth_register(
+pub async fn bluetooth_pair(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
     app_handle: AppHandle,
     address: String,
@@ -130,26 +135,35 @@ pub async fn bluetooth_register(
         .get_mut(&address)
         .ok_or_else(|| format!("Device {address} not found!"))?;
 
-    device.register(app_handle).await
+    device.pair(app_handle).await
 }
 
 #[tauri::command]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub fn bluetooth_register_provide_pin(
+pub fn bluetooth_pair_provide_pin(
     pin: String
 ) -> Result<(), String> {
-    register_provide_pin(pin)
+    pair_provide_pin(pin)
 }
 
 #[tauri::command]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub fn bluetooth_register_confirm() -> Result<(), String> {
-    register_confirm()
+pub fn bluetooth_pair_provide_address(
+    address: String
+) -> Result<(), String> {
+    pair_provide_address(address)
+}
+
+
+#[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn bluetooth_pair_confirm() -> Result<(), String> {
+    pair_confirm()
 }
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn bluetooth_unregister(
+pub async fn bluetooth_unpair(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
     address: String,
 ) -> Result<(), String> {
@@ -160,9 +174,10 @@ pub async fn bluetooth_unregister(
         .get_mut(&address)
         .ok_or_else(|| format!("Device {address} not found!"))?;
 
-    device.unregister().await
+    device.unpair().await
 }
 
+/*
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_connect(
@@ -180,11 +195,6 @@ pub async fn bluetooth_connect(
 }
 
 #[tauri::command(async)]
-pub async fn bluetooth_get_connected() -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn bluetooth_disconnect(
     state: State<'_, Arc<RwLock<BrickUIBluetoothState>>>,
@@ -199,3 +209,4 @@ pub async fn bluetooth_disconnect(
 
     device.disconnect().await
 }
+*/

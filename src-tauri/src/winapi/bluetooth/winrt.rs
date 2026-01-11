@@ -1,25 +1,28 @@
-use std::{fmt, sync::{Arc, Mutex, mpsc::RecvTimeoutError}, time::Duration};
+use std::{fmt, sync::{Mutex, mpsc::RecvTimeoutError}, time::Duration};
 
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use tauri::{AppHandle, Emitter as _};
-use tokio::{sync::{RwLock, oneshot}, time::timeout};
 use std::sync::mpsc;
 
 use serde::Serialize;
-use serde_json::json;
 use windows::{
     Devices::{
-        Bluetooth::{BluetoothConnectionStatus, BluetoothDevice},
         Enumeration::{
-            DeviceClass, DeviceInformation, DeviceInformationCustomPairing, DeviceInformationKind, DeviceInformationPairing, DeviceInformationUpdate, DevicePairingKinds, DevicePairingRequestedEventArgs, DevicePairingResult, DevicePairingResultStatus, DeviceUnpairingResultStatus, DeviceWatcher
+            DeviceInformation, 
+            DeviceInformationCustomPairing, 
+            DeviceInformationPairing, 
+            DevicePairingKinds,
+            DevicePairingRequestedEventArgs, 
+            DevicePairingResultStatus, 
+            DeviceUnpairingResultStatus
         },
     },
     Foundation::{Deferral, TypedEventHandler},
-    core::{HRESULT, HSTRING}
+    core::HSTRING
 };
 
-use crate::{state::bluetooth::BrickUIBluetoothState, winapi::{bluetooth::{AcceptPairingMessage, Device, PairingMessage}, com::initialize_com}};
+use crate::{winapi::{bluetooth::{AcceptPairingMessage, PairingMessage}, com::initialize_com}};
 
 #[derive(Debug)]
 struct PendingPairing {
@@ -75,9 +78,20 @@ fn setup_pairing_handler(app_handle: AppHandle) -> TypedEventHandler<DeviceInfor
             let message = match args.PairingKind().expect("Error obtaining pairing kind") {
                 DevicePairingKinds::ProvidePin => PairingMessage::ProvidePin,
                 DevicePairingKinds::ConfirmOnly => PairingMessage::ConfirmOnly,
+                DevicePairingKinds::ProvideAddress => PairingMessage::ProvideAddress,
+                DevicePairingKinds::None => {
+                    println!("[winrt_handler] PairingKinds::None → auto accept");
+                    args.Accept().expect("Error accepting");
+                    deferral.Complete().expect("Error completing deferral");
+                    return Ok(());
+                },
                 DevicePairingKinds::DisplayPin => {
                     let pin = args.Pin().unwrap().to_string_lossy().to_string();
                     PairingMessage::DisplayPin { pin }
+                },
+                DevicePairingKinds::ConfirmPinMatch => {
+                    let pin = args.Pin().unwrap().to_string_lossy().to_string();
+                    PairingMessage::ConfirmPinMatch { pin }
                 },
                 _ => PairingMessage::Failed { message: "Unsupported kind".into() },
             };
@@ -98,7 +112,7 @@ fn setup_pairing_handler(app_handle: AppHandle) -> TypedEventHandler<DeviceInfor
     )
 }
 
-pub fn extract_winrt_device_address(id: &str) -> String {
+pub(super) fn extract_winrt_device_address(id: &str) -> String {
     id.split('#')
         .nth(1)
         .and_then(|s| s.strip_prefix("Bluetooth"))
@@ -182,7 +196,7 @@ impl WinRTDevice {
         })
     }
 
-    pub fn register(&mut self, app_handle: AppHandle) -> Result<PairingMessage, String> {
+    pub fn pair(&mut self, app_handle: AppHandle) -> Result<PairingMessage, String> {
         initialize_com()?;
 
         if self.pairing.IsPaired().map_err(|e| format!("Error checking device IsPaired: {e}"))? {
@@ -230,6 +244,9 @@ impl WinRTDevice {
             DevicePairingKinds::ConfirmOnly
             | DevicePairingKinds::ProvidePin
             | DevicePairingKinds::DisplayPin
+            | DevicePairingKinds::ProvideAddress
+            | DevicePairingKinds::ConfirmPinMatch
+            | DevicePairingKinds::None
         ).map_err(|e| e.to_string())?;
 
         println!("[register] waiting message from frontend");
@@ -239,12 +256,19 @@ impl WinRTDevice {
 
                 if let Some(pending) = pairing_guard.as_ref() {
                     match (&pending.message, message) {
+                        (PairingMessage::ProvideAddress, AcceptPairingMessage::AcceptWithAddress(address)) => {
+                            println!("[register] accepting with address: {address}");
+                            pending.args
+                                .AcceptWithAddress(&HSTRING::from(address))
+                                .map_err(|e| format!("Error accepting with pin: {e}"))?;
+                        },
                         (PairingMessage::ProvidePin, AcceptPairingMessage::AcceptWithPin(pin)) => {
                             println!("[register] accepting with pin: {pin}");
                             pending.args
                                 .AcceptWithPin(&HSTRING::from(pin))
                                 .map_err(|e| format!("Error accepting with pin: {e}"))?;
                         },
+                        (PairingMessage::ConfirmPinMatch { .. }, AcceptPairingMessage::Accept) |
                         (PairingMessage::DisplayPin { .. }, AcceptPairingMessage::Accept) |
                         (PairingMessage::ConfirmOnly, AcceptPairingMessage::Accept) => {
                             println!("[register] accepting");
@@ -305,7 +329,7 @@ impl WinRTDevice {
         response
     }
 
-    pub async fn unregister(&mut self) -> Result<(), std::string::String> {
+    pub async fn unpair(&mut self) -> Result<(), std::string::String> {
         if !self.is_paired {
             return Ok(());
         }
@@ -330,6 +354,7 @@ impl WinRTDevice {
     }
 }
 
+/*
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn scan_winrt() -> Result<Vec<WinRTDevice>, String> {
     // TODO: Get Devices dovrebbe ottenere quelli gia' paired
@@ -364,8 +389,9 @@ pub async fn scan_winrt() -> Result<Vec<WinRTDevice>, String> {
 
     Ok(devices)
 }
+*/
 
-pub fn register_provide_pin(pin: String) -> Result<(), String> {
+pub fn pair_provide_pin(pin: String) -> Result<(), String> {
     println!("[provide_pin] Accepting");
 
     let guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;
@@ -377,7 +403,19 @@ pub fn register_provide_pin(pin: String) -> Result<(), String> {
     Ok(())
 }
 
-pub fn register_confirm() -> Result<(), String> {
+pub fn pair_provide_address(address: String) -> Result<(), String> {
+    println!("[provide_address] Accepting");
+
+    let guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;
+
+    if let Some(sender) = guard.as_ref() {
+        sender.send(AcceptPairingMessage::AcceptWithAddress(address)).map_err(|e| format!("Error sending AcceptPairingMessage: {e}"))?;
+    }
+
+    Ok(())
+}
+
+pub fn pair_confirm() -> Result<(), String> {
     println!("[confirm] Accepting");
 
     let guard = PAIRING_SENDER.lock().map_err(|e| format!("Pairing sender lock poisoned: {e}"))?;

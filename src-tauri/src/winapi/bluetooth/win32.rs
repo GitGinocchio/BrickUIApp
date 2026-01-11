@@ -5,15 +5,9 @@ use std::fmt::{self, Debug};
 use windows::{
     Win32::{
         Devices::Bluetooth::{
-            AF_BTH, AUTHENTICATION_REQUIREMENTS, BLUETOOTH_ADDRESS, BLUETOOTH_DEVICE_INFO,
-            BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS, BTHPROTO_RFCOMM,
-            BluetoothAuthenticateDevice, BluetoothAuthenticateDeviceEx, BluetoothFindDeviceClose,
-            BluetoothFindFirstDevice, BluetoothFindFirstRadio, BluetoothFindNextDevice,
-            BluetoothFindNextRadio, BluetoothFindRadioClose, BluetoothGetDeviceInfo,
-            BluetoothRemoveDevice, MITMProtectionNotRequired, MITMProtectionNotRequiredBonding,
-            SOCKADDR_BTH,
+            AF_BTH, AUTHENTICATION_REQUIREMENTS, BLUETOOTH_ADDRESS, BLUETOOTH_DEVICE_INFO, BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS, BLUETOOTH_SERVICE_ENABLE, BTHPROTO_RFCOMM, BluetoothAuthenticateDevice, BluetoothAuthenticateDeviceEx, BluetoothFindDeviceClose, BluetoothFindFirstDevice, BluetoothFindFirstRadio, BluetoothFindNextDevice, BluetoothFindNextRadio, BluetoothFindRadioClose, BluetoothGetDeviceInfo, BluetoothRemoveDevice, MITMProtectionNotRequired, MITMProtectionNotRequiredBonding, SOCKADDR_BTH
         },
-        Foundation::{ERROR_SUCCESS, HANDLE, HWND, SYSTEMTIME},
+        Foundation::{ERROR_ALREADY_EXISTS, ERROR_SUCCESS, HANDLE, HWND, SYSTEMTIME},
         Networking::WinSock::{
             INVALID_SOCKET, SEND_RECV_FLAGS, SOCK_STREAM, SOCKADDR, SOCKET, SOCKET_ERROR,
             closesocket, connect, recv, send, socket,
@@ -133,6 +127,21 @@ fn parse_minor_class(major: MajorDeviceClass, cod: u32) -> MinorDeviceClass {
 
         _ => MinorDeviceClass::Uncategorized,
     }
+}
+
+
+pub const GUID_BLUETOOTH_SERVICE_SERIAL_PORT: GUID = GUID::from_values(
+    0x00001101, 0x0000, 0x1000, [0x80,0x00,0x00,0x80,0x5F,0x9B,0x34,0xFB]
+);
+
+#[link(name = "Bthprops")]
+unsafe extern "system" {
+    pub fn BluetoothSetServiceState(
+        hRadio: HANDLE,
+        pbtdi: *mut BLUETOOTH_DEVICE_INFO,
+        pGuidService: *const GUID,
+        dwServiceFlags: u32,
+    ) -> u32;
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -393,7 +402,7 @@ impl Win32Device {
     }
 
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn register(&mut self) -> Result<(), String> {
+    pub fn pair(&mut self) -> Result<(), String> {
         unsafe {
             let mut adapter_params = BLUETOOTH_FIND_RADIO_PARAMS {
                 dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
@@ -404,27 +413,32 @@ impl Win32Device {
                 .map_err(|e| format!("BluetoothFindFirstRadioError: {e}"))?;
 
             loop {
-                let req = AUTHENTICATION_REQUIREMENTS(
-                    MITMProtectionNotRequired.0 | MITMProtectionNotRequiredBonding.0,
-                );
-
-                let res = BluetoothAuthenticateDeviceEx(
-                    None,
-                    Some(adapter_handle),
-                    &mut self.raw_device_info,
-                    None,
-                    req,
-                );
-
-                /*let res = BluetoothAuthenticateDevice(
-                    None,
-                    Some(adapter_handle),
-                    &mut self.raw_device_info,
-                    None,
-                );*/
-
-                if res == ERROR_SUCCESS.0 {
-                    break; // successo
+                if self.raw_device_info.fRemembered.0 != 0 {
+                    // già paired → forza connessione su profilo
+                    let service_guid = GUID_BLUETOOTH_SERVICE_SERIAL_PORT;
+                    let res = BluetoothSetServiceState(
+                        adapter_handle,
+                        &mut self.raw_device_info,
+                        &service_guid,
+                        BLUETOOTH_SERVICE_ENABLE,
+                    );
+                    if res == ERROR_SUCCESS.0 {
+                        break;
+                    } else {
+                        return Err(format!("BluetoothSetServiceState failed: {}", res));
+                    }
+                } else {
+                    // non paired → chiama pairing
+                    let req = AUTHENTICATION_REQUIREMENTS(
+                        MITMProtectionNotRequired.0 | MITMProtectionNotRequiredBonding.0,
+                    );
+                    let res = BluetoothAuthenticateDeviceEx(None, Some(adapter_handle), &mut self.raw_device_info, None, req);
+                    if res == ERROR_SUCCESS.0 {
+                        break;
+                    } else if res == ERROR_ALREADY_EXISTS.0 {
+                        // già paired, fallback alla connessione
+                        continue;
+                    }
                 }
 
                 // passa al prossimo adapter
@@ -443,11 +457,7 @@ impl Win32Device {
     }
 
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn unregister(&mut self) -> Result<(), String> {
-        if self.connected {
-            self.disconnect()?;
-        }
-
+    pub fn unpair(&mut self) -> Result<(), String> {
         unsafe {
             let res = BluetoothRemoveDevice(&self.raw_device_info.Address);
 
@@ -460,89 +470,6 @@ impl Win32Device {
         self.authenticated = false;
         self.remembered = false;
         Ok(())
-    }
-
-    #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn connect(&mut self) -> Result<(), String> {
-        unsafe {
-            if !self.authenticated {
-                self.register()?;
-            }
-
-            // 1. crea socket Bluetooth
-            let sock = socket(AF_BTH as i32, SOCK_STREAM, BTHPROTO_RFCOMM as i32)
-                .map_err(|e| format!("Error creating socket: {e}"))?;
-
-            if sock == INVALID_SOCKET {
-                return Err("Failed to create socket".into());
-            }
-
-            // 2. crea sockaddr_bth
-            let addr = SOCKADDR_BTH {
-                addressFamily: AF_BTH as u16,
-                btAddr: self.raw_device_info.Address.Anonymous.ullLong,
-                serviceClassId: GUID::zeroed(),
-                port: 1, // RFCOMM channel
-            };
-
-            // 3. connetti
-            let res = connect(
-                sock,
-                &addr as *const _ as *const SOCKADDR,
-                std::mem::size_of::<SOCKADDR_BTH>() as i32,
-            );
-
-            if res == SOCKET_ERROR {
-                closesocket(sock);
-                return Err("Failed to connect RFCOMM".into());
-            }
-
-            self.socket = Some(sock);
-            self.connected = true;
-            Ok(())
-        }
-    }
-
-    #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn disconnect(&mut self) -> Result<(), String> {
-        unsafe {
-            if let Some(sock) = self.socket.take() {
-                closesocket(sock);
-            }
-
-            self.connected = false;
-            Ok(())
-        }
-    }
-
-    #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn read(&mut self) -> Result<Vec<u8>, String> {
-        unsafe {
-            let sock = self.socket.ok_or("Not connected")?;
-
-            let mut buf = vec![];
-            let received = recv(sock, buf.as_mut_slice(), SEND_RECV_FLAGS(0));
-
-            if received == SOCKET_ERROR {
-                return Err("Read failed".into());
-            }
-
-            Ok(buf[..received as usize].to_vec())
-        }
-    }
-
-    #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn write(&mut self, data: &[u8]) -> Result<(), String> {
-        unsafe {
-            let sock = self.socket.ok_or("Not connected")?;
-
-            let sent = send(sock, data, SEND_RECV_FLAGS(0));
-            if sent == SOCKET_ERROR {
-                return Err("Write failed".into());
-            }
-
-            Ok(())
-        }
     }
 }
 

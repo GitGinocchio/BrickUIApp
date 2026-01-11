@@ -8,9 +8,7 @@ use std::{
     env,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
-    sync::Arc,
 };
-use tokio::sync::Mutex;
 use windows::Win32::UI::Shell::{
     SHGSI_ICON, SHGetStockIconInfo, SHSTOCKICONINFO, SIID_DOCNOASSOC, SIID_FOLDER,
 };
@@ -26,7 +24,7 @@ use windows::{
             Shell::{
                 ExtractIconExW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON, SHSTOCKICONID,
                 SIID_APPLICATION, SIID_AUDIOFILES, SIID_DOCASSOC, SIID_DRIVECD, SIID_DRIVEFIXED,
-                SIID_DRIVENET, SIID_DRIVERAM, SIID_DRIVEREMOVE, SIID_IMAGEFILES, SIID_LINK,
+                SIID_IMAGEFILES, SIID_LINK,
                 SIID_RECYCLER, SIID_VIDEOFILES, SIID_WORLD, SIID_ZIPFILE,
             },
             WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO},
