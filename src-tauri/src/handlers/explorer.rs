@@ -21,8 +21,13 @@ pub async fn get_explorer_recents(
     let mut state_guard = state.lock().await;
     let icons_map = state_guard.get_mut_icons_map();
 
+    let app_data_dir = path
+        .parent()
+        .ok_or("Could not get app_data dir")?
+        .to_path_buf();
+
     crate::winapi::explorer::recents::get_explorer_recents(
-        &path,
+        &app_data_dir,
         &icon_cache_path,
         icons_map,
         50,

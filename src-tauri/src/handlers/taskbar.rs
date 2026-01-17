@@ -53,9 +53,14 @@ pub async fn get_pinned_taskbar_apps(
     let mut state_guard = state.lock().await;
     let icons_map = state_guard.get_mut_icons_map();
 
+    let config_dir = path
+        .parent()
+        .ok_or("Could not get app_data dir")?
+        .to_path_buf();
+
     Ok(crate::winapi::taskbar::apps::get_pinned_taskbar_apps(
         &icon_cache_path,
-        &path,
+        &config_dir,
         50,
         icons_map,
     ).await)
@@ -77,9 +82,14 @@ pub async fn get_taskbar_apps(
     let mut state_guard = state.lock().await;
     let icons_map = state_guard.get_mut_icons_map();
 
+    let config_dir = path
+        .parent()
+        .ok_or("Could not get app_data dir")?
+        .to_path_buf();
+
     Ok(crate::winapi::taskbar::apps::get_taskbar_apps(
         &icon_cache_path,
-        &path,
+        &config_dir,
         50,
         icons_map,
     ).await)
