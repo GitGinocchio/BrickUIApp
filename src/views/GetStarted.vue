@@ -125,6 +125,7 @@ import { UserIcon } from 'lucide-vue-next';
 import { useRouter } from "vue-router";
 import Header from '../components/Header.vue';
 import { debounce, throttle } from '../utils/misc'
+import { invoke } from '@tauri-apps/api/core';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -280,6 +281,7 @@ async function handleLogin() {
 
     if(loginResponse.code === 200 || response.ok) {
       console.log(loginResponse);
+      await invoke("auth_complete_login", { authResponse: loginResponse});
       router.push('/user');
       return; 
     }

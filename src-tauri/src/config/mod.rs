@@ -1,6 +1,7 @@
 pub mod backup;
 pub mod plugins;
 pub mod settings;
+pub mod user;
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;

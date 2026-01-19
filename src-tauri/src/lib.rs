@@ -27,6 +27,7 @@ use crate::state::bluetooth::BrickUIBluetoothState;
 use crate::state::generic::BrickUIGenericState;
 
 mod winapi;
+use crate::state::user::BrickUIUserState;
 use crate::winapi::bluetooth::start_bluetooth_watcher;
 use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
@@ -38,6 +39,7 @@ use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
 mod config;
 use crate::config::settings::TaskBarBehavior;
 
+mod user;
 mod bricks;
 mod utils;
 
@@ -78,9 +80,10 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            app.deep_link().register_all()?;
+            let deep_link = app.deep_link();
+            deep_link.register("brickui")?;
 
-            app.deep_link().on_open_url(|event| {
+            deep_link.on_open_url(|event| {
                 println!("deep link URLs: {:?}", event.urls());
             });
 
@@ -101,6 +104,10 @@ pub fn run() {
             // Bluetooth State
             let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
             app.manage(bt_state.clone());
+
+            // User State
+            let user_state = BrickUIUserState::new()?;
+            app.manage(Arc::new(Mutex::new(user_state)));
 
             // Mostra o nascondi taskbar secondo settings
             if settings.taskbar.behavior == TaskBarBehavior::Show {
@@ -133,6 +140,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            println!("App already opened and triggered with args: {args:?}");
             if let Some(webview_window) = app.get_webview_window("main") {
                 let _ = webview_window.unminimize();
 
@@ -168,13 +176,11 @@ pub fn run() {
                     })
                     .last();
 
-                println!("{bricks:?}");
-
-                app.emit_to("main", "open_brick", bricks)
-                    .expect("Error while sending 'opened_brick' event:");
+                if let Some(bricks) = bricks {
+                    app.emit_to("main", "open_brick", bricks)
+                        .expect("Error while sending 'opened_brick' event:");
+                }
             }
-
-            //println!("{_args:?}, {_cwd:?}");
         }))
         .invoke_handler(generate_handlers())
         .on_window_event(|window, event| {

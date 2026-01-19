@@ -11,6 +11,7 @@ use serde::Serialize;
 
 pub mod bluetooth;
 pub mod generic;
+pub mod user;
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn write_schema_if_missing<T>(dir: &PathBuf, filename: &str) -> std::io::Result<()>

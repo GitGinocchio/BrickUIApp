@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "dialog:default",
+    "deep-link:default",
   
     "core:window:allow-close",
     "core:window:allow-hide",
@@ -18,7 +19,12 @@
     "autostart:allow-enable",
     "autostart:allow-is-enabled",
 
-    "deep-link:default",
+    {
+      "identifier" : "deep-link:allow-register",
+      "allow": [
+        "brickui://"
+      ]
+    },
 
     {
       "identifier": "http:default",
