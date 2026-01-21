@@ -100,7 +100,8 @@ lnk = "0.6.3"
 zip = "6.0.0"
 anyhow = "1.0.100"
 once_cell = "1.21.3"
-tokio = { version = "1.49.0", features = [ "fs", "time" ] }
+tokio = { version = "1.49.0", features = [ "fs", "time", "macros", "rt-multi-thread" ] }
+reqwest = { version = "0.13.1", features = [ "json" ] }
 futures = "0.3.31"
 btleplug = { version = "0.11.8", features = [ "serde" ] }
 keyring = { version = "3.6.3", features = ["apple-native", "linux-native", "windows-native", "sync-secret-service"] }
@@ -122,3 +123,4 @@ tauri-plugin-shell = "2"
 tauri-plugin-http = "2"
 tauri-plugin-blec = "0.8.1"
 tauri-plugin-deep-link = "2"
+dotenvy = "0.15.7"

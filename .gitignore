@@ -27,5 +27,5 @@ dist-ssr
 .github/copilot-instructions.md
 src-tauri/trace.folded
 src-tauri/flamegraph.svg
-src/.env
-src/.env.*
+src-tauri/.env
+src-tauri/.env.*

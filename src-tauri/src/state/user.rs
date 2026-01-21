@@ -1,7 +1,11 @@
-use chrono::{DateTime, Utc};
 use serde_json::Value;
 
-use crate::{config::user::{SupabaseAuthResponse, SupabaseAuthUser}, user::auth::{load_refresh_token, save_refresh_token}};
+use crate::{
+    api::auth::{User, login::LoginResponse}, keyring::{
+        load_refresh_token, 
+        save_refresh_token
+    }
+};
 
 #[derive(Clone, Debug)]
 pub struct BrickUIUserState {
@@ -12,7 +16,7 @@ pub struct BrickUIUserState {
     pub token_type: Option<String>,
     pub weak_password: Option<Value>,
 
-    pub user: Option<SupabaseAuthUser>,
+    pub user: Option<User>
 }
 
 impl BrickUIUserState {
@@ -30,17 +34,26 @@ impl BrickUIUserState {
         })
     }
 
-    pub fn update_from_login(&mut self, response: SupabaseAuthResponse) -> Result<(), String> {
+    pub fn update_from_login(&mut self, response: &LoginResponse) -> Result<(), String> {
         save_refresh_token(&response.refresh_token)?;
         
-        self.access_token = Some(response.access_token);
-        self.refresh_token = Some(response.refresh_token);
+        self.access_token = Some(response.access_token.clone());
+        self.refresh_token = Some(response.refresh_token.clone());
         self.expires_in = response.expires_in;
         self.expires_at = response.expires_at;
-        self.token_type = response.token_type;
-        self.weak_password = response.weak_password;
-        self.user = Some(response.user);
+        self.token_type = Some(response.token_type.clone());
+        self.weak_password = response.weak_password.clone();
+        self.user = Some(response.user.clone());
 
         Ok(())
     }
+
+    pub fn refresh_session(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
+    pub fn is_session_expired(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
 }

@@ -191,32 +191,15 @@ async function handleRegister() {
     await signupformRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
     });
-    const payload = { email: form.value.email, password: form.value.password };
-    const encoder = new TextEncoder();
-    const body = encoder.encode(JSON.stringify(payload));
-    const response = await fetch(`${API_URL}/api/auth/register/classic`, {
-      connectTimeout: 10000,
-      method: 'POST', 
-      body, 
-      headers: { 
-        "User-Agent": "BrickUIApp/1.0" 
-      } 
+
+    const registerResponse: { status: string } = await invoke("auth_register", { 
+      email: form.value.email, 
+      password: form.value.password 
     });
 
-    let registerResponse: { msg: string, code: number } = { msg: 'Something went wrong when sending the request', code: null };
-    try { 
-      registerResponse = JSON.parse(await response.text()); 
-    } 
-    catch {
-      throw { 
-        code: registerResponse.code ?? response.status, 
-        message: registerResponse.msg ?? response.statusText 
-      };
-    }
-
-    if (registerResponse.code === 200 || (response as any).ok) {
+    if (registerResponse.status == 'success') {
       alertTitle.value = 'Successfully registered!';
-      alertMessage.value = `We've sent a confirmation email to ${payload.email}.\nClick the link to activate your account.`;
+      alertMessage.value = `We've sent a confirmation email to ${form.value.email}.\nClick the link to activate your account.`;
       alertType.value = 'success';
       showAlert.value = true;
       showAlertResendEmailBtn.value = true;
@@ -256,35 +239,19 @@ async function handleLogin() {
     await signinFormRef.value?.validate().catch((warnings) => {
       throw { code: -1, msg: warnings[0][0].message };
     });
-    const payload = { email: form.value.email, password: form.value.password };
-    const encoder = new TextEncoder();
-    const body = encoder.encode(JSON.stringify(payload));
-    const response = await fetch(`${API_URL}/api/auth/login`, {
-      connectTimeout: 10000,
-      method: 'POST', 
-      body, 
-      headers: { 
-        "User-Agent": "BrickUIApp/1.0" 
-      } 
+
+    const loginResponse: { status: string } = await invoke("auth_login", { 
+      email: form.value.email, 
+      password: form.value.password 
     });
 
-    let loginResponse: { msg: string, code: number } = { msg: 'Something went wrong when sending the request', code: null };
-    try { 
-      loginResponse = JSON.parse(await response.text()); 
-    } 
-    catch { 
-      throw { 
-        code: loginResponse.code ?? response.status, 
-        message: loginResponse.msg ?? response.statusText 
-      }; 
-    }
+    console.log(loginResponse);
 
-    if(loginResponse.code === 200 || response.ok) {
-      console.log(loginResponse);
-      await invoke("auth_complete_login", { authResponse: loginResponse});
+    if (loginResponse.status == "success") {
       router.push('/user');
       return; 
     }
+
     throw loginResponse;
   } catch (err: any) {
     alertType.value = 'error';

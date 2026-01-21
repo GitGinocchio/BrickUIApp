@@ -39,9 +39,10 @@ use crate::winapi::taskbar::{hide_taskbar, show_taskbar};
 mod config;
 use crate::config::settings::TaskBarBehavior;
 
-mod user;
+mod keyring;
 mod bricks;
 mod utils;
+mod api;
 
 mod handlers;
 use crate::handlers::generate_handlers;

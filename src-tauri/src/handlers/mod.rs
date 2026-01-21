@@ -28,12 +28,11 @@ use workarea::*;
 mod bluetooth;
 use bluetooth::*;
 
-mod user;
-use user::*;
+mod api;
+use api::*;
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static
-{
+pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         // Taskbar
         show_taskbar,
@@ -102,7 +101,9 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         new_brick,
         pack_brick,
         unpack_brick,
-        // User
-        auth_complete_login
+        
+        // Api
+        auth_register,
+        auth_login
     ]
 }
