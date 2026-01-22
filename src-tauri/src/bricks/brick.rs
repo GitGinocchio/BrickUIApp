@@ -39,12 +39,12 @@ pub struct Brick {
     pub icon: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(description = "Author or creator of the Brick.")]
-    pub author: Option<String>,
+    #[schemars(description = "Optional banner path or URL representing the Brick.")]
+    pub banner: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(description = "Path to the Brick banner image")]
-    pub banner: Option<String>,
+    #[schemars(description = "Author or creator of the Brick.")]
+    pub author: Option<String>,
 
     #[serde(default = "default_version")]
     #[schemars(description = "Semantic version of the Brick as [major, minor, patch].")]

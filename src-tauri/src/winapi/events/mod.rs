@@ -1,7 +1,9 @@
 use crate::{
-    config::settings::TaskBarBehavior, state::BrickUIState, winapi::taskbar::hide_taskbar,
+    config::settings::TaskBarBehavior, state::generic::BrickUIGenericState,
+    winapi::taskbar::hide_taskbar,
 };
 use crossbeam::channel;
+use std::panic;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
@@ -26,21 +28,22 @@ pub enum GlobalEvent {
     WindowExitedFullscreen { hwnd: usize },
 }
 
-pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn start_event_listeners(app_handle: &AppHandle) -> Result<(), String> {
     let (tx, rx) = channel::unbounded();
 
     let app_handle_clone = app_handle.clone();
 
-    // Hook input (mouse, keyboard, window)
-    // Avviamo gli hook in un thread separato, ma senza toccare Tauri state
-    tauri::async_runtime::spawn(async move {
+    std::thread::spawn(move || {
         if let Err(e) = mouse::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook mouse: {:?}", e)
         }
 
-        if let Err(e) = keyboard::init_hook(tx.clone(), &app_handle_clone).await {
-            eprintln!("Errore nell'hook keyboard: {:?}", e);
-        }
+        tauri::async_runtime::block_on(async {
+            keyboard::init_hook(tx.clone(), &app_handle_clone).await
+        })
+        .map_err(|e| format!("Errore nell'hook keyboard: {e}"))
+        .unwrap();
 
         if let Err(e) = window::init_hook(tx.clone()) {
             eprintln!("Errore nell'hook window: {:?}", e);
@@ -56,19 +59,26 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
             )
             .into()
             {
-                let _ = windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg);
+                windows::Win32::UI::WindowsAndMessaging::TranslateMessage(&msg)
+                    .expect("Error transalting message");
                 windows::Win32::UI::WindowsAndMessaging::DispatchMessageW(&msg);
             }
         }
 
-        let _ = keyboard::unmount_hook();
-        let _ = mouse::unmount_hook();
-        let _ = window::unmount_hook();
+        let result = panic::catch_unwind(|| {
+            keyboard::unmount_hook().unwrap();
+            mouse::unmount_hook().unwrap();
+            window::unmount_hook().unwrap();
+        });
+
+        if let Err(e) = result {
+            eprintln!("Thread panicked unmounting hooks: {:?}", e);
+        }
     });
 
-    // Tokio task async: riceve eventi e parla con Tauri
     let app_handle_clone = app_handle.clone();
-    tauri::async_runtime::spawn(async move {
+
+    std::thread::spawn(move || {
         while let Ok(event) = rx.recv() {
             match event {
                 GlobalEvent::MouseMove { x, y } => {
@@ -103,11 +113,13 @@ pub async fn start_event_listeners(app_handle: AppHandle) -> Result<(), String> 
                     println!("Window exited fullscreen!");
 
                     // Recupera stato solo ora, quando esiste
-                    if let Some(state) = app_handle_clone.try_state::<Arc<Mutex<BrickUIState>>>() {
-                        let settings = {
+                    if let Some(state) =
+                        app_handle_clone.try_state::<Arc<Mutex<BrickUIGenericState>>>()
+                    {
+                        let settings = tauri::async_runtime::block_on(async {
                             let state_guard = state.lock().await;
                             state_guard.get_settings().clone()
-                        };
+                        });
 
                         if settings.taskbar.behavior != TaskBarBehavior::Show {
                             if let Err(e) = hide_taskbar(&app_handle_clone) {

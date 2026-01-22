@@ -1,16 +1,16 @@
 import { Brick } from "interfaces/brick";
-import { App, Component } from "vue";
+import { Component } from "vue";
 
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { compileScript, compileStyleAsync, compileTemplate, parse } from "@vue/compiler-sfc";
-import { appDataDir, dirname, filename, getRelativePath, normalizePath } from "./utils";
+import { appDataDir, dirname, basename, relative, sanitizePath } from "../utils/path";
 import { extractImports, rewriteImports } from "./scriptProcessor";
 import { transform } from "@babel/standalone";
 
 import { windowWrapper } from "../api/window";
 import { processStyle } from "./styleProcessor";
-import { addErrorToBrickState } from "./state";
 import { catchBrickError } from "../utils/errors";
+//import { addErrorToBrickState } from "./state";
 
 export async function loadVueModuleToCJS(
   source: string,
@@ -19,8 +19,8 @@ export async function loadVueModuleToCJS(
   moduleCache: object = {},
   brick: Brick | null = null,
 ): Promise<{ default: Component, render?: () => void}> {
-  const brickDirName = dirname(brickFilePath);
-  const componentDirName = dirname(componentPath);
+  const brickDirName = await dirname(brickFilePath);
+  const componentDirName = await dirname(componentPath);
   const errors = [];
 
   // 1. Fa il parse del file .vue
@@ -39,26 +39,23 @@ export async function loadVueModuleToCJS(
   await Promise.all(
     imports.map(async (binding) => {
       if (binding.imported === 'default' && binding.source.endsWith('.vue')) {
-        const importPath = normalizePath(binding.source, { root: componentDirName }, false);
-
-        console.log(`Found component ${importPath}`);
+        console.log(binding.source, componentDirName);
+        const importPath = await sanitizePath(binding.source, { root: componentDirName, convertToAssetURL: false });
 
         if (importPath === componentPath) {
-          const error = new Error(`You can't import module ${filename(importPath)} in the same module!`);
+          const error = new Error(`You can't import module ${await basename(importPath)} in the same module!`);
           return Promise.reject(error);
         }
 
         if (importPath in moduleCache) return Promise.resolve();
 
-        const relativeImportPath = getRelativePath(`${componentDirName}/${binding.source}`, appDataDir);
-        const normRelImportPath = normalizePath(relativeImportPath, { root: appDataDir }, false);
+        const relativeImportPath = relative(`${componentDirName}/${binding.source}`, appDataDir);
+        const normRelImportPath = await sanitizePath(relativeImportPath, { root: appDataDir, convertToAssetURL: false });
 
         if (normRelImportPath === brickFilePath) {
-          const error = new Error(`You can't import module ${filename(brickFilePath)} in module ${filename(componentPath)}!`);
+          const error = new Error(`You can't import module ${await basename(brickFilePath)} in module ${await basename(componentPath)}!`);
           return Promise.reject(error);
         }
-
-        console.log(`Normalized relative component path: ${normRelImportPath}`)
 
         try {
           const source = await readTextFile(normRelImportPath, { baseDir: BaseDirectory.AppData });
@@ -123,7 +120,7 @@ export async function loadVueModuleToCJS(
     errors.push(...css.errors);
 
     if (css.code) {
-      const code = processStyle(css.code, 'css', dirname(componentPath), id);
+      const code = await processStyle(css.code, 'css', await dirname(componentPath), id);
       const styleEl = document.createElement('style');
       styleEl.textContent = code;
       document.head.appendChild(styleEl);
@@ -142,7 +139,7 @@ export async function loadVueModuleToCJS(
     __script.__brickContext = {
       name: "${brick.name}",
       author: "${brick.author}",
-      component: "${filename(componentPath, false)}",
+      component: "${(await basename(componentPath)).split(".")[0]}",
     };` : ''
     }
 
@@ -157,7 +154,7 @@ export async function loadVueModuleToCJS(
   `;
 
   // 6. Riscrive gli import verso moduleCache
-  fullCode = rewriteImports(fullCode, moduleCache, brickDirName);
+  fullCode = await rewriteImports(fullCode, moduleCache, brickDirName);
 
   // 7. Trasforma con Babel (JS moderno/CJS → JS compatibile)
   const babelResult = transform(fullCode, {
@@ -167,7 +164,7 @@ export async function loadVueModuleToCJS(
     ],
     plugins: ['proposal-class-properties', 'transform-typescript'],
     filename: 'file.js',
-    sourceMaps: false
+    sourceMaps: true
   });
 
   errors.forEach(error => {

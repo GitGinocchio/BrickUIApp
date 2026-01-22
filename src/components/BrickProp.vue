@@ -50,7 +50,7 @@ import { computed, watch } from 'vue';
 //import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
 import type { PropType } from 'vue';
 import type { Prop as BrickPropType } from 'interfaces/brick';
-import { colorStringToRGBA } from '../utils';
+import { colorStringToRGBA } from '../utils/color';
 import MarkdownIt from 'markdown-it';
 import { Trash2, Wrench } from 'lucide-vue-next';
 import GradientPicker from './GradientPicker.vue';

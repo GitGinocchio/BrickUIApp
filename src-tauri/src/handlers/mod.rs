@@ -28,8 +28,11 @@ use workarea::*;
 mod bluetooth;
 use bluetooth::*;
 
-pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static
-{
+mod api;
+use api::*;
+
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         // Taskbar
         show_taskbar,
@@ -42,12 +45,25 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         // Taskbar / Tray icons
         get_tray_icons,
         // Bluetooth
-        bluetooth_scan,
-        bluetooth_classic_scan,
+        bluetooth_get_devices,
+        bluetooth_pair,
+        bluetooth_pair_confirm,
+        bluetooth_pair_provide_pin,
+        bluetooth_pair_provide_address,
+        
+        bluetooth_unpair,
+
         /*
-        get_default_adapter,
-        get_adapters,
-        get_devices,
+        Metodi scan deprecati a favore del bluetooth_watcher
+        bluetooth_scan,
+        bluetooth_win32_scan,
+        bluetooth_winrt_scan,
+        */
+
+        /*
+        Al momento non supportiamo connessione diretta via socket
+        bluetooth_connect,
+        bluetooth_disconnect,
         */
         // Explorer
         get_explorer_recents,
@@ -84,6 +100,10 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         open_brick,
         new_brick,
         pack_brick,
-        unpack_brick
+        unpack_brick,
+        
+        // Api
+        auth_register,
+        auth_login
     ]
 }

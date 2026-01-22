@@ -10,6 +10,13 @@
         </n-form-item>
       </n-form>
     </n-card>
+    <n-card title="Sidebar">
+      <n-form label-placement="left" :label-width="labelWidth">
+        <n-form-item label="Position">
+          <n-select :options="sidebarPositionOptions" v-model:value="settings.sidebar.position"></n-select>
+        </n-form-item>
+      </n-form>
+    </n-card>
     <n-card title="Notifications">
       <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Position">
@@ -70,8 +77,8 @@
 
 <script setup lang="ts">
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
-import { notificationPositions, Settings, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
-import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip } from 'naive-ui'
+import { notificationPositions, Settings, sidebarPositions, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
+import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip, NCard } from 'naive-ui'
 import { inject, onMounted, ref, Ref } from 'vue'
 
 const settings = inject("settings") as Ref<Settings>;
@@ -86,6 +93,11 @@ const languages = [
 const themesOptions = themes.map(theme => ({
   label: theme.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),
   value: theme
+}))
+
+const sidebarPositionOptions = sidebarPositions.map(pos => ({
+  label: pos.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),
+  value: pos
 }))
 
 const notificationPositionOptions = notificationPositions.map(pos => ({

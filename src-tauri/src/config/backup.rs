@@ -13,13 +13,13 @@ pub enum DefaultTaskbarAlignment {
     Center,
 }
 
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Taskbar {
     // alignment: DefaultTaskbarAlignment,
     autohide: bool,
 }
 
-#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(
     description = "A Backup file containing all windows settings before Brick UI customizations"
 )]

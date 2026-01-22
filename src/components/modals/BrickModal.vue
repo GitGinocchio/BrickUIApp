@@ -21,20 +21,20 @@
         />
       </n-form-item>
 
+      <n-form-item v-if="!editMode" label="Description">
+        <n-input
+          v-model:value="brick.description"
+          type="textarea"
+          placeholder="Type your brick's description"
+        />
+      </n-form-item>
+
       <n-form-item label="Tags">
         <n-dynamic-tags
           :round="true"
           :default-value="brick.tags"
           :value="brick.tags"
           @update:value="onTagsInput"
-        />
-      </n-form-item>
-
-      <n-form-item v-if="!editMode" label="Description">
-        <n-input
-          v-model:value="brick.description"
-          type="textarea"
-          placeholder="Type your brick's description"
         />
       </n-form-item>
     </n-form>
@@ -58,7 +58,7 @@
 import { NModal, NForm, NFormItem, NDynamicTags, NInput } from 'naive-ui';
 import { invoke } from '@tauri-apps/api/core';
 import { Brick } from '../../interfaces/brick';
-import { deepEqual } from '../../utils';
+import { deepEqual } from '../../utils/misc';
 import { inject, onMounted, onUnmounted, Ref, ref } from 'vue';
 
 const show = defineModel<boolean>("show");

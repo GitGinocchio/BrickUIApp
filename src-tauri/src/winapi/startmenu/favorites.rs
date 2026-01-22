@@ -24,6 +24,7 @@ pub enum Favorites {
     Favorite(Favorite),
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_start_menu_favorites(app_data_dir: &PathBuf) -> Result<Vec<Favorites>, String> {
     let mut results: Vec<Favorites> = Vec::new();
 
@@ -42,6 +43,7 @@ pub fn get_start_menu_favorites(app_data_dir: &PathBuf) -> Result<Vec<Favorites>
     Ok(results)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn scan_directory(dir: &Path, results: &mut Vec<Favorites>) -> Result<(), String> {
     for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;

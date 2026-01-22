@@ -86,6 +86,7 @@ enum MonitorTarget {
     },
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 unsafe extern "system" fn enum_monitors_proc(
     hmonitor: HMONITOR,
     _hdc: HDC,
@@ -157,6 +158,7 @@ fn utf16_cstr_to_string(buf: &[u16]) -> String {
     String::from_utf16_lossy(&buf[..len])
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_friendly_name(device_name: &str) -> Option<String> {
     let mut display_device = DISPLAY_DEVICEW {
         cb: std::mem::size_of::<DISPLAY_DEVICEW>() as u32,
@@ -185,6 +187,7 @@ pub fn get_monitor_friendly_name(device_name: &str) -> Option<String> {
     None
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_all_monitors() -> Result<Vec<Monitor>, String> {
     let mut target = MonitorTarget::All(Vec::new());
 
@@ -205,6 +208,7 @@ pub fn get_all_monitors() -> Result<Vec<Monitor>, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor(index: usize) -> Result<Monitor, String> {
     let mut target = MonitorTarget::Single {
         index,
@@ -231,6 +235,7 @@ pub fn get_monitor(index: usize) -> Result<Monitor, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_from_point(x: i32, y: i32) -> Result<Monitor, String> {
     let pt = POINT { x, y };
     let hmon: HMONITOR = unsafe { MonitorFromPoint(pt, MONITOR_FROM_FLAGS(0)) };
@@ -270,6 +275,7 @@ pub fn get_monitor_from_point(x: i32, y: i32) -> Result<Monitor, String> {
     })
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_from_hwnd(hwnd: isize) -> Result<Monitor, String> {
     unsafe {
         // Ottieni handle del monitor più vicino alla finestra
@@ -314,6 +320,7 @@ pub fn get_monitor_from_hwnd(hwnd: isize) -> Result<Monitor, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_primary_monitor() -> Result<Monitor, String> {
     let mut target = MonitorTarget::Primary { found: None };
 
@@ -334,6 +341,7 @@ pub fn get_primary_monitor() -> Result<Monitor, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_primary_hmonitor() -> Result<isize, String> {
     let mut target = MonitorTarget::Primary { found: None };
 

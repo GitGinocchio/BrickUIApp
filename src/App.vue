@@ -11,6 +11,7 @@
         @expand="collapsed = false"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
+        :style="{ order: settings.sidebar.position === 'right' ? 1 : 0 }"
       > 
         <n-menu
           v-model:value="option"
@@ -99,6 +100,7 @@ const router = useRouter();
 const collapsed = ref(true);
 let hoverTimer: number | null = null
 
+
 function handleMouseEnter() {
   // Avvia il timer (es. 500ms prima di aprire)
   hoverTimer = window.setTimeout(() => {
@@ -124,8 +126,8 @@ const menuOptions = computed(() => [
 ]);
 
 const bottomMenuOptions = computed(() => [
-  { label: t('user'),             key: '/user',         icon: () => h(CircleUser) },
-  { label: t('settings'),         key: '/settings',     icon: () => h(SettingsIcon) },
+  { label: 'User',              key: '/get-started',    icon: () => h(CircleUser) },
+  { label: t('settings'),       key: '/settings',    icon: () => h(SettingsIcon) },
 ]);
 
 function onMenuSelect(key: string) {

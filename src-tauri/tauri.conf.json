@@ -120,6 +120,13 @@
       }
     }
   },
+  "plugins": {
+    "deep-link" : {
+      "desktop" : {
+        "schemes" : ["brickui://"]
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["msi","nsis"],

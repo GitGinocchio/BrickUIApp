@@ -16,26 +16,28 @@ use windows::Win32::{
 
 use crate::{
     config::settings::{Settings, StartMenuBehavior},
-    state::BrickUIState,
+    state::generic::BrickUIGenericState,
 };
 
 use super::GlobalEvent;
 
 static KEYBOARD_HOOK: AtomicPtr<HHOOK> = AtomicPtr::new(std::ptr::null_mut());
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn init_hook<R: tauri::Runtime>(
     tx: Sender<GlobalEvent>,
     app_handle: &AppHandle<R>,
 ) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
-    let state = app_handle.state::<Arc<Mutex<BrickUIState>>>();
+    let state = app_handle.state::<Arc<Mutex<BrickUIGenericState>>>();
     let state_guard = state.lock().await;
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
     SETTINGS
         .set(state_guard.get_settings().clone())
         .map_err(|e| format!("Errore durante oncelock su settings: {e:?}"))?;
 
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     extern "system" fn keyboard_proc(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         if n_code >= 0 {
             let kb = unsafe { &*(l_param.0 as *const KBDLLHOOKSTRUCT) };
@@ -111,6 +113,7 @@ pub async fn init_hook<R: tauri::Runtime>(
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn unmount_hook() -> Result<(), String> {
     let hook = KEYBOARD_HOOK.swap(std::ptr::null_mut(), Ordering::SeqCst);
     if !hook.is_null() {

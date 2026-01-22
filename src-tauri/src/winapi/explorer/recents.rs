@@ -30,6 +30,7 @@ pub struct RecentFile {
     created_at: DateTime<Local>,
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
     let mut raw_bytes = Vec::new();
 
@@ -60,6 +61,7 @@ fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_data_dir: &PathBuf,
     icon_cache_dir: &PathBuf,
