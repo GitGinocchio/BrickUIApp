@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::{API_BASE_URL, CLIENT, auth::User, utils::{ApiResponse, value_to_api_response}};
+use crate::api::{API_BASE_URL, CLIENT, auth::UserIdentity, utils::{ApiResponse, value_to_api_response}};
 
 #[derive(Serialize)]
 struct LoginPayload {
@@ -17,7 +17,7 @@ pub struct LoginResponse {
     pub expires_at: Option<i64>,
     pub token_type: String,
 
-    pub user: User,
+    pub user: UserIdentity,
 
     pub weak_password: Option<Value>,
 }

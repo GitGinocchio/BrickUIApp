@@ -11,7 +11,7 @@ pub fn save_refresh_token(refresh_token: &str) -> Result<(), String> {
     entry.set_password(refresh_token)
         .map_err(|e| format!("Error setting Secret into Entry: {e}"))?;
 
-    println!("Saving refresh token: {refresh_token}");
+    println!("Saving refresh token: {refresh_token:?}");
 
     Ok(())
 }

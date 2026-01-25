@@ -43,16 +43,15 @@
             class="arrow left"
             @click="scrollLeft"
             >
-            ‹
             </n-button>
 
             <div ref="scrollContainer" class="bricks-container">
             <div
-                v-for="brick in bricks"
-                :key="brick.id"
-                class="brick-card"
+              v-for="brick in bricks"
+              :key="brick.id"
+              class="brick-card"
             >
-                {{ brick.title }}
+              {{ brick.title }}
             </div>
             </div>
 
@@ -62,7 +61,6 @@
             class="arrow right"
             @click="scrollRight"
             >
-            ›
             </n-button>
         </div>
     </n-card>
@@ -71,31 +69,29 @@
     <n-card title="Favorite Bricks">
         <div class="bricks-wrapper">
             <n-button
-            v-if="showArrows"
-            quaternary
-            class="arrow left"
-            @click="scrollLeft"
+              v-if="showArrows"
+              quaternary
+              class="arrow left"
+              @click="scrollLeft"
             >
-            ‹
             </n-button>
 
             <div ref="scrollContainer" class="bricks-container">
             <div
-                v-for="brick in bricks"
-                :key="brick.id"
-                class="brick-card"
+              v-for="brick in bricks"
+              :key="brick.id"
+              class="brick-card"
             >
-                {{ brick.title }}
+              {{ brick.title }}
             </div>
             </div>
 
             <n-button
-            v-if="showArrows"
-            quaternary
-            class="arrow right"
-            @click="scrollRight"
+              v-if="showArrows"
+              quaternary
+              class="arrow right"
+              @click="scrollRight"
             >
-            ›
             </n-button>
         </div>
     </n-card>
@@ -104,7 +100,7 @@
 
 
 <script setup lang="ts">
-import { NImage, NButton, NCard, NCarousel } from 'naive-ui'
+import { NImage, NButton, NCard } from 'naive-ui'
 import { ref, onMounted } from 'vue'
 
 const bricks = ref([

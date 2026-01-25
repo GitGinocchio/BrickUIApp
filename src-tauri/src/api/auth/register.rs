@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::api::auth::User;
+use crate::api::auth::UserIdentity;
 use crate::api::{API_BASE_URL, CLIENT};
 use crate::api::utils::{ApiResponse, value_to_api_response};
 
@@ -11,7 +11,7 @@ struct RegisterPayload {
     password: String,
 }
 
-pub async fn register(email: String, password: String) -> Result<ApiResponse<User>, String> {
+pub async fn register(email: String, password: String) -> Result<ApiResponse<UserIdentity>, String> {
     let payload = RegisterPayload { email, password };
     let url = format!("{}/auth/register/classic", *API_BASE_URL);
 
@@ -25,5 +25,5 @@ pub async fn register(email: String, password: String) -> Result<ApiResponse<Use
         .await
         .map_err(|e| format!("Error deserializing json response: {e:#?}"))?;
 
-    value_to_api_response::<User>(response)
+    value_to_api_response::<UserIdentity>(response)
 }

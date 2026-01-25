@@ -128,7 +128,7 @@ n-card.full-height {
 /* Se vuoi che la griglia si espanda e scrolli */
 .brick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: 1rem
 }
 

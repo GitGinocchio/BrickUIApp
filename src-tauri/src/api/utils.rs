@@ -4,9 +4,9 @@ use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiError {
-    code: u16,
-    error_code: String,
-    msg: String,
+    pub code: u16,
+    pub error_code: String,
+    pub msg: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

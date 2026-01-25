@@ -104,6 +104,13 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         
         // Api
         auth_register,
-        auth_login
+        auth_login,
+        auth_resend_email,
+
+        auth_is_logged_in,
+        auth_is_session_expired,
+        auth_get_identity,
+
+        users_get_me
     ]
 }

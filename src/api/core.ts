@@ -53,10 +53,7 @@ const allowedCommands = new Set<string>([
   "get_all_monitors",
   "get_monitor_from_point",
   "get_primary_monitor",
-  "get_monitor",
-
-  // User
-  "auth_complete_login"
+  "get_monitor"
 ]);
 
 async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.InvokeOptions): Promise<any> {

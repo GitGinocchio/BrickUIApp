@@ -28,6 +28,7 @@ use crate::state::generic::BrickUIGenericState;
 
 mod winapi;
 use crate::state::user::BrickUIUserState;
+use crate::state::user::refresh_session_if_present;
 use crate::winapi::bluetooth::start_bluetooth_watcher;
 use crate::winapi::com::{initialize_com, uninitialize_com};
 use crate::winapi::cursor::restore_cursors;
@@ -107,8 +108,8 @@ pub fn run() {
             app.manage(bt_state.clone());
 
             // User State
-            let user_state = BrickUIUserState::new()?;
-            app.manage(Arc::new(Mutex::new(user_state)));
+            let user_state = Arc::new(Mutex::new(BrickUIUserState::new()?));
+            app.manage(user_state.clone());
 
             // Mostra o nascondi taskbar secondo settings
             if settings.taskbar.behavior == TaskBarBehavior::Show {
@@ -126,6 +127,10 @@ pub fn run() {
 
                     let mut guard = bt_state.write().await;
                     guard.watcher = Some(start_bluetooth_watcher(bt_state.clone(), &app_handle_clone).await?);
+
+                    if let Err(e) = refresh_session_if_present(user_state).await {
+                        eprintln!("An error occurred while refreshing session on startup: {e}");
+                    }
 
                     Ok::<(), String>(())
                 },

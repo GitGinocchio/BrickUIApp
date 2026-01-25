@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core'
+
 import { createRouter, createWebHashHistory } from 'vue-router'
 import BricksPage from './views/BricksPage.vue'
 import SettingsPage from './views/SettingsPage.vue'
@@ -13,8 +15,22 @@ export const router = createRouter({
     { path: '/bricks', component: BricksPage },
     { path: '/brick/:name', props: true, component: BrickPage },
     { path: '/settings', component: SettingsPage },
-    { path: '/marketplace', component: Marketplace },
+    { path: '/marketplace', component: Marketplace, meta: { requiresAuth: true } },
     { path: '/get-started', component: GetStarted },
-    { path: '/user', component: User}
+    { path: '/user', component: User, meta: { requiresAuth: true } }
   ]
-})
+});
+
+router.beforeEach(async (to, _from, next) => {
+  const is_logged_in: boolean = await invoke("auth_is_logged_in");
+
+  if (to.path == '/get-started' && is_logged_in) {
+    next('/user')
+  }
+  else if (to.meta.requiresAuth && !is_logged_in) {
+    next('/get-started');
+  }
+  else {
+    next();
+  }
+});

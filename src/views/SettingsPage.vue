@@ -1,5 +1,11 @@
 <template>
   <div class="sections">
+    <Header :sections="headerSections">
+      <template #actions>
+
+      </template>
+    </Header>
+
     <n-card title="General Settings">
       <n-form label-placement="left" :label-width="labelWidth">
         <n-form-item label="Language">
@@ -79,7 +85,9 @@
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
 import { notificationPositions, Settings, sidebarPositions, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
 import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip, NCard } from 'naive-ui'
-import { inject, onMounted, ref, Ref } from 'vue'
+import { h, inject, onMounted, ref, Ref } from 'vue'
+import Header from '../components/Header.vue';
+import { SettingsIcon } from 'lucide-vue-next';
 
 const settings = inject("settings") as Ref<Settings>;
 
@@ -89,6 +97,10 @@ const languages = [
   { label: 'English', value: 'en' },
   { label: 'Italiano', value: 'it' }
 ]
+
+const headerSections = [
+  { defaultIcon: () => h(SettingsIcon), label: "Settings" }
+];
 
 const themesOptions = themes.map(theme => ({
   label: theme.replaceAll("-", " ").replace(/\b\w/g, c => c.toUpperCase()),

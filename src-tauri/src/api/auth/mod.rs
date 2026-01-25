@@ -6,18 +6,19 @@ use serde_json::Value;
 
 pub mod register;
 pub mod refresh;
+pub mod resend;
 pub mod login;
 
 use crate::api::utils::empty_string_as_none;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct User {
+pub struct UserIdentity {
     pub app_metadata: HashMap<String, Value>,
     pub aud: String,
     pub confirmation_sent_at: Option<String>,
     pub email_confirmed_at: Option<DateTime<Utc>>,
     pub last_sign_in_at: Option<DateTime<Utc>>,
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 
     #[serde(deserialize_with = "empty_string_as_none")]
     pub email: Option<String>,

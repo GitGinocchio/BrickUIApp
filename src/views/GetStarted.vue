@@ -303,30 +303,15 @@ async function handleResendEmail() {
   if (cooldown.value > 0) return; // blocca se in cooldown
 
   try {
-    const payload = { email: form.value.email };
-    const encoder = new TextEncoder();
-    const body = encoder.encode(JSON.stringify(payload));
-    const response = await fetch(`${API_URL}/api/auth/resend`, {
-      connectTimeout: 10000,
-      method: 'POST',
-      body,
-      headers: { "User-Agent": "BrickUIApp/1.0" }
+    const resendResponse: { status: string, code: number, cooldown?: number} = await invoke("auth_resend_email", {
+      'email': form.value.email
     });
 
-    let resendResponse: { msg: string, code: number, cooldown?: number } = { msg: 'Something went wrong', code: null };
-    try { 
-      resendResponse = JSON.parse(await response.text()) 
-    }
-    catch { 
-      throw { 
-        code: resendResponse.code ?? response.status, 
-        message: resendResponse.msg ?? response.statusText 
-      };
-    }
+    console.log(resendResponse);
 
-    if (resendResponse.code === 200 || response.ok) {
+    if (resendResponse.status == 'success') {
       alertTitle.value = 'Email Sent!';
-      alertMessage.value = `We've sent a confirmation email to ${payload.email}.`;
+      alertMessage.value = `We've sent a confirmation email to ${form.value.email}.`;
       showAlertResendEmailBtn.value = true;
       alertType.value = 'success';
       showAlert.value = true;
@@ -335,7 +320,7 @@ async function handleResendEmail() {
     }
 
     // Se arriva 429 o altri errori temporanei, parte solo il countdown
-    if (resendResponse.code === 429) {
+    if (resendResponse.status == 'error' && resendResponse.code == 429) {
       startCooldown(resendResponse.cooldown ?? 120);
       return;
     }
@@ -408,6 +393,7 @@ function validatePasswordMatch(_rule: FormItemRule, value: string): boolean | Er
   position: absolute;
   bottom: 1rem;
   right: 1rem;
+  left: 1rem;
 }
 
 .resend-button {
