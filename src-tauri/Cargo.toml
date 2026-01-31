@@ -51,7 +51,7 @@ serde_json = "1.0.148"
 serde_yaml = "0.9.34"
 schemars = "1.2.0"
 
-windows = { version = "0.61.3", features = [
+windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Foundation",
 
