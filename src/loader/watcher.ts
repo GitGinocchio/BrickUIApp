@@ -1,5 +1,5 @@
 import { UnwatchFn, watch } from "@tauri-apps/plugin-fs";
-import { appDataDir, dirname, filename } from "./utils";
+import { appDataDir } from "../utils/path";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick } from "interfaces/brick";
 import { reloadBrick } from "./index";

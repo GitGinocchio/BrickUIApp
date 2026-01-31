@@ -22,6 +22,7 @@ static WINDOW_HOOK: AtomicPtr<HWINEVENTHOOK> = AtomicPtr::new(std::ptr::null_mut
 static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 static WINDOW_STATES: OnceLock<Mutex<HashMap<usize, (bool, Instant)>>> = OnceLock::new();
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 extern "system" fn win_event_proc(
     _hook: HWINEVENTHOOK,
     _event: u32,
@@ -78,6 +79,7 @@ extern "system" fn win_event_proc(
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
     static WINDOW_STATES: OnceLock<Mutex<HashMap<usize, (bool, Instant)>>> = OnceLock::new();
@@ -106,6 +108,7 @@ pub fn init_hook(tx: Sender<GlobalEvent>) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn unmount_hook() -> Result<(), String> {
     let hook_val = WINDOW_HOOK.swap(std::ptr::null_mut(), Ordering::SeqCst);
     if hook_val != std::ptr::null_mut() {

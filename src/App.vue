@@ -11,15 +11,16 @@
         @expand="collapsed = false"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave"
+        :style="{ order: settings.sidebar.position === 'right' ? 1 : 0 }"
       > 
         <n-menu
-          v-model:value="option"
+          :value="activeMenuKey"
           :collapsed="collapsed"
           :options="menuOptions"
           @update:value="onMenuSelect"
         />
         <n-menu
-          v-model:value="option"
+          :value="activeMenuKey"
           :collapsed="collapsed"
           :options="bottomMenuOptions"
           @update:value="onMenuSelect"
@@ -69,7 +70,7 @@
 <script setup lang="ts">
 import { ref, h, onMounted, watch, computed, Ref, inject } from 'vue'
 import SystemTray from './components/SystemTray.vue';
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { SettingsIcon, StoreIcon, CircleUser, Cuboid, LayoutDashboard } from 'lucide-vue-next'
 import {
   NConfigProvider,
@@ -86,11 +87,9 @@ import { Brick } from 'interfaces/brick'
 import { Settings } from 'interfaces/settings'
 import { useI18n } from 'vue-i18n'
 import { emit, listen } from '@tauri-apps/api/event'
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import GenericModal from './components/modals/GenericModal.vue';
 const { t, locale } = useI18n();
 
-const currentWindow = getCurrentWindow()
 const settings = inject("settings") as Ref<Settings>;
 const theme = inject("theme") as Ref<GlobalTheme>;
 const bricks = inject("bricks") as Ref<Brick[]>;
@@ -98,6 +97,14 @@ const bricks = inject("bricks") as Ref<Brick[]>;
 const router = useRouter();
 const collapsed = ref(true);
 let hoverTimer: number | null = null
+
+const route = useRoute();
+const activeMenuKey = computed(() => {
+  if (route.path.startsWith('/user')) {
+    return '/get-started'
+  }
+  return route.path
+});
 
 function handleMouseEnter() {
   // Avvia il timer (es. 500ms prima di aprire)
@@ -116,7 +123,6 @@ function handleMouseLeave() {
   collapsed.value = true
 }
 
-const option = ref('/bricks')
 const menuOptions = computed(() => [
   { label: t('bricks'),           key: '/bricks',       icon: () => h(Cuboid) },
   { label: t('walls'),            key: '/walls',        icon: () => h(LayoutDashboard) },
@@ -124,7 +130,7 @@ const menuOptions = computed(() => [
 ]);
 
 const bottomMenuOptions = computed(() => [
-  { label: t('user'),             key: '/user',         icon: () => h(CircleUser) },
+  { label: t('user'),             key: '/get-started',  icon: () => h(CircleUser) },
   { label: t('settings'),         key: '/settings',     icon: () => h(SettingsIcon) },
 ]);
 
@@ -161,6 +167,10 @@ listen<[string, string]>("open_brick", (event) => {
   addBrickModalMessage.value = `Are you sure you want to import brick "${brick[1]}"`
   showAddBrickModal.value = true;
   brickToImport.value = brick;
+});
+
+listen<{ "view": string }>("goto", (event) => {
+  router.push(event.payload.view);
 });
 
 async function onOpenBrickConfirm() {

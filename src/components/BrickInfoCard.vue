@@ -3,18 +3,19 @@
     <!-- Header -->
     <div class="brick-header">
       <div class="brick-title-icon">
-        <div class="brick-icon">
-          <!-- Default sempre visibile -->
-          <Cuboid v-show="!loaded" :size="46" />
-          <!-- Immagine reale nascosta finché non ha caricato -->
-          <img
-            v-show="loaded"
-            :src="props.brick.icon"
-            alt="brick icon"
-            @load="loaded = true"
-            @error="loaded = false"
-          />
-        </div>
+        <n-image
+          class="brick-icon"
+          :class="{ loaded: isIconLoaded || brick.icon == null }"
+          :show-toolbar="false"
+          :preview-disabled="true"
+          :src="iconUrl"
+          @load="onIconLoad"
+          lazy
+        >
+          <template #placeholder>
+            <Cuboid v-show="(!isIconLoaded && canShowDefaultIcon) || brick.icon == null" :size="46" />
+          </template>
+        </n-image>
         <div class="brick-title">
           <strong>{{ brick.name }}</strong>
         </div>
@@ -30,7 +31,7 @@
       </div>
     </div>
 
-        <!-- Tags -->
+    <!-- Tags -->
     <n-space class="brick-tags" size="small" wrap>
       <n-tag round v-for="tag in brick.tags" :key="tag" type="info">{{ tag }}</n-tag>
     </n-space>
@@ -70,15 +71,16 @@
 </template>
 
 <script setup lang="ts">
-import { NSpace, NTag, NCard, NIcon, NButton, NDropdown } from "naive-ui"
+import { NSpace, NTag, NCard, NIcon, NButton, NDropdown, NImage } from "naive-ui"
 import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid, Share2 } from "lucide-vue-next"
-import { h, PropType, ref } from "vue"
+import { h, nextTick, onMounted, PropType, ref } from "vue"
 import GenericModal from "./modals/GenericModal.vue";
 import { Brick, Prop } from "interfaces/brick";
 import { emitTo } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from '@tauri-apps/plugin-dialog';
 import { useRouter } from "vue-router";
+import { appDataDir, sanitizePath } from "../utils/path";
 
 const router = useRouter();
 
@@ -99,7 +101,24 @@ const emit = defineEmits<{
   (e: "edit", brick: Brick): void
 }>();
 
-const loaded = ref(false);
+const canShowDefaultIcon = ref<boolean>(false);
+const isIconLoaded = ref<boolean>(false);
+const iconUrl = ref<string | null>(null);
+
+function onIconLoad() {
+  setTimeout(() => { 
+    isIconLoaded.value = true; 
+    canShowDefaultIcon.value = true;
+  }, 15);
+}
+
+onMounted(async () => {
+  await nextTick();
+  
+  if (props.brick.icon) {
+    iconUrl.value = await sanitizePath(props.brick.icon, { root: `${appDataDir}/bricks/${props.brick.name}` });
+  }
+});
 
 // Delete Modal variables
 const deleteModalTitle = ref<string>('');
@@ -212,13 +231,22 @@ async function openBrick() {
 }
 
 .brick-icon {
+  width: 46px;
+  height: 46px;
   display: flex;
+
+  filter: blur(var(--blur, 5px));
+  transition: filter 0.5s ease;
 }
 
 .brick-icon img {
   width: 46px;
   height: 46px;
   border-radius: 6px;
+}
+
+.brick-icon.loaded  {
+  --blur: 0px;
 }
 
 .brick-title {

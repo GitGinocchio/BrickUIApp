@@ -1,17 +1,20 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use derivative::Derivative;
 use serde::Serialize;
-use tauri::async_runtime::spawn_blocking;
-use windows::Win32::{
-    Devices::Bluetooth::{
-        BLUETOOTH_DEVICE_INFO, BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS,
-        BluetoothAuthenticateDevice, BluetoothFindDeviceClose, BluetoothFindFirstDevice,
-        BluetoothFindFirstRadio, BluetoothFindNextDevice, BluetoothFindNextRadio,
-        BluetoothFindRadioClose, BluetoothRemoveDevice,
+use std::fmt::{self, Debug};
+use windows::{
+    Win32::{
+        Devices::Bluetooth::{
+            AF_BTH, AUTHENTICATION_REQUIREMENTS, BLUETOOTH_ADDRESS, BLUETOOTH_DEVICE_INFO, BLUETOOTH_DEVICE_SEARCH_PARAMS, BLUETOOTH_FIND_RADIO_PARAMS, BLUETOOTH_SERVICE_ENABLE, BTHPROTO_RFCOMM, BluetoothAuthenticateDevice, BluetoothAuthenticateDeviceEx, BluetoothFindDeviceClose, BluetoothFindFirstDevice, BluetoothFindFirstRadio, BluetoothFindNextDevice, BluetoothFindNextRadio, BluetoothFindRadioClose, BluetoothGetDeviceInfo, BluetoothRemoveDevice, MITMProtectionNotRequired, MITMProtectionNotRequiredBonding, SOCKADDR_BTH
+        },
+        Foundation::{ERROR_ALREADY_EXISTS, ERROR_SUCCESS, HANDLE, HWND, SYSTEMTIME},
+        Networking::WinSock::{
+            INVALID_SOCKET, SEND_RECV_FLAGS, SOCK_STREAM, SOCKADDR, SOCKET, SOCKET_ERROR,
+            closesocket, connect, recv, send, socket,
+        },
     },
-    Foundation::{ERROR_SUCCESS, HANDLE, SYSTEMTIME},
+    core::GUID,
 };
-
-use crate::winapi::bluetooth::BTDevice;
 
 fn systemtime_to_naive(s: &SYSTEMTIME) -> Option<NaiveDateTime> {
     NaiveDate::from_ymd_opt(s.wYear as i32, s.wMonth.into(), s.wDay.into()).and_then(|date| {
@@ -126,6 +129,21 @@ fn parse_minor_class(major: MajorDeviceClass, cod: u32) -> MinorDeviceClass {
     }
 }
 
+
+pub const GUID_BLUETOOTH_SERVICE_SERIAL_PORT: GUID = GUID::from_values(
+    0x00001101, 0x0000, 0x1000, [0x80,0x00,0x00,0x80,0x5F,0x9B,0x34,0xFB]
+);
+
+#[link(name = "Bthprops")]
+unsafe extern "system" {
+    pub fn BluetoothSetServiceState(
+        hRadio: HANDLE,
+        pbtdi: *mut BLUETOOTH_DEVICE_INFO,
+        pGuidService: *const GUID,
+        dwServiceFlags: u32,
+    ) -> u32;
+}
+
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub enum MajorDeviceClass {
@@ -232,8 +250,10 @@ impl From<(MajorDeviceClass, u32)> for MinorDeviceClass {
     }
 }
 
-#[derive(Serialize, Clone)]
-pub struct ClassicDevice {
+#[derive(Serialize, Clone, Derivative)]
+#[derivative(Debug)]
+pub struct Win32Device {
+    pub id: String,
     pub name: String,
     pub address: String,
     pub authenticated: bool,
@@ -246,11 +266,26 @@ pub struct ClassicDevice {
     pub services: u16,
 
     #[serde(skip)]
-    raw_device_info: BLUETOOTH_DEVICE_INFO,
+    #[derivative(Debug = "ignore")]
+    pub socket: Option<SOCKET>,
+
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
+    pub raw_device_info: BLUETOOTH_DEVICE_INFO,
 }
 
-impl ClassicDevice {
-    pub fn from_win32(info: &BLUETOOTH_DEVICE_INFO) -> Self {
+impl fmt::Display for Win32Device {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Win32Device(name={}, address={}, authenticated={}, connected={})",
+            self.name, self.address, self.authenticated, self.connected
+        )
+    }
+}
+
+impl Win32Device {
+    pub fn from_info(info: &BLUETOOTH_DEVICE_INFO) -> Self {
         let name = String::from_utf16_lossy(
             &info
                 .szName
@@ -270,6 +305,7 @@ impl ClassicDevice {
                 info.Address.Anonymous.rgBytes[1],
                 info.Address.Anonymous.rgBytes[0],
             )
+            .to_ascii_lowercase()
         };
 
         let cod = info.ulClassofDevice;
@@ -278,8 +314,9 @@ impl ClassicDevice {
 
         let major_device_class = MajorDeviceClass::from(major);
 
-        ClassicDevice {
+        Win32Device {
             name,
+            id: address.clone(),
             address,
             authenticated: info.fAuthenticated.as_bool(),
             remembered: info.fRemembered.as_bool(),
@@ -293,16 +330,79 @@ impl ClassicDevice {
                 MinorDeviceClass::from((major_device_class, minor as u32)),
             ),
             raw_device_info: *info,
+            socket: None,
         }
     }
 
-    pub fn from_mac(address: String) -> Self {
-        todo![]
-    }
-}
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
+    pub fn from_mac(address: &String) -> Result<Self, String> {
+        let bytes: Vec<u8> = address
+            .split(':')
+            .filter_map(|b| u8::from_str_radix(b, 16).ok())
+            .collect();
 
-impl BTDevice for ClassicDevice {
-    fn connect(&mut self) -> Result<(), std::string::String> {
+        if bytes.len() != 6 {
+            return Err("Invalid MAC Address".into());
+        }
+
+        // 2. Fill BLUETOOTH_ADDRESS (little endian!)
+        let mut bt_addr = BLUETOOTH_ADDRESS::default();
+        unsafe {
+            bt_addr.Anonymous.rgBytes[0] = bytes[5];
+            bt_addr.Anonymous.rgBytes[1] = bytes[4];
+            bt_addr.Anonymous.rgBytes[2] = bytes[3];
+            bt_addr.Anonymous.rgBytes[3] = bytes[2];
+            bt_addr.Anonymous.rgBytes[4] = bytes[1];
+            bt_addr.Anonymous.rgBytes[5] = bytes[0];
+        }
+
+        // 3. Find a radio
+        unsafe {
+            let mut radio_params = BLUETOOTH_FIND_RADIO_PARAMS {
+                dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
+            };
+
+            let mut radio_handle: HANDLE = HANDLE::default();
+
+            let radio_enum = BluetoothFindFirstRadio(&mut radio_params, &mut radio_handle)
+                .map_err(|e| format!("BluetoothFindFirstRadio Error: {e}"))?;
+
+            let mut device_info = BLUETOOTH_DEVICE_INFO {
+                dwSize: std::mem::size_of::<BLUETOOTH_DEVICE_INFO>() as u32,
+                Address: bt_addr,
+                ..Default::default()
+            };
+
+            // 4. Query device info
+            let mut found = false;
+
+            loop {
+                if BluetoothGetDeviceInfo(Some(radio_handle), &mut device_info) == ERROR_SUCCESS.0 {
+                    found = true;
+                    break;
+                }
+
+                let mut next_radio = HANDLE::default();
+                if BluetoothFindNextRadio(radio_enum, &mut next_radio).is_err() {
+                    break;
+                }
+
+                radio_handle = next_radio;
+            }
+
+            BluetoothFindRadioClose(radio_enum)
+                .map_err(|e| format!("BluetoothFindRadioClose Error: {e}"))?;
+
+            if !found {
+                return Err(format!("Win32 device not found: {}", address));
+            }
+
+            Ok(Win32Device::from_info(&device_info))
+        }
+    }
+
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
+    pub fn pair(&mut self) -> Result<(), String> {
         unsafe {
             let mut adapter_params = BLUETOOTH_FIND_RADIO_PARAMS {
                 dwSize: std::mem::size_of::<BLUETOOTH_FIND_RADIO_PARAMS>() as u32,
@@ -313,16 +413,32 @@ impl BTDevice for ClassicDevice {
                 .map_err(|e| format!("BluetoothFindFirstRadioError: {e}"))?;
 
             loop {
-                // prova ad autenticare il dispositivo con questo adapter
-                let res = BluetoothAuthenticateDevice(
-                    None,
-                    Some(adapter_handle),
-                    &mut self.raw_device_info,
-                    None,
-                );
-
-                if res == ERROR_SUCCESS.0 {
-                    break; // successo
+                if self.raw_device_info.fRemembered.0 != 0 {
+                    // già paired → forza connessione su profilo
+                    let service_guid = GUID_BLUETOOTH_SERVICE_SERIAL_PORT;
+                    let res = BluetoothSetServiceState(
+                        adapter_handle,
+                        &mut self.raw_device_info,
+                        &service_guid,
+                        BLUETOOTH_SERVICE_ENABLE,
+                    );
+                    if res == ERROR_SUCCESS.0 {
+                        break;
+                    } else {
+                        return Err(format!("BluetoothSetServiceState failed: {}", res));
+                    }
+                } else {
+                    // non paired → chiama pairing
+                    let req = AUTHENTICATION_REQUIREMENTS(
+                        MITMProtectionNotRequired.0 | MITMProtectionNotRequiredBonding.0,
+                    );
+                    let res = BluetoothAuthenticateDeviceEx(None, Some(adapter_handle), &mut self.raw_device_info, None, req);
+                    if res == ERROR_SUCCESS.0 {
+                        break;
+                    } else if res == ERROR_ALREADY_EXISTS.0 {
+                        // già paired, fallback alla connessione
+                        continue;
+                    }
                 }
 
                 // passa al prossimo adapter
@@ -334,13 +450,14 @@ impl BTDevice for ClassicDevice {
                 adapter_handle = next_adapter;
             }
 
-            *self = ClassicDevice::from_win32(&self.raw_device_info)
+            *self = Win32Device::from_info(&self.raw_device_info);
         }
 
         Ok(())
     }
 
-    fn disconnect(&mut self) -> Result<(), std::string::String> {
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
+    pub fn unpair(&mut self) -> Result<(), String> {
         unsafe {
             let res = BluetoothRemoveDevice(&self.raw_device_info.Address);
 
@@ -349,19 +466,15 @@ impl BTDevice for ClassicDevice {
             }
         }
 
+        self.connected = false;
+        self.authenticated = false;
+        self.remembered = false;
         Ok(())
-    }
-
-    fn read(&mut self, uuid: &str) -> Result<Vec<u8>, String> {
-        todo!()
-    }
-
-    fn write(&mut self, uuid: &str, data: &[u8]) -> Result<(), std::string::String> {
-        todo!()
     }
 }
 
-pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn scan_win32(duration: Option<u8>) -> Result<Vec<Win32Device>, String> {
     let mut devices = Vec::new();
 
     unsafe {
@@ -418,7 +531,7 @@ pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> 
 
             if !h_find.is_invalid() {
                 loop {
-                    devices.push(ClassicDevice::from_win32(&device_info));
+                    devices.push(Win32Device::from_info(&device_info));
 
                     if !BluetoothFindNextDevice(h_find, &mut device_info).is_ok() {
                         break;
@@ -438,15 +551,6 @@ pub fn scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> 
 
         let _ = BluetoothFindRadioClose(radio_enum);
     }
-
-    Ok(devices)
-}
-
-pub async fn async_scan_classic(duration: Option<u8>) -> Result<Vec<ClassicDevice>, String> {
-    let devices =
-        tauri::async_runtime::spawn_blocking(move || scan_classic(duration))
-            .await
-            .map_err(|e| format!("Task join error: {e}"))??;
 
     Ok(devices)
 }

@@ -7,54 +7,7 @@
     <n-tabs type="line">
       <n-tab-pane name="bricks" tab="Bricks">
         <div class="brick-grid">
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
-          <BrickInfoCard
-            v-for="brick in bricks"
-            :key="brick.name"
-            :brick="brick"
-            :offline="false"
-          />
+          <p>Qui si possono scaricare bricks.</p>
         </div>
       </n-tab-pane>
       <n-tab-pane name="walls" tab="Walls">
@@ -68,8 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { Brick } from 'interfaces/brick';
-import BrickInfoCard from '../components/BrickInfoCard.vue';
+import { Brick } from 'interfaces/brick'
 import Header from '../components/Header.vue';
 import { ShoppingBasket, Search } from 'lucide-vue-next';
 import { NTabs, NTabPane, NInput } from "naive-ui"

@@ -1,0 +1,1 @@
+import { load, Store, StoreOptions,ReloadOptions, LazyStore, getStore } from "@tauri-apps/plugin-store"

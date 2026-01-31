@@ -1,5 +1,5 @@
 import * as core from '@tauri-apps/api/core';
-import { normalizePath } from '../utils/normUtils';
+import { sanitizePath } from '../utils/path';
 
 const allowedCommands = new Set<string>([
   // Bricks
@@ -14,11 +14,16 @@ const allowedCommands = new Set<string>([
   "get_pinned_taskbar_apps",
 
   // Bluetooth
-  "bluetooth_scan",
-  "bluetooth_classic_scan",
-  //"get_default_adapter",
-  //"get_adapters",
-  //"get_devices",
+  "bluetooth_get_devices",
+  "bluetooth_pair",
+  "bluetooth_pair_confirm",
+  "bluetooth_pair_provide_pin",
+  "bluetooth_pair_provide_address",
+
+  "bluetooth_unpair",
+
+  "bluetooth_connect",
+  "bluetooth_disconnect",
 
   // Taskbar / Tray icons
   //"get_tray_icons",
@@ -59,8 +64,10 @@ async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.Invoke
   return core.invoke(cmd, args, options);
 }
 
-function convertFileSrc(filePath: string, options?: { protocol?: string; root?: string }): string {
-  return normalizePath(filePath, options)
+async function convertFileSrc(filePath: string, options?: { protocol?: string; root?: string }): Promise<string> {
+  // Non e' del tutto sicuro, mettendo root -> null viene presa come root {appDataDir}/BrickUI/ 
+  // Ma non la cartella del brick chiamante
+  return await sanitizePath(filePath, { ...options, root: null })
 }
 
 export default { invoke, convertFileSrc };

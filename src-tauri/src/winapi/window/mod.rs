@@ -48,6 +48,7 @@ pub struct Window {
 }
 
 impl Window {
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn from_hwnd(hwnd: isize) -> Result<Self, String> {
         unsafe {
             let win_hwnd = HWND(hwnd as *mut _);
@@ -88,6 +89,7 @@ impl Window {
         }
     }
 
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn unmaximize(&self) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -106,6 +108,7 @@ impl Window {
         Ok(())
     }
 
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn maximize(&self) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -124,6 +127,7 @@ impl Window {
         Ok(())
     }
 
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn set_rect(&self, rect: &Rect) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -151,6 +155,7 @@ impl Window {
     }
 
     /// Notifica alla finestra che la workarea del monitor è cambiata.
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn notify_workarea_change(&self) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -175,6 +180,7 @@ impl Window {
     }
 
     /// Forza la finestra a ridisegnarsi / reagire a cambiamenti di dimensione
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn refresh_window(&self) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -199,6 +205,7 @@ impl Window {
     }
 
     /// Porta temporaneamente la finestra in foreground per forzare ridisegno o ridimensionamento.
+    #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub fn force_focus(&self) -> Result<(), String> {
         if self.hwnd == 0 {
             return Err("Hwnd can't be 0".into());
@@ -220,6 +227,7 @@ impl Window {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
     let windows_vec: &Mutex<Vec<Window>> = unsafe { &*(lparam.0 as *const Mutex<Vec<Window>>) };
 
@@ -292,6 +300,7 @@ unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> BOOL 
     true.into()
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_maximized_windows() -> Result<Vec<Window>, String> {
     let all = get_all_windows()?;
     Ok(all
@@ -300,11 +309,13 @@ pub fn get_maximized_windows() -> Result<Vec<Window>, String> {
         .collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_visible_windows() -> Result<Vec<Window>, String> {
     let all = get_all_windows()?;
     Ok(all.into_iter().filter(|w| w.is_visible).collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_maximized_window(monitor: &Monitor) -> Result<Option<Window>, String> {
     let windows = get_maximized_windows()?;
 
@@ -319,6 +330,7 @@ pub fn get_monitor_maximized_window(monitor: &Monitor) -> Result<Option<Window>,
     Ok(None)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
     let all = get_all_windows()?;
 
@@ -334,6 +346,7 @@ pub fn get_monitor_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
         .collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_visible_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
     let all = get_visible_windows()?;
     Ok(all
@@ -350,6 +363,7 @@ pub fn get_monitor_visible_windows(monitor: &Monitor) -> Result<Vec<Window>, Str
         .collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_monitor_taskbar_windows(monitor: &Monitor) -> Result<Vec<Window>, String> {
     let all = get_taskbar_windows()?;
     Ok(all
@@ -366,6 +380,7 @@ pub fn get_monitor_taskbar_windows(monitor: &Monitor) -> Result<Vec<Window>, Str
         .collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_taskbar_windows() -> Result<Vec<Window>, String> {
     let all = get_visible_windows()?;
     Ok(all
@@ -380,6 +395,7 @@ pub fn get_taskbar_windows() -> Result<Vec<Window>, String> {
         .collect())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_all_windows() -> Result<Vec<Window>, String> {
     let windows_vec: Arc<Mutex<Vec<Window>>> = Arc::new(Mutex::new(Vec::new()));
 
@@ -395,6 +411,7 @@ pub fn get_all_windows() -> Result<Vec<Window>, String> {
     Ok(result)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn is_taskbar_window(hwnd: HWND) -> Result<bool, String> {
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE) as u32;
@@ -406,6 +423,7 @@ pub fn is_taskbar_window(hwnd: HWND) -> Result<bool, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn force_window_style_refresh(hwnd: HWND) {
     unsafe {
         let _ = SetWindowPos(
@@ -420,6 +438,7 @@ fn force_window_style_refresh(hwnd: HWND) {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn remove_titlebar(hwnd: HWND) {
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
@@ -431,6 +450,7 @@ pub fn remove_titlebar(hwnd: HWND) {
 }
 
 /// Imposta la finestra come topmost, sopra anche alla taskbar
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
     unsafe {
         // Imposta gli stili
@@ -455,6 +475,7 @@ pub fn set_window_topmost(hwnd: HWND) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_as_wallpaper_background(hwnd_tauri: HWND) -> Result<(), String> {
     let mut workerw = HWND(null_mut());
     let progman = unsafe {

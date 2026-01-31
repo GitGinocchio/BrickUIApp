@@ -4,6 +4,7 @@ use crate::winapi::{
 };
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workarea_margins(
     margins: OptionalRect,
     monitor: Option<Monitor>,
@@ -12,6 +13,7 @@ pub fn set_workarea_margins(
 }
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn set_workareas_margins(margins: OptionalRect) -> Result<(), String> {
     crate::winapi::monitor::workarea::set_workareas_margins(&margins)
 }

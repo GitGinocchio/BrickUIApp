@@ -1,4 +1,4 @@
-import { normalizePath } from "./utils";
+import { sanitizePath } from "../utils/path";
 
 export function scopeCss(code: string, id: string): string {
   const scope = `data-v-${id}`;
@@ -41,15 +41,29 @@ export function scopeCss(code: string, id: string): string {
 
 
 
-export function processStyle(source: string, lang: string = "css", componentPath: string, id: string) {
-    source = scopeCss(source, id);
+export async function processStyle(source: string, lang: string = "css", componentPath: string, id: string) {
+  source = scopeCss(source, id);
 
-    return source.replace(/url\((['"]?)(.+?)\1\)/g, (match, quote, path: string) => {
-        // Se è assoluto, non toccarlo
-        if (path.startsWith('https://')) {
-            return match;
-        }
-        
-        return `url(${normalizePath(path, { root: componentPath })})`;
-    });
+  const parts = [];
+  let lastIndex = 0;
+  const regex = /url\((['"]?)(.+?)\1\)/g;
+  let match;
+
+  while ((match = regex.exec(source)) !== null) {
+    const [full, quote, path] = match;
+    parts.push(source.slice(lastIndex, match.index));
+
+    if (path.startsWith("https://")) {
+      parts.push(full);
+    } else {
+      const sanitized = await sanitizePath(path, { root: componentPath });
+      parts.push(`url(${sanitized})`);
+    }
+
+    lastIndex = match.index + full.length;
+  }
+
+  parts.push(source.slice(lastIndex));
+
+  return parts.join("");
 }

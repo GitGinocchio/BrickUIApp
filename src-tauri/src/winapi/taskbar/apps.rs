@@ -13,7 +13,7 @@ use crate::winapi::{
     resolve_lnk,
 };
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 pub struct App {
     exe: String,
     icon: Option<String>,
@@ -21,6 +21,7 @@ pub struct App {
     pinned: bool,
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn get_window_text(hwnd: HWND) -> Option<String> {
     let len = unsafe { GetWindowTextLengthW(hwnd) };
     if len == 0 {
@@ -39,6 +40,7 @@ fn get_window_text(hwnd: HWND) -> Option<String> {
     Some(String::from_utf16_lossy(&buffer[..copied_len as usize]))
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn get_exe_path(pid: u32) -> Option<PathBuf> {
     unsafe {
         let handle = match OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid) {
@@ -76,6 +78,7 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 async fn collect_active_taskbar_apps(
     icon_cache_dir: &PathBuf,
     max_files: usize,
@@ -151,6 +154,7 @@ async fn collect_active_taskbar_apps(
     results
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 async fn collect_pinned_taskbar_apps(
     icon_cache_dir: &PathBuf,
     config_dir: &PathBuf,
@@ -215,6 +219,7 @@ async fn collect_pinned_taskbar_apps(
     results
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_taskbar_apps(
     icon_cache_dir: &PathBuf,
     config_dir: &PathBuf,
@@ -229,6 +234,7 @@ pub async fn get_taskbar_apps(
         .collect()
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_active_taskbar_apps(
     icon_cache_dir: &PathBuf,
     max_files: usize,
@@ -240,6 +246,7 @@ pub async fn get_active_taskbar_apps(
         .collect()
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_pinned_taskbar_apps(
     icon_cache_dir: &PathBuf,
     config_dir: &PathBuf,

@@ -1,8 +1,4 @@
 
-export function capitalize(str: string): string {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
 
 export function RGBAToHex(color: [number, number, number, number]): string {
   return (
@@ -96,32 +92,4 @@ export function colorStringToRGBA(input: string): string {
   }
 
   throw new Error('Formato colore non supportato');
-}
-
-export function deepEqual(a: any, b: any): boolean {
-  if (a === b) return true;
-
-  if (typeof a !== "object" || typeof b !== "object" || a == null || b == null) {
-    return false;
-  }
-
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-
-  if (keysA.length !== keysB.length) return false;
-
-  return keysA.every(key => deepEqual(a[key], b[key]));
-}
-
-export function waitUntil(cond: () => boolean, interval = 100): Promise<void> {
-  return new Promise(resolve => {
-    const check = () => {
-      if (cond()) {
-        resolve();
-      } else {
-        setTimeout(check, interval);
-      }
-    };
-    check();
-  });
 }

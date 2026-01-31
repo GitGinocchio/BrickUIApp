@@ -8,9 +8,7 @@ use std::{
     env,
     os::windows::ffi::OsStrExt,
     path::{Path, PathBuf},
-    sync::Arc,
 };
-use tokio::sync::Mutex;
 use windows::Win32::UI::Shell::{
     SHGSI_ICON, SHGetStockIconInfo, SHSTOCKICONINFO, SIID_DOCNOASSOC, SIID_FOLDER,
 };
@@ -26,7 +24,7 @@ use windows::{
             Shell::{
                 ExtractIconExW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON, SHSTOCKICONID,
                 SIID_APPLICATION, SIID_AUDIOFILES, SIID_DOCASSOC, SIID_DRIVECD, SIID_DRIVEFIXED,
-                SIID_DRIVENET, SIID_DRIVERAM, SIID_DRIVEREMOVE, SIID_IMAGEFILES, SIID_LINK,
+                SIID_IMAGEFILES, SIID_LINK,
                 SIID_RECYCLER, SIID_VIDEOFILES, SIID_WORLD, SIID_ZIPFILE,
             },
             WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO},
@@ -59,6 +57,7 @@ pub struct IconEntry {
     pub created_at: String,
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_default_icon(path: &str) -> Option<HICON> {
     let mut sii = SHSTOCKICONINFO {
         cbSize: std::mem::size_of::<SHSTOCKICONINFO>() as u32,
@@ -114,6 +113,7 @@ pub fn get_default_icon(path: &str) -> Option<HICON> {
 
 /// Parse an icon location string like "%SystemRoot%\\System32\\shell32.dll,3"
 /// Returns (expanded_path, optional_index)
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn parse_icon_location(s: &str) -> (PathBuf, Option<i32>) {
     // Trim quotes
     let s = s.trim().trim_matches('"').to_string();
@@ -155,6 +155,7 @@ pub fn parse_icon_location(s: &str) -> (PathBuf, Option<i32>) {
     (PathBuf::from(out), None)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
     let key = match std::fs::canonicalize(path) {
         Ok(p) => p.to_string_lossy().to_string(),
@@ -169,6 +170,7 @@ fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
 }
 
 /// Ritorna il percorso di un icona nella cartella cache ottenuta da un file
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_icon(
     file_path: &PathBuf,
     icon_index: Option<i32>,
@@ -218,6 +220,7 @@ pub fn get_icon(
     Ok(Some(icon_path.to_string_lossy().to_string()))
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_icon_async(
     file_path: &PathBuf,
     icon_index: Option<i32>,
@@ -291,6 +294,7 @@ pub async fn get_icon_async(
     Ok(Some(icon_path.to_string_lossy().to_string()))
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 fn extract_icon_png_bytes(file_path: &Path, icon_index: Option<i32>) -> Result<Vec<u8>, String> {
     let path_utf16: Vec<u16> = file_path.as_os_str().encode_wide().chain(Some(0)).collect();
     let mut large_icon: HICON = HICON(std::ptr::null_mut());
@@ -355,6 +359,7 @@ fn extract_icon_png_bytes(file_path: &Path, icon_index: Option<i32>) -> Result<V
 }
 
 /// Convert an HICON to PNG bytes using the same bitmap extraction pipeline.
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn hicon_to_png_bytes(hicon: HICON) -> Result<Vec<u8>, String> {
     let mut icon_info = ICONINFO::default();
     unsafe { GetIconInfo(hicon, &mut icon_info) }.map_err(|_| "GetIconInfo failed".to_string())?;

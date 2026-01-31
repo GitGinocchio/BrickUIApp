@@ -9,6 +9,11 @@ const allowedEmitToEvents: { target: string | event.EventTarget, event: string}[
 ];
 
 const allowedListenEvents = new Set<event.EventName>([
+  "bluetooth_pairing_request",
+  "bluetooth_device_added",
+  "bluetooth_device_updated",
+  "bluetooth_device_removed",
+
   "global_mouse_moved",
   "global_mouse_pressed",
   "global_mouse_released",

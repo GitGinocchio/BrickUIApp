@@ -3,6 +3,7 @@ use tauri::{AppHandle, Manager};
 use crate::winapi::startmenu::favorites::Favorites;
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn open_start_menu() -> Result<(), String> {
     crate::winapi::startmenu::open_start_menu();
 
@@ -10,6 +11,7 @@ pub fn open_start_menu() -> Result<(), String> {
 }
 
 #[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_start_menu_favorites(app_handle: AppHandle) -> Result<Vec<Favorites>, String> {
     let resolver = app_handle.path();
     let app_data_dir = resolver

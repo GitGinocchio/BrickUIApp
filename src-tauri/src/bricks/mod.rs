@@ -10,16 +10,20 @@ use zip::write::SimpleFileOptions;
 
 use crate::bricks::brick::Brick;
 
-pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
+// TODO: Rendere async le sezioni IO di questi metodi (dove possibile)
 
-    let brick =
-        serde_yaml::from_str(&content).map_err(|e| format!("Failed to parse YAML: {}", e))?;
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub fn load_brick(path: &PathBuf) -> Result<Brick, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
+
+    let brick = serde_yaml::from_str(&content)
+        .map_err(|e| format!("Failed to parse YAML: {}", e))?;
 
     Ok(brick)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     let bricks_dir = path.join("bricks");
 
@@ -51,6 +55,7 @@ pub fn load_bricks(path: &PathBuf) -> Result<Vec<Brick>, String> {
     Ok(bricks)
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn create_brick(path: &PathBuf, res_path: &PathBuf, brick: &Brick) -> Result<(), String> {
     let src = res_path.join("assets").join("brick-template");
     let dst = path.join("bricks").join(brick.name.as_str());
@@ -71,6 +76,7 @@ pub fn create_brick(path: &PathBuf, res_path: &PathBuf, brick: &Brick) -> Result
     Ok(())
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn delete_brick(path: &PathBuf, brick: &Brick) -> Result<(), String> {
     let brick_dir = path.join("bricks").join(brick.name.as_str());
     fs::remove_dir_all(brick_dir)
@@ -209,8 +215,8 @@ pub fn pack_brick(path: &PathBuf, brick_name: String, output_path: &PathBuf) -> 
 pub fn unpack_brick(input_path: &PathBuf, output_dir: &PathBuf) -> Result<(), String> {
     let file = File::open(input_path).map_err(|e| format!("Error opening .brick file: {e}"))?;
 
-    let mut archive =
-        ZipArchive::new(file).map_err(|e| format!("Error reading zip archive: {e}"))?;
+    let mut archive = ZipArchive::new(file)
+        .map_err(|e| format!("Error reading zip archive: {e}"))?;
 
     for i in 0..archive.len() {
         let mut file = archive

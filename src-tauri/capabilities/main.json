@@ -7,16 +7,32 @@
     "core:default",
     "opener:default",
     "dialog:default",
+    "deep-link:default",
   
     "core:window:allow-close",
     "core:window:allow-hide",
     "core:window:allow-show",
+    "core:window:allow-set-focus",
     "core:app:allow-default-window-icon",
 
     "autostart:allow-disable",
     "autostart:allow-enable",
     "autostart:allow-is-enabled",
 
+    {
+      "identifier" : "deep-link:allow-register",
+      "allow": [
+        "brickui://"
+      ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "http://localhost:*/*" },
+        { "url": "https://brickui.giulioo.workers.dev/*" },
+        { "url": "https://brickui.app/*" }
+      ]
+    },
     {
       "identifier": "fs:allow-app-read-recursive",
       "allow": [

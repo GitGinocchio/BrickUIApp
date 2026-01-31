@@ -265,6 +265,7 @@ pub fn find_tray_toolbar_window() -> Result<HWND, String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn get_window_class(hwnd: HWND) -> Option<String> {
     unsafe {
         // buffer per la classe (massimo 256 caratteri)
@@ -281,6 +282,7 @@ pub fn get_window_class(hwnd: HWND) -> Option<String> {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn is_tauri_window(hwnd: HWND) -> Result<bool, String> {
     get_window_class(hwnd).map_or(Ok(false), |class_name| Ok(class_name.starts_with("Tauri")))
 }
