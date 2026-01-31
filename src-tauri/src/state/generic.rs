@@ -59,7 +59,7 @@ impl BrickUIGenericState {
             icons_map: icons_map,
         })
     }
-    
+
     // Bricks
 
     pub fn get_bricks(&self) -> &[Brick] {
@@ -79,6 +79,7 @@ impl BrickUIGenericState {
     pub fn get_settings(&self) -> &Settings {
         &self.settings
     }
+
     pub fn get_mut_settings(&mut self) -> &mut Settings {
         &mut self.settings
     }
@@ -88,6 +89,7 @@ impl BrickUIGenericState {
     pub fn get_backup(&self) -> &Backup {
         &self.backup
     }
+
     pub fn get_mut_backup(&mut self) -> &mut Backup {
         &mut self.backup
     }
@@ -97,6 +99,7 @@ impl BrickUIGenericState {
     pub fn get_icons_map(&self) -> &IconsMap {
         &self.icons_map
     }
+
     pub fn get_mut_icons_map(&mut self) -> &mut IconsMap {
         &mut self.icons_map
     }

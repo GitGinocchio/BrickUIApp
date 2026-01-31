@@ -169,6 +169,10 @@ listen<[string, string]>("open_brick", (event) => {
   brickToImport.value = brick;
 });
 
+listen<{ "view": string }>("goto", (event) => {
+  router.push(event.payload.view);
+});
+
 async function onOpenBrickConfirm() {
   showAddBrickModal.value = false;
   await invoke("unpack_brick", { brickPath: brickToImport.value[0], brickName: brickToImport.value[1]});

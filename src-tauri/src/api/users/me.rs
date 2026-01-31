@@ -15,5 +15,7 @@ pub async fn me(access_token: &str) -> Result<ApiResponse<User>, String> {
         .await
         .map_err(|e| format!("Error deserializing json response: {e:#?}"))?;
 
+    println!("response: {response:#?}");
+
     value_to_api_response::<User>(response)
 }

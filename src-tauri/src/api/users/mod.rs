@@ -10,7 +10,7 @@ pub struct User {
     pub bio: Option<String>,
     pub birthday: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
-    pub display_name: String,
+    pub display_name: Option<String>,
     pub email: Option<String>,
     pub gender: Option<String>,
     pub id: String,
@@ -21,5 +21,5 @@ pub struct User {
     pub role: Option<String>,
     pub surname: Option<String>,
     pub timezone: Option<String>,
-    pub username: String,
+    pub username: Option<String>,
 }

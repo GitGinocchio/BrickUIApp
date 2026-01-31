@@ -5,9 +5,18 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use crate::{
-    api::{auth::{UserIdentity, login::LoginResponse, refresh::RefreshResponse}, users::User, utils::{ApiError, ApiResponse}}, keyring::{
-        load_refresh_token, 
-        save_refresh_token
+    api::{
+        auth::{
+            UserIdentity, 
+            login::LoginResponse, 
+            refresh::RefreshResponse
+        }, 
+        deeplink::DeepLinkAuthArgs, 
+        users::User, 
+        utils::ApiResponse
+    }, 
+    keyring::{
+        clear_refresh_token, load_refresh_token, save_refresh_token
     }
 };
 
@@ -74,6 +83,17 @@ impl BrickUIUserState {
         Ok(())
     }
 
+    pub fn update_from_deeplink(&mut self, args: &DeepLinkAuthArgs) -> Result<(), String> {
+        save_refresh_token(&args.refresh_token)?;
+
+        self.access_token = Some(args.access_token.clone());
+        self.refresh_token = Some(args.refresh_token.clone());
+        self.token_type = Some(args.token_type.clone());
+        self.expires_at = args.expires_at;
+        self.expires_in = args.expires_in;
+        Ok(())
+    }
+
     pub fn is_session_expired(&self) -> bool {
         if self.access_token.is_some() && let Some(expires_at) = self.expires_at {
             return Utc::now().timestamp() >= expires_at;
@@ -126,6 +146,7 @@ pub async fn refresh_session_if_present(state_ref: Arc<Mutex<BrickUIUserState>>)
         ApiResponse::Error(e) => {
             let mut state_guard = state_ref.lock().await;
             state_guard.refresh_token = None;
+            clear_refresh_token()?;
             Err(format!("Error refreshing session '{}' ({}): {}", e.error_code, e.code, e.msg))
         },
         ApiResponse::Success(response) => {

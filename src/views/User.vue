@@ -45,6 +45,7 @@ const user = ref<any>();
 
 onMounted(async () => {
   user.value = await invoke("users_get_me");
+  console.log(user.value);
 });
 
 </script>

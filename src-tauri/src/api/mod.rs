@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use reqwest::Client;
 use tauri::http::{HeaderMap, HeaderValue};
 
+pub mod deeplink;
 pub mod auth;
 pub mod users;
 pub mod utils;
