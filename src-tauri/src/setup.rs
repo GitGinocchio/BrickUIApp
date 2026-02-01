@@ -104,7 +104,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
             guard.watcher = Some(start_bluetooth_watcher(bt_state.clone(), &app_handle_clone).await?);
 
             if let Err(e) = refresh_session_if_present(user_state).await {
-                eprintln!("An error occurred while refreshing session on startup: {e}");
+                eprintln!("An error occurred while refreshing session on startup: {e:#?}");
             }
 
             Ok::<(), String>(())
