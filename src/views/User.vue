@@ -16,11 +16,12 @@
           height="125"
           :show-toolbar="false"
           :preview-disabled="true"
-        >
-        </n-image>
+        />
 
         <div class="user-info">
-          <h2>{{ user?.display_name }}</h2>
+          <NSkeleton v-if="loading" width="500px" size="medium" />
+          <h2 v-else>{{ user?.display_name }}</h2>
+
           <p>abcd</p>
         </div>
       </div>
@@ -32,7 +33,7 @@
 <script setup lang="ts">
 import { User } from 'lucide-vue-next';
 import Header from '../components/Header.vue';
-import { NCard, NImage } from 'naive-ui';
+import { NCard, NImage, NSkeleton } from 'naive-ui';
 import { h, onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -41,11 +42,13 @@ const headerSections = [
   { defaultIcon: () => h(User), label: 'User' }
 ]
 
+const loading = ref<boolean>(true);
 const user = ref<any>();
 
 onMounted(async () => {
   user.value = await invoke("users_get_me");
   console.log(user.value);
+  loading.value = false;
 });
 
 </script>
