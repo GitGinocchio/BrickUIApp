@@ -2,7 +2,7 @@
   <div class="container">
     <Header :sections="headerSections">
       <template #actions>
-
+        <NButton circle tertiary><Settings2/></NButton>
       </template>
     </Header>
 
@@ -19,8 +19,22 @@
         />
 
         <div class="user-info">
-          <NSkeleton v-if="loading" width="500px" size="medium" />
-          <h2 v-else>{{ user?.display_name }}</h2>
+          <div class="field">
+            <NSkeleton text v-if="loading" style="display: block; width: 30vw" size="medium" />
+            <h2 v-else>{{ user?.display_name }}</h2>
+            <NButton @click="" text circle size="medium">
+              <Pencil v-if="true" :size="16" />
+              <PencilOff v-else :size="16" />
+            </NButton>
+          </div>
+          <div class="field">
+            <NSkeleton text v-if="loading" style="display: block; width: 30vw" size="medium" />
+            <h2 v-else>{{ user?.display_name }}</h2>
+            <NButton @click="" text circle size="medium">
+              <Pencil v-if="true" :size="16" />
+              <PencilOff v-else :size="16" />
+            </NButton>
+          </div>
 
           <p>abcd</p>
         </div>
@@ -31,9 +45,9 @@
 </template>
 
 <script setup lang="ts">
-import { User } from 'lucide-vue-next';
+import { User, Pencil, PencilOff, Settings2 } from 'lucide-vue-next';
 import Header from '../components/Header.vue';
-import { NCard, NImage, NSkeleton } from 'naive-ui';
+import { NCard, NImage, NSkeleton, NButton } from 'naive-ui';
 import { h, onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -48,7 +62,7 @@ const user = ref<any>();
 onMounted(async () => {
   user.value = await invoke("users_get_me");
   console.log(user.value);
-  loading.value = false;
+  //loading.value = false;
 });
 
 </script>
@@ -68,9 +82,16 @@ onMounted(async () => {
 }
 
 .user-info {
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.user-info .field {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
 }
 
 .user-info h2 {
