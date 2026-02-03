@@ -37,7 +37,7 @@ profiling = ["tracing", "tracing-subscriber", "tracing-flame", "inferno"]
 cargo-release = "0.25.20"
 
 [build-dependencies]
-tauri-build = { version = "2.5.3", features = [ "codegen" ] }
+tauri-build = { version = "2.5.4", features = [ "codegen" ] }
 
 [dependencies]
 # Dipendenze opzionali per profiling
