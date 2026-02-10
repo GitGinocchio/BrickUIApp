@@ -108,7 +108,7 @@ keyring = { version = "3.6.3", features = ["apple-native", "linux-native", "wind
 derivative = "2.2.0"
 
 
-tauri = { version = "2.9.5", features = [
+tauri = { version = "2.10.2", features = [
     "protocol-asset",
     "unstable",
     "tray-icon",
