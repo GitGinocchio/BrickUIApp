@@ -122,6 +122,6 @@ tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 tauri-plugin-shell = "2.3.4"
 tauri-plugin-http = "2.5.6"
 tauri-plugin-blec = "0.8.1"
-tauri-plugin-deep-link = "2.4.6"
+tauri-plugin-deep-link = "2.4.7"
 dotenvy = "0.15.7"
 url = "2.5.8"
