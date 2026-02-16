@@ -14,11 +14,14 @@ use crate::{
     api::deeplink::handle_deeplink, config::settings::TaskBarBehavior, state::{
         bluetooth::BrickUIBluetoothState, 
         generic::BrickUIGenericState, 
+        iconcache::BrickUIconCacheState, 
         user::{
             BrickUIUserState, 
             refresh_session_if_present
         }
-    }, utils::focus_window, winapi::{
+    }, 
+    utils::focus_window, 
+    winapi::{
         bluetooth::start_bluetooth_watcher, 
         com::{
             initialize_com, 
@@ -209,14 +212,17 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     let path = resolver.app_data_dir()?;
 
     // General App State
-    let state = tauri::async_runtime::block_on(async move {
+    let (generic, iconcache) = tauri::async_runtime::block_on(async move {
         initialize_dirs(&path).await?;
-        BrickUIGenericState::new(&path, &resource_path).await
+        let generic = BrickUIGenericState::new(&path, &resource_path).await?;
+        let iconcache = BrickUIconCacheState::new(&path).await?;
+
+        Ok::<(BrickUIGenericState, BrickUIconCacheState), String>((generic, iconcache))
     })?;
 
-    let settings = state.get_settings().clone();
-
-    app.manage(Arc::new(Mutex::new(state)));
+    let settings = generic.get_settings().clone();
+    app.manage(Arc::new(Mutex::new(generic)));
+    app.manage(Arc::new(RwLock::new(iconcache)));
 
     // Bluetooth State
     let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));

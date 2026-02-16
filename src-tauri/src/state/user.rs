@@ -157,9 +157,7 @@ pub async fn refresh_session_if_present(state_ref: Arc<Mutex<BrickUIUserState>>)
 }
 
 /// Restituisce sempre un access token valido, refreshando la sessione se necessario.
-pub async fn get_valid_access_token(
-    state_ref: &Arc<Mutex<BrickUIUserState>>
-) -> Result<String, String> {
+pub async fn get_valid_access_token(state_ref: &Arc<Mutex<BrickUIUserState>>) -> Result<String, String> {
     {
         let guard = state_ref.lock().await;
 

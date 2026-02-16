@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use crate::winapi::icons::cache::IconCache;
 use crate::{
     bricks::brick::Brick,
     config::{backup::Backup,icons::IconsMap, settings::Settings},
@@ -13,8 +12,7 @@ pub struct BrickUIGenericState {
     settings: Settings,
     backup: Backup,
     // TODO: Forse sarebbe meglio trasformare questo Vec in un HashMap
-    bricks: Vec<Brick>,
-    icon_cache: IconCache,
+    bricks: Vec<Brick>
 }
 
 impl BrickUIGenericState {
@@ -26,15 +24,11 @@ impl BrickUIGenericState {
 
         let settings = Settings::load(path).await?;
         let backup = Backup::load(path).await?;
-        let icons_map = IconsMap::load(path).await?;
-
-        let icon_cache = IconCache::new(&path, icons_map).await?;
 
         Ok(Self {
             settings,
             backup,
-            bricks: vec![],
-            icon_cache
+            bricks: vec![]
         })
     }
 
@@ -70,15 +64,5 @@ impl BrickUIGenericState {
 
     pub fn get_mut_backup(&mut self) -> &mut Backup {
         &mut self.backup
-    }
-
-    // Icon Cache
-
-    pub fn get_icon_cache(&self) -> &IconCache {
-        &self.icon_cache
-    }
-
-    pub fn get_mut_icon_cache(&mut self) -> &mut IconCache {
-        &mut self.icon_cache
     }
 }

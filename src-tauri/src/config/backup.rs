@@ -30,8 +30,16 @@ pub struct Taskbar {
     description = "A Backup file containing all windows settings before Brick UI customizations"
 )]
 pub struct Backup {
+    #[serde(default = "default_schema", rename = "$schema", skip)]
+    #[schemars(description = "The JSON Schema version or URI for this Backup definition.")]
+    pub schema: String,
+
     pub cursors: HashMap<CursorType, String>,
     pub taskbar: Taskbar,
+}
+
+fn default_schema() -> String {
+    "./.schemas/settings.schema.json".to_string()
 }
 
 impl Backup {
@@ -50,6 +58,7 @@ impl Backup {
 impl Default for Backup {
     fn default() -> Self {
         Self {
+            schema: default_schema(),
             cursors: backup_cursors(),
             taskbar: Taskbar {
                 autohide: is_taskbar_autohide(),

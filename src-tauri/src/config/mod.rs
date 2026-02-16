@@ -1,5 +1,4 @@
 pub mod backup;
-pub mod plugins;
 pub mod settings;
 pub mod icons;
 
@@ -120,34 +119,64 @@ where
     T: Serialize + Default,
 {
     let file_path = path.join(filename);
-    
+
+    // Se il file esiste già, esci subito
     if tokio::fs::try_exists(&file_path)
         .await
-        .map_err(|e| format!("Error checking if {file_path:?} exists: {e}"))? 
+        .map_err(|e| format!("Error checking if {file_path:?} exists: {e}"))?
     {
         return Ok(());
     }
 
     // Crea l’istanza di default
     let default_value = T::default();
-    // Serializza in YAML
-    let yaml_string = serde_yaml::to_string(&default_value)
-        .map_err(|e| format!("Error converting to string: {e}"))?;
 
-    let schema_filename = filename.replace(".yml", ".schema.json");
+    // Verifica se la struct ha un campo schema
+    let content = if let Some(schema) = extract_schema_field(&default_value) {
+        let yaml_string = serde_yaml::to_string(&default_value)
+            .map_err(|e| format!("Error serializing YAML: {e}"))?;
 
-    let schema_uri = format!("../../.schemas/{schema_filename}");
+        format!(
+            "# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}",
+            schema, yaml_string
+        )
+    } else {
+        // Fallback: usa il path predefinito come schema
+        let yaml_string = serde_yaml::to_string(&default_value)
+            .map_err(|e| format!("Error serializing YAML: {e}"))?;
 
-    // Prepara il contenuto con $schema e commenti
-    let content = format!(
-        "# yaml-language-server: $schema={}\n$schema: {}\n\n{}",
-        schema_uri, schema_uri, yaml_string
-    );
+        let schema_filename = filename.replace(".yml", ".schema.json");
+        let schema_uri = format!("../../.schemas/{schema_filename}");
+        format!("# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}", schema_uri, yaml_string)
+    };
 
-    // Scrivi il file
-    tokio::fs::write(file_path, content)
+    // Crea la cartella padre se non esiste
+    if let Some(parent) = file_path.parent() {
+        tokio::fs::create_dir_all(parent)
+            .await
+            .map_err(|e| format!("Failed to create parent dir {:?}: {e}", parent))?;
+    }
+
+    // Scrittura atomica tramite temp file + rename
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default();
+
+    let tmp_name = match file_path.file_name() {
+        Some(name) => format!("{}.{}.tmp", name.to_string_lossy(), ts),
+        None => format!("tmp.{}.yml", ts),
+    };
+
+    let tmp_path = file_path.parent().map(|p| p.join(&tmp_name)).unwrap_or(PathBuf::from(&tmp_name));
+
+    tokio::fs::write(&tmp_path, &content)
         .await
-        .map_err(|e| format!("Error writing template: {e}"))?;
+        .map_err(|e| format!("Error writing temp file {:?}: {e}", tmp_path))?;
+
+    tokio::fs::rename(&tmp_path, &file_path)
+        .await
+        .map_err(|e| format!("Failed to rename temp file to destination: {e}"))?;
 
     Ok(())
 }

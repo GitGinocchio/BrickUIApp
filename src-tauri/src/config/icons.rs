@@ -31,8 +31,7 @@ impl IconsMap {
     }
 
     pub async fn save(&self, dir: &PathBuf) -> Result<(), String> {
-        let dir = dir.join("cache").join("icons");
-        save_yaml_async(&dir, self).await
+        save_yaml_async(&dir.join("icons.map.yml"), self).await
     }
 }
 
