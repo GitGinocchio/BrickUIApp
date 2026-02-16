@@ -1,7 +1,7 @@
 <template>
-  <n-config-provider :theme="theme">
-    <n-layout style="height: 100vh" has-sider>
-      <n-layout-sider
+  <NConfigProvider :theme="theme">
+    <NLayout style="height: 100vh" has-sider>
+      <NLayoutSider
         class="sider"
         width="220"
         :collapsed-width="64"
@@ -25,12 +25,14 @@
           :options="bottomMenuOptions"
           @update:value="onMenuSelect"
         />
-      </n-layout-sider>
+      </NLayoutSider>
 
-      <n-layout-content :native-scrollbar="false">
-        <router-view />
-      </n-layout-content>
-    </n-layout>
+      <NLayoutContent :native-scrollbar="false">
+        <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
+          <RouterView />
+        </NNotificationProvider>
+      </NLayoutContent>
+    </NLayout>
     <SystemTray :v-if="settings.systemtray" />
     
     <GenericModal
@@ -64,7 +66,7 @@
         <n-button type="error" @click="showAlreadyImportedModal = false">Ok</n-button>
       </template>
     </GenericModal>
-  </n-config-provider>
+  </NConfigProvider>
 </template>
 
 <script setup lang="ts">
@@ -74,6 +76,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { SettingsIcon, StoreIcon, CircleUser, Cuboid, LayoutDashboard } from 'lucide-vue-next'
 import {
   NConfigProvider,
+  NNotificationProvider,
   NLayout,
   NAlert,
   NButton,

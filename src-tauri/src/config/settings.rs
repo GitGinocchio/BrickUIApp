@@ -1,5 +1,13 @@
+use std::path::PathBuf;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::config::save_yaml_async;
+
+use super::write_template_if_missing;
+use super::write_schema_if_missing;
+use super::load_yaml_async;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Top-level application settings.")]
@@ -38,6 +46,19 @@ pub struct Settings {
     #[serde(default)]
     #[schemars(description = "Determines whether enable or not the system tray icon")]
     pub systemtray: SystemTray,
+}
+
+impl Settings {
+    pub async fn load(dir: &PathBuf) -> Result<Self, String> {
+        write_schema_if_missing::<Settings>(dir, "settings.schema.json").await?;
+        write_template_if_missing::<Settings>(dir, "settings.yml").await?;
+
+        load_yaml_async::<Settings>(&dir.join("settings.yml")).await
+    }
+
+    pub async fn save(&self, dir: &PathBuf) -> Result<(), String> {
+        save_yaml_async(&dir.join("settings.yml"), self).await
+    }
 }
 
 fn default_theme() -> Theme {

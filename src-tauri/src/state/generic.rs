@@ -1,14 +1,12 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
+use crate::winapi::icons::cache::IconCache;
 use crate::{
     bricks::brick::Brick,
-    config::{backup::Backup, load_yaml, settings::Settings},
-    winapi::icons::IconsMap,
+    config::{backup::Backup,icons::IconsMap, settings::Settings},
 };
 
-use super::generate_schemas_if_missing;
-use super::generate_templates_if_missing;
-use super::generate_types_if_missing;
+use crate::config::{generate_types_if_missing, write_schema_if_missing};
 
 #[derive(Clone, Debug)]
 pub struct BrickUIGenericState {
@@ -16,47 +14,27 @@ pub struct BrickUIGenericState {
     backup: Backup,
     // TODO: Forse sarebbe meglio trasformare questo Vec in un HashMap
     bricks: Vec<Brick>,
-    icons_map: IconsMap,
+    icon_cache: IconCache,
 }
 
 impl BrickUIGenericState {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
-        fs::create_dir_all(path)
-            .map_err(|e| format!("Errore nella creazione della directory di dati: {e}"))?;
-        fs::create_dir_all(path.join("bricks")).map_err(|e| {
-            format!("Errore nella creazione della directory per i widgets (bricks): {e}")
-        })?;
-        fs::create_dir_all(path.join("walls")).map_err(|e| {
-            format!("Errore nella creazione della directory per i widgets (walls): {e}")
-        })?;
-        fs::create_dir_all(path.join(".schemas"))
-            .map_err(|e| format!("Errore nella creazione della directory per gli schemas: {e}"))?;
-        fs::create_dir_all(path.join("cache").join("icons"))
-            .map_err(|e| format!("Errore nella creazione della directory per la cache: {e}"))?;
+    pub async fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
+        // TODO: Questi due chiamate qui sotto andrebbero spostate...
+        generate_types_if_missing(resource_path, path).await?;
+        write_schema_if_missing::<Brick>(path, "brick.schema.json").await?;
 
-        generate_schemas_if_missing(path)
-            .map_err(|e| format!("Errore durante la creazione degli schemas: {e}"))?;
-        generate_templates_if_missing(path)
-            .map_err(|e| format!("Errore durante la creazione dei template: {e}"))?;
-        generate_types_if_missing(resource_path, path)
-            .map_err(|e| format!("Errore durante la creazione dei tipi: {e}"))?;
+        let settings = Settings::load(path).await?;
+        let backup = Backup::load(path).await?;
+        let icons_map = IconsMap::load(path).await?;
 
-        let settings = load_yaml::<Settings>(&path.join("settings.yml"))
-            .map_err(|e| format!("Errore durante il caricamento dei settings: {e}"))?;
-
-        let icons_map =
-            load_yaml::<IconsMap>(&path.join("cache").join("icons").join("icons.map.yml"))
-                .map_err(|e| format!("Errore durante il caricamento dell'icon map: {e}"))?;
-
-        let backup = load_yaml::<Backup>(&path.join("backup.yml"))
-            .map_err(|e| format!("Errore durante il caricamento del file backup: {e}"))?;
+        let icon_cache = IconCache::new(&path, icons_map).await?;
 
         Ok(Self {
             settings,
             backup,
             bricks: vec![],
-            icons_map: icons_map,
+            icon_cache
         })
     }
 
@@ -94,13 +72,13 @@ impl BrickUIGenericState {
         &mut self.backup
     }
 
-    // Icons
+    // Icon Cache
 
-    pub fn get_icons_map(&self) -> &IconsMap {
-        &self.icons_map
+    pub fn get_icon_cache(&self) -> &IconCache {
+        &self.icon_cache
     }
 
-    pub fn get_mut_icons_map(&mut self) -> &mut IconsMap {
-        &mut self.icons_map
+    pub fn get_mut_icon_cache(&mut self) -> &mut IconCache {
+        &mut self.icon_cache
     }
 }

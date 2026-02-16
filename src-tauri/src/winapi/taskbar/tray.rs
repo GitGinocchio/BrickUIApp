@@ -9,7 +9,7 @@ use windows::Win32::UI::Accessibility::{
 use windows::Win32::UI::WindowsAndMessaging::FindWindowA;
 use windows::core::{BSTR, PCSTR};
 
-use crate::winapi::icons::IconsMap;
+use crate::config::icons::IconsMap;
 use crate::winapi::rect::Rect;
 //use crate::config::{save_yaml, save_yaml_async};
 

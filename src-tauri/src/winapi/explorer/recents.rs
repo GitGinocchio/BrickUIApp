@@ -7,8 +7,8 @@ use windows::Win32::{
     UI::Shell::{Common::ITEMIDLIST, SHGetNameFromIDList, SIGDN_NORMALDISPLAY},
 };
 
+use crate::{config::icons::IconsMap, winapi::icons::{cache::IconCache, resolver::parse_icon_location}};
 use crate::winapi::{
-    icons::{IconsMap, get_icon, get_icon_async},
     resolve_lnk,
 };
 
@@ -64,9 +64,7 @@ fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_data_dir: &PathBuf,
-    icon_cache_dir: &PathBuf,
-    icons_map: &mut IconsMap,
-    max_files: usize,
+    icon_cache: &mut IconCache
 ) -> Result<Vec<Recent>, String> {
     let recents_dir = app_data_dir.join("Microsoft\\Windows\\Recent");
 
@@ -149,17 +147,9 @@ pub async fn get_explorer_recents(
                     }
                 });
 
-            let (icon_pathbuf, icon_index) = crate::winapi::icons::parse_icon_location(&icon_path);
+            let (icon_pathbuf, icon_index) = parse_icon_location(&icon_path);
 
-            let icon = match crate::winapi::icons::get_icon_async(
-                &icon_pathbuf,
-                icon_index,
-                icon_cache_dir,
-                icons_map,
-                max_files,
-            )
-            .await?
-            {
+            let icon = match icon_cache.get_icon_from_file(&icon_pathbuf, icon_index).await? {
                 Some(cached_icon_path) => cached_icon_path,
                 None => icon_path,
             };

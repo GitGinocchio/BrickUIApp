@@ -43,7 +43,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         get_pinned_taskbar_apps,
         get_taskbar_apps,
         // Taskbar / Tray icons
-        get_tray_icons,
+        //get_tray_icons,
         // Bluetooth
         bluetooth_get_devices,
         bluetooth_pair,
@@ -111,6 +111,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         auth_is_session_expired,
         auth_get_identity,
 
-        users_get_me
+        users_get_me,
+        users_update_me
     ]
 }

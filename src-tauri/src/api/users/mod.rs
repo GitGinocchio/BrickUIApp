@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+use crate::{api::utils::NonEmptyString, update_struct};
 
 pub mod get;
 pub mod me;
@@ -23,3 +26,18 @@ pub struct User {
     pub timezone: Option<String>,
     pub username: Option<String>,
 }
+
+update_struct!(UpdateUser {
+    name: NonEmptyString,
+    surname: NonEmptyString,
+    username: NonEmptyString,
+    display_name: NonEmptyString,
+    locale: NonEmptyString,
+    timezone: NonEmptyString,
+    preferences: Value,
+    avatar_url: NonEmptyString,
+    bio: NonEmptyString,
+    gender: String,
+    birthday: DateTime<Utc>,
+    role: NonEmptyString
+});

@@ -102,7 +102,7 @@ async function loadBricks() {
 </script>
 
 <style scoped>
-::deep(n-card__content:first-child) {
+::deep(.n-card__content:first-child) {
   padding-top: 0;
 }
 
@@ -137,9 +137,7 @@ n-card.full-height {
   overflow-x: hidden;
   flex: 1;
 }
-</style>
 
-<style>
 .new-brick-form {
   display: flex;
   flex-direction: column;

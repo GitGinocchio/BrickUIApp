@@ -26,7 +26,7 @@ pub async fn save_settings(
         .app_data_dir()
         .map_err(|e| format!("error obtaining config dir: {e}"))?;
 
-    crate::config::save_settings(&path, &settings)?;
+    settings.save(&path).await;
 
     let mut state_guard = state.lock().await;
     let current_settings = state_guard.get_mut_settings();
