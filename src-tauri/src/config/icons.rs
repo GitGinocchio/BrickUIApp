@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::config::save_yaml_sync;
+
 use super::save_yaml_async;
 use super::load_yaml_async;
 use super::write_schema_if_missing;
@@ -32,6 +34,10 @@ impl IconsMap {
 
     pub async fn save(&self, dir: &PathBuf) -> Result<(), String> {
         save_yaml_async(&dir.join("icons.map.yml"), self).await
+    }
+
+    pub fn save_sync(&self, dir: &PathBuf) -> Result<(), String> {
+        save_yaml_sync(&dir.join("icons.map.yml"), self)
     }
 }
 

@@ -4,7 +4,7 @@ use windows::Devices::Enumeration::DeviceWatcher;
 
 use crate::winapi::bluetooth::Device;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BrickUIBluetoothState {
     pub watcher: Option<DeviceWatcher>,
     pub devices: HashMap<String, Device>

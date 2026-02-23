@@ -1,11 +1,11 @@
-import { darkTheme, lightTheme, NNotificationProvider } from "naive-ui";
+import { darkTheme, lightTheme } from "naive-ui";
 import App from "./App.vue";
-import { provide, h, ref, createApp, computed, watchEffect} from "vue";
+import { ref, createApp, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../interfaces/settings";
 import { listen } from "@tauri-apps/api/event";
 import { Brick } from "interfaces/brick";
-import { catchBrickError } from "../utils/errors";
+//import { catchBrickError } from "../utils/errors";
 
 const media = window.matchMedia('(prefers-color-scheme: dark)')
 media.addEventListener('change', updateSystemTheme)
@@ -35,25 +35,10 @@ const theme = computed(() => {
   }
 });
 
-const app = createApp({
-  setup() {
-    provide("settings", settings);
-    provide("theme", theme);
-    provide("bricks", bricks);
+const app = createApp(App);
 
-    // Prop reattiva tramite ref locale
-    const currentNotificationTheme = ref(theme.value.Notification);
-
-    // Aggiorna automaticamente il tema delle notifiche quando cambia il tema globale
-    watchEffect(() => {
-      currentNotificationTheme.value = theme.value.Notification;
-    });
-
-    return () => h(NNotificationProvider, {
-      theme: currentNotificationTheme.value,
-      placement : settings.value.notifications.position
-    }, { default: () => h(App) });
-  }
-});
+app.provide("settings", settings);
+app.provide("theme", theme);
+app.provide("bricks", bricks);
 
 app.mount("#app");

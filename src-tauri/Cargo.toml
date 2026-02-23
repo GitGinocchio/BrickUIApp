@@ -106,6 +106,8 @@ futures = "0.3.32"
 btleplug = { version = "0.11.8", features = [ "serde" ] }
 keyring = { version = "3.6.3", features = ["apple-native", "linux-native", "windows-native", "sync-secret-service"] }
 derivative = "2.2.0"
+dotenvy = "0.15.7"
+url = "2.5.8"
 
 
 tauri = { version = "2.10.2", features = [
@@ -121,7 +123,4 @@ tauri-plugin-opener = "2.5.3"
 tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 tauri-plugin-shell = "2.3.4"
 tauri-plugin-http = "2.5.6"
-tauri-plugin-blec = "0.8.1"
 tauri-plugin-deep-link = "2.4.7"
-dotenvy = "0.15.7"
-url = "2.5.8"

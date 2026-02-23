@@ -20,7 +20,7 @@ use crate::{
     }
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BrickUIUserState {
     access_token: Option<String>,
     refresh_token: Option<String>,

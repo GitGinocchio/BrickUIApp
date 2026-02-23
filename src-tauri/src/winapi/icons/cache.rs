@@ -30,6 +30,67 @@ fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
     }
 }
 
+pub fn get_or_insert_sync(
+    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    key: String,
+    png_bytes: Vec<u8>,
+) -> Result<String, String> {
+    // Prima leggiamo lo stato in sola lettura
+    let (maybe_hash, dir) = {
+        let state_guard = icon_cache.blocking_read();
+
+        let hash = state_guard
+            .map
+            .entries
+            .get(&key)
+            .map(|entry| entry.hash.clone());
+
+        (hash, state_guard.dir.clone())
+    };
+
+    // Controlliamo se il file esiste già
+    if let Some(hash) = maybe_hash {
+        let cached_path = dir.join(format!("{}.png", hash));
+
+        if cached_path.exists() {
+            println!("icon cache hit: {}", cached_path.to_string_lossy());
+            return Ok(cached_path.to_string_lossy().to_string());
+        }
+
+        println!("icon cache miss: {}", cached_path.to_string_lossy());
+    }
+
+    // Calcola hash dei nuovi bytes
+    let mut hasher = Sha256::new();
+    hasher.update(&png_bytes);
+    let hash = format!("{:x}", hasher.finalize());
+    let icon_path = dir.join(format!("{hash}.png"));
+
+    // Scrive file
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("Error creating icon cache dir: {e}"))?;
+    std::fs::write(&icon_path, &png_bytes)
+        .map_err(|e| format!("Error writing PNG file: {e}"))?;
+
+    // Aggiorna la mappa in scrittura
+    let mut state_guard = icon_cache.blocking_write();
+    let now = Local::now();
+    state_guard.map.entries.insert(
+        key,
+        IconEntry {
+            hash,
+            created_at: now.to_rfc3339(),
+        },
+    );
+
+    // Salva YAML della cache in versione sincrona
+    state_guard
+        .map
+        .save_sync(&dir)?; // serve un metodo `save_sync` equivalente a `save().await`
+
+    Ok(icon_path.to_string_lossy().to_string())
+}
+
 /// Ritorna il percorso dell’icona dalla cache, o la inserisce se non presente
 pub async fn get_or_insert(
     icon_cache: Arc<RwLock<BrickUIconCacheState>>,

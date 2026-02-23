@@ -7,7 +7,7 @@ use crate::{
 
 use crate::config::{generate_types_if_missing, write_schema_if_missing};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BrickUIGenericState {
     settings: Settings,
     backup: Backup,

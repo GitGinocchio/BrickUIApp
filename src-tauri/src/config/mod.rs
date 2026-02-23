@@ -24,6 +24,57 @@ where
     Ok(data)
 }
 
+pub fn save_yaml_sync<T>(path: &PathBuf, data: &T) -> Result<(), String>
+where
+    T: Serialize + std::fmt::Debug,
+{
+    // Controllo se la struct ha campo `schema`
+    let content = if let Some(schema) = extract_schema_field(data) {
+        let yaml_string = serde_yaml::to_string(data)
+            .map_err(|e| format!("Error serializing YAML: {e}"))?;
+        format!("# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}", schema, yaml_string)
+    } else {
+        serde_yaml::to_string(data)
+            .map_err(|e| format!("Error serializing YAML: {e}"))?
+    };
+
+    // Creazione directory genitore se mancante
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent dir {:?}: {e}", parent))?;
+    }
+
+    // Nome temporaneo
+    let ts = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or_default();
+
+    let tmp_name = match path.file_name() {
+        Some(name) => format!("{}.{}.tmp", name.to_string_lossy(), ts),
+        None => format!("tmp.{}.yml", ts),
+    };
+
+    let tmp_path = path.parent().map(|p| p.join(&tmp_name)).unwrap_or(PathBuf::from(&tmp_name));
+
+    // Scrittura su file temporaneo
+    std::fs::write(&tmp_path, &content)
+        .map_err(|e| format!("Error writing temp file {:?}: {e}", tmp_path))?;
+
+    // Rinomina in modo atomico
+    match std::fs::rename(&tmp_path, path) {
+        Ok(()) => Ok(()),
+        Err(_) => {
+            if path.exists() {
+                std::fs::remove_file(path)
+                    .map_err(|e| format!("Failed to remove existing file {:?}: {e}", path))?;
+            }
+            std::fs::rename(&tmp_path, path)
+                .map_err(|e| format!("Failed to rename temp file to destination: {e}"))
+        }
+    }
+}
+
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_yaml_async<T>(path: &PathBuf, data: &T) -> Result<(), String>
 where

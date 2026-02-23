@@ -1,14 +1,17 @@
 use image::{ImageBuffer, Rgba};
 use windows::{
+    Storage::Streams::{
+        DataReader, 
+        IRandomAccessStream, 
+        InputStreamOptions
+    }, 
     Win32::{
         Graphics::Gdi::{
             BI_RGB, BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, DeleteObject, GetDC,
             GetDIBits, GetObjectW, HGDIOBJ, RGBQUAD, ReleaseDC,
         },
-        UI::{
-            WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO},
-        },
-    },
+        UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO},
+    }
 };
 
 /// Convert an HICON to PNG bytes using the same bitmap extraction pipeline.
@@ -91,4 +94,26 @@ pub fn hicon_to_png_bytes(hicon: HICON) -> Result<Vec<u8>, String> {
     }
 
     Ok(png_bytes)
+}
+
+pub fn stream_to_png_bytes(stream: &IRandomAccessStream) -> Result<Vec<u8>, String> {
+    let size = stream
+        .Size()
+        .map_err(|e| format!("Error obtaining stream siz: {e}"))?
+        .try_into()
+        .map_err(|e| format!("Error converting u64 to u32: {e}"))?;
+
+    let input_stream = stream
+        .GetInputStreamAt(0)
+        .map_err(|e| format!("Error obtaining input stream: {e}"))?;
+
+    let reader = DataReader::CreateDataReader(&input_stream)
+        .map_err(|e| format!("Error creating data reader: {e}"))?;
+
+    reader.LoadAsync(size).map_err(|e| format!("Error loading bytes: {e}"))?;
+    let mut bytes = vec![0u8; size as usize];
+
+    reader.ReadBytes(&mut bytes).map_err(|e| format!("Error reading bytes: {e}"))?;
+
+    Ok(bytes)
 }

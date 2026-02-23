@@ -12,10 +12,7 @@ use crate::profiler::{
 
 use crate::{
     api::deeplink::handle_deeplink, config::settings::TaskBarBehavior, state::{
-        bluetooth::BrickUIBluetoothState, 
-        generic::BrickUIGenericState, 
-        iconcache::BrickUIconCacheState, 
-        user::{
+        bluetooth::BrickUIBluetoothState, generic::BrickUIGenericState, iconcache::BrickUIconCacheState, user::{
             BrickUIUserState, 
             refresh_session_if_present
         }
@@ -28,13 +25,13 @@ use crate::{
             uninitialize_com
         }, 
         cursor::restore_cursors, 
-        events::start_event_listeners, 
+        events::{hitboxes::{install_hitbox_hook, install_hook_recursive, remove_hitbox_hook}, start_event_listeners}, 
         monitor::workarea::reset_workareas, 
         sock::inititalize_sockets, 
         taskbar::{
             hide_taskbar, 
             show_taskbar
-        }
+        }, window::{input_overlay::InputOverlay, utils::{dump_children, find_chrome_widget}}
     }
 };
 
@@ -130,13 +127,13 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             .state::<Arc<Mutex<BrickUIGenericState>>>()
             .clone();
 
-        let (settings, backup) = tauri::async_runtime::block_on(async {
-            let state_guard = state.lock().await;
+        let (settings, backup) = {
+            let state_guard = state.blocking_lock();
             (
                 state_guard.get_settings().clone(),
                 state_guard.get_backup().clone(),
             )
-        });
+        };
 
         if settings.systemtray.enabled && settings.systemtray.hidetaskbaricon {
             if let Some(window) = app_handle.get_window(&window_label) {
@@ -212,7 +209,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     let path = resolver.app_data_dir()?;
 
     // General App State
-    let (generic, iconcache) = tauri::async_runtime::block_on(async move {
+    let (mut generic, iconcache) = tauri::async_runtime::block_on(async move {
         initialize_dirs(&path).await?;
         let generic = BrickUIGenericState::new(&path, &resource_path).await?;
         let iconcache = BrickUIconCacheState::new(&path).await?;
@@ -222,7 +219,9 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
 
     let settings = generic.get_settings().clone();
     app.manage(Arc::new(Mutex::new(generic)));
-    app.manage(Arc::new(RwLock::new(iconcache)));
+
+    let ic_state = Arc::new(RwLock::new(iconcache));
+    app.manage(ic_state.clone());
 
     // Bluetooth State
     let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
@@ -249,7 +248,11 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
 
             // Aggiorna la sessione se presente
             let mut guard = bt_state.write().await;
-            guard.watcher = Some(start_bluetooth_watcher(bt_state.clone(), &app_handle_clone).await?);
+            guard.watcher = Some(start_bluetooth_watcher(
+                bt_state.clone(), 
+                ic_state.clone(), 
+                &app_handle_clone
+            ).await?);
 
             if let Err(e) = refresh_session_if_present(user_state).await {
                 eprintln!("An error occurred while refreshing session on startup: {e:#?}");
