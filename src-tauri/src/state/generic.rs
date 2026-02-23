@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     bricks::brick::Brick,
-    config::{backup::Backup,icons::IconsMap, settings::Settings},
+    config::{backup::Backup,icons::IconsMap, settings::Settings}, winapi::window::input_overlay::InputOverlay,
 };
 
 use crate::config::{generate_types_if_missing, write_schema_if_missing};
@@ -12,7 +12,9 @@ pub struct BrickUIGenericState {
     settings: Settings,
     backup: Backup,
     // TODO: Forse sarebbe meglio trasformare questo Vec in un HashMap
-    bricks: Vec<Brick>
+    bricks: Vec<Brick>,
+
+    pub input_overlay: Option<InputOverlay>
 }
 
 impl BrickUIGenericState {
@@ -28,7 +30,8 @@ impl BrickUIGenericState {
         Ok(Self {
             settings,
             backup,
-            bricks: vec![]
+            bricks: vec![],
+            input_overlay: None
         })
     }
 

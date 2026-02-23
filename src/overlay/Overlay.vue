@@ -18,6 +18,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Brick, Prop } from "interfaces/brick";
 import { Settings } from "interfaces/settings";
 
+import { startClickableTracking } from "../utils/clickThrough";
 
 const settings = inject("settings") as Ref<Settings>;
 const theme = inject("theme") as Ref<GlobalTheme>;
@@ -37,6 +38,7 @@ const isReady = ref(false);
 const overlay = ref<HTMLDivElement>();
 const bricks = ref<Array<Brick>>();
 
+/*
 listen<[number, number, string]>("global_mouse_pressed", async (event) =>
   simulateFakeMousePressed(event)
 );
@@ -48,6 +50,7 @@ listen<[number, number]>("global_mouse_moved", async (event) =>
 listen<[number, number]>("global_mouse_moved", async (event) =>
   handleClickThrough(event, currentWindow)
 );
+*/
 
 listen<{ brick: Brick }>(
   "toggle-brick",
@@ -60,6 +63,7 @@ listen<{ name: string; prop: Prop }>(
 
 onMounted(async () => {
   try {
+    startClickableTracking(overlay.value, true);
 
     notification.destroyAll();
     await currentWindow.setIgnoreCursorEvents(true);

@@ -109,7 +109,7 @@ derivative = "2.2.0"
 dotenvy = "0.15.7"
 url = "2.5.8"
 
-
+wry = "0.54.2"
 tauri = { version = "2.10.2", features = [
     "protocol-asset",
     "unstable",

@@ -24,7 +24,7 @@ use windows::{
     core::BOOL,
 };
 
-pub mod overlay;
+pub mod input_overlay;
 pub mod utils;
 pub mod wallpaper;
 

@@ -11,6 +11,7 @@ use tokio::sync::Mutex;
 mod keyboard;
 mod mouse;
 mod window;
+pub mod hitboxes;
 
 #[derive(Debug, Clone)]
 pub enum GlobalEvent {

@@ -1,4 +1,7 @@
 use std::ffi::{CStr, CString};
+use windows::Win32::Foundation::{FALSE, TRUE};
+use windows::Win32::System::Threading::GetCurrentProcessId;
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, IsWindowVisible};
 use windows::core::PCSTR;
 use windows::{
     Win32::{
@@ -285,4 +288,42 @@ pub fn get_window_class(hwnd: HWND) -> Option<String> {
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub fn is_tauri_window(hwnd: HWND) -> Result<bool, String> {
     get_window_class(hwnd).map_or(Ok(false), |class_name| Ok(class_name.starts_with("Tauri")))
+}
+
+pub fn find_chrome_widget(hwnd: HWND) -> Option<HWND> {
+    unsafe extern "system" fn enum_proc(
+        hwnd: HWND,
+        lparam: LPARAM,
+    ) -> BOOL {
+        let target = unsafe { &mut *(lparam.0 as *mut Option<HWND>) };
+
+        let mut class_name = [0u16; 256];
+        let len = unsafe { GetClassNameW(hwnd, &mut class_name) };
+
+        if len > 0 {
+            let name = String::from_utf16_lossy(&class_name[..len as usize]);
+            if name == "Chrome_RenderWidgetHostHWND" {
+                *target = Some(hwnd);
+                return FALSE; // fermati
+            }
+        }
+
+        unsafe { EnumChildWindows(
+            Some(hwnd), 
+            Some(enum_proc), 
+            lparam
+        ) };
+        TRUE
+    }
+
+    let mut result = None;
+    unsafe {
+        EnumChildWindows(
+            Some(hwnd),
+            Some(enum_proc),
+            LPARAM(&mut result as *mut _ as isize),
+        );
+    }
+
+    result
 }

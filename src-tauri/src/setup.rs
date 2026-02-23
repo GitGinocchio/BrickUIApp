@@ -166,6 +166,17 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             window.close().expect("Error closing main window:");
         }
 
+        /*
+        let overlay_hwnd = app_handle
+            .get_window("overlay")
+            .expect("could not find overlay window")
+            .hwnd()
+            .map_err(|e| format!("Error obtaining hwnd: {e}"))
+            .expect("");
+
+        remove_hitbox_hook(overlay_hwnd).expect("Error removing hitbox hook");
+        */
+
         #[cfg(feature = "profiling")]
         drop_global_subscriber();
 
@@ -217,6 +228,8 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
         Ok::<(BrickUIGenericState, BrickUIconCacheState), String>((generic, iconcache))
     })?;
 
+    generic.input_overlay = Some(InputOverlay::new(None)?);
+
     let settings = generic.get_settings().clone();
     app.manage(Arc::new(Mutex::new(generic)));
 
@@ -244,7 +257,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     tauri::async_runtime::spawn(
         async move {
             // Fa partire gli event listeners
-            start_event_listeners(&app_handle_clone).await?;
+            //start_event_listeners(&app_handle_clone).await?;
 
             // Aggiorna la sessione se presente
             let mut guard = bt_state.write().await;
@@ -262,5 +275,40 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
         },
     );
 
+    /*
+    
+    let app_handle_clone = app_handle.clone();
+
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(10000)).await;
+        println!("passato il tempo");
+
+        let main_hwnd = app_handle_clone
+            .get_window("main")
+            .ok_or("could not find main window")?
+            .hwnd()
+            .map_err(|e| format!("Error obtaining hwnd: {e}"))?;
+
+        println!("main_hwnd: {main_hwnd:?}");
+        dump_children(main_hwnd)?;
+
+        let overlay_hwnd = app_handle_clone
+            .get_window("overlay")
+            .ok_or("could not find overlay window")?
+            .hwnd()
+            .map_err(|e| format!("Error obtaining hwnd: {e}"))?;
+
+        println!("overlay_hwnd: {overlay_hwnd:?}");
+        dump_children(overlay_hwnd)?;
+
+        if let Some(webview_hwnd) = find_chrome_widget(overlay_hwnd) {
+            println!("webview_hwnd: {webview_hwnd:?}");
+            install_hitbox_hook(overlay_hwnd)?;
+        }
+
+        Ok::<(), String>(())
+    });
+    */
+ 
     Ok(())
 }

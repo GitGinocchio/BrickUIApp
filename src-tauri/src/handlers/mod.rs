@@ -74,6 +74,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         hide_all_cursors,
         restore_all_cursors,
         // Window
+        update_clickable_rects,
         get_monitor_maximized_window,
         get_maximized_windows,
         get_monitor_windows,
