@@ -107,7 +107,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         static HANDLED: once_cell::sync::Lazy<Mutex<bool>> =
             once_cell::sync::Lazy::new(|| Mutex::new(false));
 
-        let mut handled = tauri::async_runtime::block_on(async { HANDLED.lock().await });
+        let mut handled = HANDLED.blocking_lock();
 
         if *handled {
             // già gestito, non fare nulla
