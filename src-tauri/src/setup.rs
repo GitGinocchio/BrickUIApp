@@ -25,13 +25,13 @@ use crate::{
             uninitialize_com
         }, 
         cursor::restore_cursors, 
-        events::{hitboxes::{install_hitbox_hook, install_hook_recursive, remove_hitbox_hook}, start_event_listeners}, 
+        events::start_event_listeners, 
         monitor::workarea::reset_workareas, 
         sock::inititalize_sockets, 
         taskbar::{
             hide_taskbar, 
             show_taskbar
-        }, window::{input_overlay::InputOverlay, utils::{dump_children, find_chrome_widget}}
+        }
     }
 };
 
