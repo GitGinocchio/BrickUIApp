@@ -24,7 +24,7 @@ use crate::{
             initialize_com, 
             uninitialize_com
         }, 
-        cursor::restore_cursors, 
+        cursors::restore_cursors, 
         events::start_event_listeners, 
         monitor::workarea::reset_workareas, 
         sock::inititalize_sockets, 
@@ -209,7 +209,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     let path = resolver.app_data_dir()?;
 
     // General App State
-    let (mut generic, iconcache) = tauri::async_runtime::block_on(async move {
+    let (generic, iconcache) = tauri::async_runtime::block_on(async move {
         initialize_dirs(&path).await?;
         let generic = BrickUIGenericState::new(&path, &resource_path).await?;
         let iconcache = BrickUIconCacheState::new(&path).await?;

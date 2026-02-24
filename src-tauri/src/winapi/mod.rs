@@ -1,6 +1,5 @@
 pub mod bluetooth;
 pub mod com;
-pub mod cursor;
 pub mod desktop;
 pub mod events;
 pub mod explorer;
@@ -11,6 +10,7 @@ pub mod sock;
 pub mod startmenu;
 pub mod taskbar;
 pub mod window;
+pub mod cursors;
 
 use lnk::ShellLink;
 use lnk::encoding::WINDOWS_1252;

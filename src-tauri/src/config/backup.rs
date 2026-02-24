@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     winapi::{
-        cursor::{CursorType, backup_cursors},
+        cursors::{CursorType, backup_cursors},
         taskbar::is_taskbar_autohide,
     }
 };

@@ -5,6 +5,12 @@ use tauri::{AppHandle, Manager as _, State};
 
 use crate::state::generic::BrickUIGenericState;
 
+// TODO: Rimuovere questo metodo in quanto pericoloso
+// Rischia di rendere l'esperienza utente un problema
+// Non e' il massimo nasconderlo del tutto
+// Oppure una soluzione sarebbe capire quando una finestra va sopra l'overlay
+// (l'unico momento in cui un cursore custom applicato dentro l'overlay)
+// e far comparire il cursore nativo oppure cercare di portare la finestra topmost
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn hide_all_cursors(
@@ -15,7 +21,7 @@ pub async fn hide_all_cursors(
 
     let cursor_path = resource_path.join("assets").join("transparent.cur");
 
-    crate::winapi::cursor::hide_cursors(cursor_path.to_string_lossy().to_string().as_str())
+    crate::winapi::cursors::hide_cursors(cursor_path.to_string_lossy().to_string().as_str())
 }
 
 #[tauri::command(async)]
@@ -26,5 +32,5 @@ pub async fn restore_all_cursors(
     let state_guard = state.lock().await;
     let backup = state_guard.get_backup();
 
-    crate::winapi::cursor::restore_cursors(&backup.cursors)
+    crate::winapi::cursors::restore_cursors(&backup.cursors)
 }
