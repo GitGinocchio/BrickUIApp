@@ -237,6 +237,7 @@ impl Cursors {
         self.backup = Some(map);
         Ok(())
     }
+
     pub fn restore(&mut self) -> Result<(), String> {
         let backup = self.backup.as_ref()
             .ok_or("No backup available")?;
@@ -256,15 +257,26 @@ impl Cursors {
     }
 
     pub fn add_scheme(&mut self, scheme: Scheme) -> Result<(), String> {
-        scheme.save()?; // salva nel registry
+        scheme.save()?;
         self.schemes.insert(scheme.name.clone(), scheme);
         Ok(())
     }
-    pub fn remove_scheme() {}
+    pub fn remove_scheme(&mut self, name: &str) -> Result<(), String> {
+        if let Some(scheme) = self.schemes.remove(name) {
+            scheme.delete()?;
+            return Ok(());
+        }
+        Err("scheme not found".into())
+    }
 
-    pub fn set_scheme() {}
-    pub fn unset_scheme() {}
+    pub fn set_scheme(&mut self, name: &str) {}
+    pub fn unset_scheme(&mut self, name: &str) {}
 
-    pub fn get_scheme() {}
-    pub fn get_schemes() {}
+    pub fn get_scheme(&self, name: &str) -> Option<&Scheme> {
+        self.schemes.get(name)
+    }
+
+    pub fn get_schemes(&self) -> &HashMap<String, Scheme> {
+        &self.schemes
+    }
 }
