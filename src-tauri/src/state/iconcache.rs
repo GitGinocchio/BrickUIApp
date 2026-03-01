@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 
 
-pub struct BrickUIconCacheState {
+pub struct IconCacheState {
     pub dir: PathBuf,
     pub map: IconsMap,
 }
 
-impl BrickUIconCacheState {
+impl IconCacheState {
     pub async fn new(dir: &PathBuf) -> Result<Self, String> {
         let map = IconsMap::load(&dir).await?;
         

@@ -16,7 +16,7 @@ use windows::Win32::{
 
 use crate::{
     config::settings::{Settings, StartMenuBehavior},
-    state::generic::BrickUIGenericState,
+    state::generic::GenericState,
 };
 
 use super::GlobalEvent;
@@ -30,7 +30,7 @@ pub async fn init_hook<R: tauri::Runtime>(
 ) -> Result<(), String> {
     static TX: OnceLock<Sender<GlobalEvent>> = OnceLock::new();
 
-    let state = app_handle.state::<Arc<Mutex<BrickUIGenericState>>>();
+    let state = app_handle.state::<Arc<Mutex<GenericState>>>();
     let state_guard = state.lock().await;
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
     SETTINGS

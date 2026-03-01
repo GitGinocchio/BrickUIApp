@@ -13,7 +13,7 @@ use windows::{
 };
 
 use crate::{
-    state::{bluetooth::BrickUIBluetoothState, iconcache::BrickUIconCacheState}, 
+    state::{bluetooth::BluetoothState, iconcache::IconCacheState}, 
     winapi::bluetooth::{
         win32::Win32Device, 
         winrt::{
@@ -243,8 +243,8 @@ pub async fn scan(duration: Option<u8>) -> Result<HashMap<String, Device>, Strin
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn start_bluetooth_watcher(
-    bluetooth_state: Arc<RwLock<BrickUIBluetoothState>>,
-    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    bluetooth_state: Arc<RwLock<BluetoothState>>,
+    icon_cache: Arc<RwLock<IconCacheState>>,
     app_handle: &AppHandle
 ) -> Result<DeviceWatcher, String> {
     // Selector AEP (Classic + audio/HID)

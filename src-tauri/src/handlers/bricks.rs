@@ -1,7 +1,7 @@
 use crate::bricks;
 use crate::bricks::brick::Brick;
 
-use crate::state::generic::BrickUIGenericState;
+use crate::state::generic::GenericState;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_bricks(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>
+    state: State<'_, Arc<Mutex<GenericState>>>
 ) -> Result<Vec<Brick>, String> {
     let state_guard = state.lock().await;
 
@@ -21,7 +21,7 @@ pub async fn get_bricks(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_brick_by_name(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     name: String,
 ) -> Result<Option<Brick>, String> {
     let state_guard = state.lock().await;
@@ -32,7 +32,7 @@ pub async fn get_brick_by_name(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn load_bricks(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle
 ) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
@@ -49,7 +49,7 @@ pub async fn load_bricks(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn save_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
@@ -77,7 +77,7 @@ pub async fn save_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn rename_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     old_name: String,
     new_name: String,
@@ -101,7 +101,7 @@ pub async fn rename_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn duplicate_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
@@ -133,7 +133,7 @@ pub async fn open_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn delete_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
@@ -152,7 +152,7 @@ pub async fn delete_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn new_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
 ) -> Result<(), String> {
@@ -187,7 +187,7 @@ pub async fn pack_brick(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn unpack_brick(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle,
     brick_path: String,
     brick_name: String,

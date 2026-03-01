@@ -8,14 +8,14 @@ use crate::{
 use crate::config::{generate_types_if_missing, write_schema_if_missing};
 
 #[derive(Debug)]
-pub struct BrickUIGenericState {
+pub struct GenericState {
     settings: Settings,
     backup: Backup,
     // TODO: Forse sarebbe meglio trasformare questo Vec in un HashMap
     bricks: Vec<Brick>
 }
 
-impl BrickUIGenericState {
+impl GenericState {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
     pub async fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
         // TODO: Questi due chiamate qui sotto andrebbero spostate...

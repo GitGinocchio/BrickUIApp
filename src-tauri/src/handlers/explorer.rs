@@ -5,8 +5,8 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::{
     state::{
-        iconcache::BrickUIconCacheState, 
-        user::BrickUIUserState
+        iconcache::IconCacheState, 
+        user::UserState
     }, 
     winapi::explorer::recents::Recent
 };
@@ -15,7 +15,7 @@ use crate::{
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_handle: AppHandle,
-    icon_cache_state: State<'_, Arc<RwLock<BrickUIconCacheState>>>,
+    icon_cache_state: State<'_, Arc<RwLock<IconCacheState>>>,
 ) -> Result<Vec<Recent>, String> {
     let resolver = app_handle.path();
     let path = resolver

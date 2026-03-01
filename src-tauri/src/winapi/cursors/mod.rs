@@ -17,7 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::{SPI_SETCURSORS, SYSTEM_PARAMETERS_
 use winreg::enums::{HKEY_CURRENT_USER, KEY_SET_VALUE};
 use winreg::RegKey;
 
-use crate::state::cursors::Cursors;
+use crate::state::cursors::CursorsState;
 
 /// Applica le modifiche scritte nel registro
 #[cfg_attr(feature = "profiling", tracing::instrument)]
@@ -177,8 +177,6 @@ impl Scheme {
             .set_value(&self.name, &value)
             .map_err(|e| format!("Error setting scheme key: {e}"))?;
 
-        apply_cursor_changes()?;
-
         Ok(())
     }
 
@@ -219,43 +217,7 @@ impl Scheme {
     }
 }
 
-impl Cursors {
-    pub fn backup(&mut self) -> Result<(), String> {
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let key = hkcu
-            .open_subkey("Control Panel\\Cursors")
-            .map_err(|e| e.to_string())?;
-
-        let mut map = HashMap::new();
-
-        for ct in CursorType::iter() {
-            if let Ok(value) = key.get_value::<String, _>(ct.as_ref()) {
-                map.insert(ct, value);
-            }
-        }
-
-        self.backup = Some(map);
-        Ok(())
-    }
-
-    pub fn restore(&mut self) -> Result<(), String> {
-        let backup = self.backup.as_ref()
-            .ok_or("No backup available")?;
-
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let key = hkcu
-            .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
-            .map_err(|e| e.to_string())?;
-
-        for (ct, path) in backup {
-            key.set_value(ct.as_ref(), path)
-                .map_err(|e| e.to_string())?;
-        }
-
-        apply_cursor_changes()?;
-        Ok(())
-    }
-
+impl CursorsState {
     pub fn add_scheme(&mut self, scheme: Scheme) -> Result<(), String> {
         scheme.save()?;
         self.schemes.insert(scheme.name.clone(), scheme);
@@ -269,8 +231,57 @@ impl Cursors {
         Err("scheme not found".into())
     }
 
-    pub fn set_scheme(&mut self, name: &str) {}
-    pub fn unset_scheme(&mut self, name: &str) {}
+    pub fn set_scheme(&mut self, name: &str) -> Result<(), String> {
+        let scheme = if let Some(s) = self.schemes.get(name) {
+            s.clone()
+        } else {
+            Scheme::from_name(name)
+                .ok_or("Scheme not found")?
+        };
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = hkcu
+            .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
+            .map_err(|e| e.to_string())?;
+
+        for ct in CursorType::iter() {
+            let value = scheme
+                .cursors
+                .get(&ct)
+                .cloned()
+                .unwrap_or_default();
+
+            key.set_value(ct.as_ref(), &value)
+                .map_err(|e| e.to_string())?;
+        }
+
+        key.set_value("Scheme Source", &scheme.name)
+            .map_err(|e| e.to_string())?;
+
+        apply_cursor_changes()?;
+
+        Ok(())
+    }
+    
+    pub fn unset_scheme(&mut self) -> Result<(), String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = hkcu
+            .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
+            .map_err(|e| e.to_string())?;
+
+        for (ct, path) in &self.default {
+            key.set_value(ct.as_ref(), path)
+                .map_err(|e| e.to_string())?;
+        }
+
+        // Pulisce Scheme Source (opzionale)
+        key.set_value("Scheme Source", &"")
+            .map_err(|e| e.to_string())?;
+
+        apply_cursor_changes()?;
+
+        Ok(())
+    }
 
     pub fn get_scheme(&self, name: &str) -> Option<&Scheme> {
         self.schemes.get(name)

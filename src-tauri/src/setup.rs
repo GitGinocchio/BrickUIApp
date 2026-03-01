@@ -11,9 +11,15 @@ use crate::profiler::{
 };
 
 use crate::{
-    api::deeplink::handle_deeplink, config::settings::TaskBarBehavior, state::{
-        bluetooth::BrickUIBluetoothState, generic::BrickUIGenericState, iconcache::BrickUIconCacheState, user::{
-            BrickUIUserState, 
+    api::deeplink::handle_deeplink, 
+    config::settings::TaskBarBehavior, 
+    state::{
+        bluetooth::BluetoothState, 
+        cursors::CursorsState, 
+        generic::GenericState, 
+        iconcache::IconCacheState, 
+        user::{
+            UserState, 
             refresh_session_if_present
         }
     }, 
@@ -124,7 +130,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         let app_handle = window.app_handle();
         let window_label = window.label().to_string();
         let state = app_handle
-            .state::<Arc<Mutex<BrickUIGenericState>>>()
+            .state::<Arc<Mutex<GenericState>>>()
             .clone();
 
         let (settings, backup) = {
@@ -211,24 +217,27 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     // General App State
     let (generic, iconcache) = tauri::async_runtime::block_on(async move {
         initialize_dirs(&path).await?;
-        let generic = BrickUIGenericState::new(&path, &resource_path).await?;
-        let iconcache = BrickUIconCacheState::new(&path).await?;
+        let generic = GenericState::new(&path, &resource_path).await?;
+        let iconcache = IconCacheState::new(&path).await?;
 
-        Ok::<(BrickUIGenericState, BrickUIconCacheState), String>((generic, iconcache))
+        Ok::<(GenericState, IconCacheState), String>((generic, iconcache))
     })?;
 
     let settings = generic.get_settings().clone();
+    let default_cursors = generic.get_backup().cursors.clone();
     app.manage(Arc::new(Mutex::new(generic)));
+
+    app.manage(Arc::new(RwLock::new(CursorsState::new(default_cursors))));
 
     let ic_state = Arc::new(RwLock::new(iconcache));
     app.manage(ic_state.clone());
 
     // Bluetooth State
-    let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
+    let bt_state = Arc::new(RwLock::new(BluetoothState::new()?));
     app.manage(bt_state.clone());
 
     // User State
-    let user_state = Arc::new(Mutex::new(BrickUIUserState::new()?));
+    let user_state = Arc::new(Mutex::new(UserState::new()?));
     app.manage(user_state.clone());
 
     // Mostra o nascondi taskbar secondo settings

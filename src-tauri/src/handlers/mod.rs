@@ -71,7 +71,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         open_start_menu,
         get_start_menu_favorites,
         // Cursor
-        hide_all_cursors,
+        //hide_all_cursors,
         restore_all_cursors,
         // Window
         get_monitor_maximized_window,

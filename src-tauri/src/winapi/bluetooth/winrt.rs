@@ -23,7 +23,7 @@ use windows::{
     core::HSTRING
 };
 
-use crate::{state::iconcache::BrickUIconCacheState, winapi::{
+use crate::{state::iconcache::IconCacheState, winapi::{
         bluetooth::{
             AcceptPairingMessage, 
             PairingMessage
@@ -132,7 +132,7 @@ pub(super) fn extract_winrt_device_address(id: &str) -> String {
 
 impl WinRTDevice {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn from_info(info: &DeviceInformation, icon_cache: Arc<RwLock<BrickUIconCacheState>>) -> Result<Self, String> {
+    pub fn from_info(info: &DeviceInformation, icon_cache: Arc<RwLock<IconCacheState>>) -> Result<Self, String> {
         let id = info
             .Id()
             .map_err(|e| format!("Id Error: {e}"))?

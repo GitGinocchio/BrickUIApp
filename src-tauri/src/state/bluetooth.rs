@@ -5,12 +5,12 @@ use windows::Devices::Enumeration::DeviceWatcher;
 use crate::winapi::bluetooth::Device;
 
 #[derive(Debug)]
-pub struct BrickUIBluetoothState {
+pub struct BluetoothState {
     pub watcher: Option<DeviceWatcher>,
     pub devices: HashMap<String, Device>
 }
 
-impl BrickUIBluetoothState {
+impl BluetoothState {
     pub fn new() -> Result<Self, String> {
         Ok(Self {
             watcher: None,

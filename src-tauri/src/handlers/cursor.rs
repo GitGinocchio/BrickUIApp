@@ -3,7 +3,7 @@ use tokio::sync::Mutex;
 
 use tauri::{AppHandle, Manager as _, State};
 
-use crate::state::generic::BrickUIGenericState;
+use crate::state::generic::GenericState;
 
 // TODO: Rimuovere questo metodo in quanto pericoloso
 // Rischia di rendere l'esperienza utente un problema
@@ -27,7 +27,7 @@ pub async fn hide_all_cursors(
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn restore_all_cursors(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
 ) -> Result<(), String> {
     let state_guard = state.lock().await;
     let backup = state_guard.get_backup();

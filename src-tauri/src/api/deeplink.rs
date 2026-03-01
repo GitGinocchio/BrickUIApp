@@ -5,7 +5,7 @@ use tauri::{AppHandle, Emitter as _, Manager as _};
 use tokio::sync::Mutex;
 use url::{Url, form_urlencoded};
 
-use crate::{state::user::BrickUIUserState, utils::focus_window};
+use crate::{state::user::UserState, utils::focus_window};
 
 #[derive(Debug, Clone)]
 pub struct DeepLinkAuthArgs {
@@ -88,7 +88,7 @@ pub async fn handle_deeplink(app: &AppHandle, url: &str) -> Result<(), String> {
         DeepLinkRoute::Auth { args } => {
             focus_window(&app, "main").map_err(|e| format!("Error focusing window: {e}"))?; 
 
-            let state = app.state::<Arc<Mutex<BrickUIUserState>>>();
+            let state = app.state::<Arc<Mutex<UserState>>>();
             let mut guard = state.lock().await;
 
             if guard.get_access_token().as_ref() != Some(&args.access_token) {

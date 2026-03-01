@@ -16,12 +16,14 @@ use crate::{
         utils::ApiResponse
     }, 
     keyring::{
-        clear_refresh_token, load_refresh_token, save_refresh_token
+        clear_refresh_token, 
+        load_refresh_token, 
+        save_refresh_token
     }
 };
 
 #[derive(Debug)]
-pub struct BrickUIUserState {
+pub struct UserState {
     access_token: Option<String>,
     refresh_token: Option<String>,
     token_type: Option<String>,
@@ -35,7 +37,7 @@ pub struct BrickUIUserState {
     pub last_user_fetch: Option<DateTime<Utc>>
 }
 
-impl BrickUIUserState {
+impl UserState {
     pub fn new() -> Result<Self, String> {
         let refresh_token = load_refresh_token()?;
 
@@ -131,7 +133,7 @@ impl BrickUIUserState {
     }
 }
 
-pub async fn refresh_session_if_present(state_ref: Arc<Mutex<BrickUIUserState>>) -> Result<(), String> {
+pub async fn refresh_session_if_present(state_ref: Arc<Mutex<UserState>>) -> Result<(), String> {
     let refresh_token = {
         let state_guard = state_ref.lock().await;
         if let Some(refresh_token) = &state_guard.refresh_token {
@@ -157,7 +159,7 @@ pub async fn refresh_session_if_present(state_ref: Arc<Mutex<BrickUIUserState>>)
 }
 
 /// Restituisce sempre un access token valido, refreshando la sessione se necessario.
-pub async fn get_valid_access_token(state_ref: &Arc<Mutex<BrickUIUserState>>) -> Result<String, String> {
+pub async fn get_valid_access_token(state_ref: &Arc<Mutex<UserState>>) -> Result<String, String> {
     {
         let guard = state_ref.lock().await;
 

@@ -1,5 +1,5 @@
 use crate::{
-    config::settings::TaskBarBehavior, state::generic::BrickUIGenericState,
+    config::settings::TaskBarBehavior, state::generic::GenericState,
     winapi::taskbar::hide_taskbar,
 };
 use crossbeam::channel;
@@ -114,7 +114,7 @@ pub async fn start_event_listeners(app_handle: &AppHandle) -> Result<(), String>
 
                     // Recupera stato solo ora, quando esiste
                     if let Some(state) =
-                        app_handle_clone.try_state::<Arc<Mutex<BrickUIGenericState>>>()
+                        app_handle_clone.try_state::<Arc<Mutex<GenericState>>>()
                     {
                         let settings = tauri::async_runtime::block_on(async {
                             let state_guard = state.lock().await;

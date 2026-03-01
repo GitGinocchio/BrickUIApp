@@ -8,7 +8,7 @@ use windows::Win32::{
 };
 
 use crate::{
-    state::iconcache::BrickUIconCacheState, 
+    state::iconcache::IconCacheState, 
     winapi::icons::{
         cache::get_icon_from_file, 
         resolver::parse_icon_location
@@ -68,7 +68,7 @@ fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_data_dir: &PathBuf,
-    icon_cache: Arc<RwLock<BrickUIconCacheState>>
+    icon_cache: Arc<RwLock<IconCacheState>>
 ) -> Result<Vec<Recent>, String> {
     let recents_dir = app_data_dir.join("Microsoft\\Windows\\Recent");
 

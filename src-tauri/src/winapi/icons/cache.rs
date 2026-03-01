@@ -4,7 +4,7 @@ use chrono::Local;
 use sha2::{Digest as _, Sha256};
 use tokio::sync::RwLock;
 
-use crate::state::iconcache::BrickUIconCacheState;
+use crate::state::iconcache::IconCacheState;
 use crate::config::icons::IconEntry;
 use crate::winapi::icons::resolver::extract_icon_png_bytes;
 
@@ -31,7 +31,7 @@ fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
 }
 
 pub fn get_or_insert_sync(
-    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    icon_cache: Arc<RwLock<IconCacheState>>,
     key: String,
     png_bytes: Vec<u8>,
 ) -> Result<String, String> {
@@ -93,7 +93,7 @@ pub fn get_or_insert_sync(
 
 /// Ritorna il percorso dell’icona dalla cache, o la inserisce se non presente
 pub async fn get_or_insert(
-    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    icon_cache: Arc<RwLock<IconCacheState>>,
     key: String,
     png_bytes: Vec<u8>,
 ) -> Result<String, String> {
@@ -152,7 +152,7 @@ pub async fn get_or_insert(
 
 /// Funzione helper: estrae e inserisce direttamente dall’HICON/FilePath
 pub async fn get_icon_from_file(
-    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    icon_cache: Arc<RwLock<IconCacheState>>,
     file_path: &PathBuf,
     icon_index: Option<i32>,
 ) -> Result<Option<String>, String> {

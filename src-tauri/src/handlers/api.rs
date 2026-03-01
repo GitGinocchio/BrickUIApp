@@ -7,12 +7,12 @@ use crate::{
     api::{
         auth::{UserIdentity, resend::ResendResponse}, users::{UpdateUser, User}, utils::ApiResponse
     }, 
-    state::user::{BrickUIUserState, get_valid_access_token, refresh_session_if_present}
+    state::user::{UserState, get_valid_access_token, refresh_session_if_present}
 };
 
 #[tauri::command(async)]
 pub async fn auth_register(
-    _state: State<'_, Arc<Mutex<BrickUIUserState>>>,
+    _state: State<'_, Arc<Mutex<UserState>>>,
     email: String, 
     password: String
 ) -> Result<ApiResponse<()>, String> {
@@ -24,7 +24,7 @@ pub async fn auth_register(
 
 #[tauri::command(async)]
 pub async fn auth_login(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>,
+    state: State<'_, Arc<Mutex<UserState>>>,
     email: String,
     password: String
 ) -> Result<ApiResponse<()>, String> {
@@ -42,7 +42,7 @@ pub async fn auth_login(
 
 #[tauri::command(async)]
 pub async fn auth_resend_email(
-    _state: State<'_, Arc<Mutex<BrickUIUserState>>>,
+    _state: State<'_, Arc<Mutex<UserState>>>,
     email: String
 ) -> Result<ApiResponse<ResendResponse>, String> {
     crate::api::auth::resend::resend(email).await
@@ -50,7 +50,7 @@ pub async fn auth_resend_email(
 
 #[tauri::command(async)]
 pub async fn auth_is_logged_in(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>
+    state: State<'_, Arc<Mutex<UserState>>>
 ) -> Result<bool, String> {
     let state_guard = state.lock().await;
     Ok(state_guard.is_logged_in())
@@ -58,7 +58,7 @@ pub async fn auth_is_logged_in(
 
 #[tauri::command(async)]
 pub async fn auth_is_session_expired(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>
+    state: State<'_, Arc<Mutex<UserState>>>
 ) -> Result<bool, String> {
     let state_guard = state.lock().await;
     Ok(state_guard.is_session_expired())
@@ -66,7 +66,7 @@ pub async fn auth_is_session_expired(
 
 #[tauri::command(async)]
 pub async fn auth_get_identity(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>
+    state: State<'_, Arc<Mutex<UserState>>>
 ) -> Result<Option<UserIdentity>, String> {
     let state_guard = state.lock().await;
     Ok(state_guard.identity.clone())
@@ -74,7 +74,7 @@ pub async fn auth_get_identity(
 
 #[tauri::command(async)]
 pub async fn users_get_me(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>
+    state: State<'_, Arc<Mutex<UserState>>>
 ) -> Result<ApiResponse<User>, String> {
     {
         let guard = state.lock().await;
@@ -104,7 +104,7 @@ pub async fn users_get_me(
 
 #[tauri::command(async)]
 pub async fn users_update_me(
-    state: State<'_, Arc<Mutex<BrickUIUserState>>>,
+    state: State<'_, Arc<Mutex<UserState>>>,
     update: UpdateUser
 ) -> Result<ApiResponse<User>, String> {
     let access_token = get_valid_access_token(state.inner()).await?;

@@ -4,7 +4,7 @@ use tokio::sync::{Mutex, RwLock};
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    state::{generic::BrickUIGenericState, iconcache::BrickUIconCacheState},
+    state::{generic::GenericState, iconcache::IconCacheState},
     winapi::{self, taskbar::apps::App},
 };
 
@@ -23,7 +23,7 @@ pub fn show_taskbar(app_handle: AppHandle) -> Result<(), String> {
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_active_taskbar_apps(
-    icon_cache_state: State<'_, Arc<RwLock<BrickUIconCacheState>>>
+    icon_cache_state: State<'_, Arc<RwLock<IconCacheState>>>
 ) -> Result<Vec<App>, String> {
     Ok(crate::winapi::taskbar::apps::get_active_taskbar_apps(
         icon_cache_state.inner().clone()
@@ -34,7 +34,7 @@ pub async fn get_active_taskbar_apps(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_pinned_taskbar_apps(
     app_handle: AppHandle,
-    icon_cache_state: State<'_, Arc<RwLock<BrickUIconCacheState>>>,
+    icon_cache_state: State<'_, Arc<RwLock<IconCacheState>>>,
 ) -> Result<Vec<App>, String> {
     let resolver = app_handle.path();
     let path = resolver
@@ -56,7 +56,7 @@ pub async fn get_pinned_taskbar_apps(
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_taskbar_apps(
     app_handle: AppHandle,
-    icon_cache_state: State<'_, Arc<RwLock<BrickUIconCacheState>>>,
+    icon_cache_state: State<'_, Arc<RwLock<IconCacheState>>>,
 ) -> Result<Vec<App>, String> {
     let resolver = app_handle.path();
     let path = resolver
@@ -84,7 +84,7 @@ pub fn is_taskbar_autohide() -> bool {
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_tray_icons(
-    state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
+    state: State<'_, Arc<Mutex<GenericState>>>,
     app_handle: AppHandle
 ) -> Result<Vec<TrayIcon>, String> {
     let resolver = app_handle.path();
