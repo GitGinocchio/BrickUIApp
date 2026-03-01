@@ -17,27 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::{SPI_SETCURSORS, SYSTEM_PARAMETERS_
 use winreg::enums::{HKEY_CURRENT_USER, KEY_SET_VALUE};
 use winreg::RegKey;
 
-#[derive(
-    Clone, Debug, Serialize, Deserialize, 
-    PartialEq, Eq, Hash, EnumIter, AsRefStr, JsonSchema
-)]
-pub enum CursorType {
-    Arrow,
-    Hand,
-    AppStarting,
-    Wait,
-    IBeam,
-    Crosshair,
-    Help,
-    No,
-    NWPen,
-    SizeAll,
-    SizeNESW,
-    SizeNS,
-    SizeNWSE,
-    SizeWE,
-    UpArrow,
-}
+use crate::state::cursors::Cursors;
 
 /// Applica le modifiche scritte nel registro
 #[cfg_attr(feature = "profiling", tracing::instrument)]
@@ -53,6 +33,13 @@ fn apply_cursor_changes() -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn serialize_scheme(cursors: &HashMap<CursorType, String>) -> String {
+    CursorType::iter()
+        .map(|ct| cursors.get(&ct).cloned().unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 /// Salva i cursori correnti
@@ -103,4 +90,181 @@ pub fn restore_cursors(backup: &HashMap<CursorType, String>) -> Result<(), Strin
     apply_cursor_changes()?;
 
     Ok(())
+}
+
+
+#[derive(
+    Clone, Debug, Serialize, Deserialize, PartialEq, 
+    Eq, Hash, EnumIter, AsRefStr, JsonSchema
+)]
+pub enum CursorType {
+    Arrow,
+    Help,
+    AppStarting,
+    Wait,
+    Crosshair,
+    IBeam,
+    NWPen,
+    No,
+    SizeNS,
+    SizeWE,
+    SizeNWSE,
+    SizeNESW,
+    SizeAll,
+    UpArrow,
+    Hand
+}
+
+#[derive(Clone, Debug)]
+pub struct Scheme {
+    pub name: String,
+    pub cursors: HashMap<CursorType, String>,
+}
+
+impl Scheme {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            cursors: HashMap::new(),
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let schemes_key = hkcu.open_subkey("Control Panel\\Cursors\\Schemes").ok()?;
+
+        // Legge la stringa del schema
+        let value: String = schemes_key.get_value(name).ok()?;
+
+        // Parla la stringa in HashMap<CursorType,String>
+        let mut cursors = HashMap::new();
+        let parts: Vec<&str> = value.split(',').collect();
+        for pair in parts.chunks_exact(2) {
+            if let (Some(cursor_name), Some(path)) = (pair.get(0), pair.get(1)) {
+                if let Some(cursor_type) = CursorType::iter()
+                    .find(|ct| ct.as_ref() == *cursor_name)
+                {
+                    cursors.insert(cursor_type, path.to_string());
+                }
+            }
+        }
+
+        Some(Self {
+            name: name.to_string(),
+            cursors,
+        })
+    }
+
+    /// Aggiunge o aggiorna un cursore nello schema (solo in memoria)
+    pub fn add_cursor(&mut self, cursor_type: CursorType, path: &str) {
+        self.cursors.insert(cursor_type, path.to_string());
+    }
+
+    /// Rimuove un cursore dallo schema (solo in memoria)
+    pub fn remove_cursor(&mut self, cursor_type: CursorType) {
+        self.cursors.remove(&cursor_type);
+    }
+
+    pub fn save(&self) -> Result<(), String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let schemes_key = hkcu
+            .open_subkey_with_flags("Control Panel\\Cursors\\Schemes", KEY_SET_VALUE)
+            .or_else(|_| hkcu.create_subkey("Control Panel\\Cursors\\Schemes").map(|(k,_)| k))
+            .map_err(|e| format!("Error obtaining schemes key: {e}"))?;
+
+        let value = serialize_scheme(&self.cursors);
+        schemes_key
+            .set_value(&self.name, &value)
+            .map_err(|e| format!("Error setting scheme key: {e}"))?;
+
+        apply_cursor_changes()?;
+
+        Ok(())
+    }
+
+    pub fn delete_scheme(name: &str) -> Result<(), String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+
+        // Controlla schema attivo
+        let cursors_key = hkcu
+            .open_subkey("Control Panel\\Cursors")
+            .map_err(|e| e.to_string())?;
+
+        if let Ok(active) = cursors_key.get_value::<String, _>("Scheme Source") {
+            if active == name {
+                // fallback
+                if let Some(default) = Scheme::from_name("Windows Default") {
+                    default.save()?;
+                }
+            }
+        }
+
+        let schemes_key = hkcu
+            .open_subkey_with_flags(
+                "Control Panel\\Cursors\\Schemes",
+                KEY_SET_VALUE,
+            )
+            .map_err(|e| e.to_string())?;
+
+        schemes_key
+            .delete_value(name)
+            .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    pub fn delete(self) -> Result<(), String> {
+        Scheme::delete_scheme(&self.name)?;
+        Ok(())
+    }
+}
+
+impl Cursors {
+    pub fn backup(&mut self) -> Result<(), String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = hkcu
+            .open_subkey("Control Panel\\Cursors")
+            .map_err(|e| e.to_string())?;
+
+        let mut map = HashMap::new();
+
+        for ct in CursorType::iter() {
+            if let Ok(value) = key.get_value::<String, _>(ct.as_ref()) {
+                map.insert(ct, value);
+            }
+        }
+
+        self.backup = Some(map);
+        Ok(())
+    }
+    pub fn restore(&mut self) -> Result<(), String> {
+        let backup = self.backup.as_ref()
+            .ok_or("No backup available")?;
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let key = hkcu
+            .open_subkey_with_flags("Control Panel\\Cursors", KEY_SET_VALUE)
+            .map_err(|e| e.to_string())?;
+
+        for (ct, path) in backup {
+            key.set_value(ct.as_ref(), path)
+                .map_err(|e| e.to_string())?;
+        }
+
+        apply_cursor_changes()?;
+        Ok(())
+    }
+
+    pub fn add_scheme(&mut self, scheme: Scheme) -> Result<(), String> {
+        scheme.save()?; // salva nel registry
+        self.schemes.insert(scheme.name.clone(), scheme);
+        Ok(())
+    }
+    pub fn remove_scheme() {}
+
+    pub fn set_scheme() {}
+    pub fn unset_scheme() {}
+
+    pub fn get_scheme() {}
+    pub fn get_schemes() {}
 }

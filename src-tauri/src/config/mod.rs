@@ -1,5 +1,5 @@
-pub mod backup;
 pub mod settings;
+pub mod backup;
 pub mod icons;
 
 use fs_extra::dir::{CopyOptions, copy};
