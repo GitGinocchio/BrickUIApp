@@ -91,7 +91,7 @@ windows = { version = "0.61.3", features = [
 winreg = "0.55.0"
 uuid = { version = "1.21.0", features = [ "v4"] }
 image = "0.25.6"
-chrono = "0.4.41"
+chrono = "0.4.44"
 base64 = "0.22.1"
 fs_extra = "1.3.0"
 crossbeam = "0.8.4"
