@@ -12,8 +12,4 @@ export * from "./vue/csstype";
 export * from "./vue/shared";
 
 // Shim per i file .vue
-declare module '*.vue' {
-  import { DefineComponent } from './vue/runtime-dom'
-  const component: DefineComponent<{}, {}, any>
-  export default component
-}
+declare module '*.vue'

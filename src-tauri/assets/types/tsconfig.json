@@ -8,9 +8,13 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
+    "plugins": [
+      {
+        "name": "@vue/typescript-plugin"
+      }
+    ],
     "paths" : {
       "core": ["./.types/core"],
-      "vue" : ["./.types/vue"],
       "event" : ["./.types/event"]
     }
   },
