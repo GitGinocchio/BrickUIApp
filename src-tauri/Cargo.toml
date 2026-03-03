@@ -34,7 +34,7 @@ strip = true # Ensures debug symbols are removed.
 profiling = ["tracing", "tracing-subscriber", "tracing-flame", "inferno"]
 
 [dev-dependencies]
-cargo-release = "1.0.0"
+cargo-release = "1.1.1"
 
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [ "codegen" ] }
