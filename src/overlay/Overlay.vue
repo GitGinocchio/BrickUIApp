@@ -12,7 +12,7 @@ import {
   simulateFakeMouseMoved,
   simulateFakeMousePressed,
 } from "../utils/mouseClickThrough";
-import { initLoader, toggleBrick, updateBrickProp } from "../loader";
+import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../loader";
 import { onBrickError, onBrickWarn } from "./errors";
 import { invoke } from "@tauri-apps/api/core";
 import { Brick, Prop } from "interfaces/brick";
@@ -52,6 +52,10 @@ listen<[number, number]>("global_mouse_moved", async (event) =>
 listen<{ brick: Brick }>(
   "toggle-brick",
   async (event) => await toggleBrick(event.payload.brick)
+);
+listen<{ brick: Brick }> (
+  "delete-brick",
+  async (event) => await deleteBrick(event.payload.brick)
 );
 listen<{ name: string; prop: Prop }>(
   "update-brick",

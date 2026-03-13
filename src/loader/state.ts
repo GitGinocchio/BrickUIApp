@@ -34,6 +34,10 @@ export function getBrickFromState(name: string) {
   return bricksState.get(name);
 }
 
+export function removeBrickFromState(name: string) {
+  bricksState.delete(name);
+}
+
 export function addErrorToBrickState(error: BrickError) {
   const state = bricksState.get(error.brick.name);
 

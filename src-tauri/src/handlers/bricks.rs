@@ -198,7 +198,7 @@ pub async fn unpack_brick(
     let output_dir = path.join("bricks").join(brick_name);
     crate::bricks::unpack_brick(&PathBuf::from(brick_path), &output_dir)?;
 
-    let brick = crate::bricks::load_brick(&output_dir)?;
+    let brick = crate::bricks::load_brick(&output_dir.join("brick.yml"))?;
 
     let mut state_guard = state.lock().await;
     let bricks = state_guard.get_mut_bricks();

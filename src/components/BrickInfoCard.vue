@@ -75,7 +75,7 @@ import { NSpace, NTag, NCard, NIcon, NButton, NDropdown, NImage } from "naive-ui
 import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid, Share2 } from "lucide-vue-next"
 import { h, nextTick, onMounted, PropType, ref } from "vue"
 import GenericModal from "./modals/GenericModal.vue";
-import { Brick, Prop } from "interfaces/brick";
+import { Brick, Prop } from "../interfaces/brick";
 import { emitTo } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from '@tauri-apps/plugin-dialog';
@@ -124,7 +124,7 @@ onMounted(async () => {
 const deleteModalTitle = ref<string>('');
 const deleteModalMessage = ref<string>('');
 const deleteModalShow = ref<boolean>(false);
-const deleteModalOnConfirm = ref<() => void|null>();
+const deleteModalOnConfirm = ref<() => void | Promise<void>>();
 const deleteModalOnDecline = ref<() => void|null>();
 const propToDelete = ref<Prop|null>(null);
 
@@ -148,6 +148,7 @@ async function onToggle() {
 }
 
 async function deleteBrick() {
+  await emitTo("overlay", "delete-brick", { brick: props.brick });
   await invoke("delete_brick", { brick: props.brick });
   emit("changed");
 }
