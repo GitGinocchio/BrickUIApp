@@ -277,8 +277,6 @@ pub async fn start_bluetooth_watcher(
 
         let address = extract_winrt_device_address(&id);
 
-        let mut guard = bt_state.blocking_write();
-
         let winrt = WinRTDevice::from_info(&info_clone, ic_state).ok();
         let win32 = Win32Device::from_mac(&address).ok();
         let device = Device::new(win32, winrt);
@@ -289,6 +287,7 @@ pub async fn start_bluetooth_watcher(
             .emit("bluetooth_device_added", device.clone())
             .map_err(|e| Error::new(HRESULT(-1), e.to_string()))?;
 
+        let mut guard = bt_state.blocking_write();
         guard.devices.insert(address, device);
             
         Ok(())
@@ -305,8 +304,6 @@ pub async fn start_bluetooth_watcher(
 
         println!("device updated: {:#?}", uinfo.Id()?);
 
-        let mut guard = state_clone.blocking_write();
-
         let id = uinfo_clone
             .Id()
             .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Id: {e}")))?
@@ -315,6 +312,7 @@ pub async fn start_bluetooth_watcher(
 
         let address = extract_winrt_device_address(&id);
 
+        let mut guard = state_clone.blocking_write();
         if let Some(device) = guard.devices.get_mut(&address) && let Some(winrt) = &mut device.winrt {
             let kind = uinfo_clone
                 .Kind()
@@ -346,13 +344,13 @@ pub async fn start_bluetooth_watcher(
 
         println!("device removed: {:#?}", uinfo.Id()?);
 
-        let mut guard = state_clone.blocking_write();
-
         let id = uinfo_clone
             .Id()
             .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Id: {e}")))?
             .to_string_lossy()
             .to_string();
+
+        let mut guard = state_clone.blocking_write();
 
         if let Some(removed) = guard.devices.remove(&id) {
             app_handle_clone

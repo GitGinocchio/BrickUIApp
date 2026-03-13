@@ -34,10 +34,6 @@ const allowedCommands = new Set<string>([
 
   // Explorer
   "get_explorer_recents",
-
-  // Cursors
-  "hide_all_cursors",
-  "restore_all_cursors",
  
   // Window
   "get_maximized_window_for_monitor",
@@ -65,7 +61,7 @@ async function invoke(cmd: string, args?: core.InvokeArgs, options?: core.Invoke
 }
 
 async function convertFileSrc(filePath: string, options?: { protocol?: string; root?: string }): Promise<string> {
-  // Non e' del tutto sicuro, mettendo root -> null viene presa come root {appDataDir}/BrickUI/ 
+  // TODO: Non e' del tutto sicuro, mettendo root -> null viene presa come root {appDataDir}/BrickUI/ 
   // Ma non la cartella del brick chiamante
   return await sanitizePath(filePath, { ...options, root: null })
 }

@@ -15,7 +15,7 @@ use crate::{
     config::settings::TaskBarBehavior, 
     state::{
         bluetooth::BluetoothState, 
-        cursors::CursorsState, 
+        cursors::CursorState, 
         generic::GenericState, 
         iconcache::IconCacheState, 
         user::{
@@ -25,16 +25,10 @@ use crate::{
     }, 
     utils::focus_window, 
     winapi::{
-        bluetooth::start_bluetooth_watcher, 
-        com::{
+        bluetooth::start_bluetooth_watcher, com::{
             initialize_com, 
             uninitialize_com
-        }, 
-        cursors::restore_cursors, 
-        events::start_event_listeners, 
-        monitor::workarea::reset_workareas, 
-        sock::inititalize_sockets, 
-        taskbar::{
+        }, cursors::start_animation_thread, events::start_event_listeners, monitor::workarea::reset_workareas, sock::inititalize_sockets, taskbar::{
             hide_taskbar, 
             show_taskbar
         }
@@ -165,7 +159,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             show_taskbar(app_handle).expect("Error showing taskbar:");
         }
 
-        restore_cursors(&backup.cursors).expect("Error restoring cursors:");
+        //restore_cursors(&backup.cursors).expect("Error restoring cursors:");
         uninitialize_com();
 
         if let Some(window) = app_handle.get_window(&window_label) {
@@ -224,10 +218,12 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     })?;
 
     let settings = generic.get_settings().clone();
-    let default_cursors = generic.get_backup().cursors.clone();
     app.manage(Arc::new(Mutex::new(generic)));
 
-    app.manage(Arc::new(RwLock::new(CursorsState::new(default_cursors))));
+    let cursor_state = Arc::new(RwLock::new(CursorState::new(app_handle.clone())?));
+    start_animation_thread(cursor_state.clone())?;
+
+    app.manage(cursor_state);
 
     let ic_state = Arc::new(RwLock::new(iconcache));
     app.manage(ic_state.clone());

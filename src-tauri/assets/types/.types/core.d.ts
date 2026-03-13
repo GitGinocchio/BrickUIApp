@@ -11,6 +11,42 @@ type InvokeArgs = Record<string, unknown> | number[] | ArrayBuffer | Uint8Array;
 interface InvokeOptions {
     headers: HeadersInit;
 }
+
+type InvokeCommand =
+  | "get_bricks"
+  | "get_settings"
+
+  | "get_taskbar_apps"
+  | "get_active_taskbar_apps"
+  | "get_pinned_taskbar_apps"
+
+  | "bluetooth_get_devices"
+  | "bluetooth_pair"
+  | "bluetooth_pair_confirm"
+  | "bluetooth_pair_provide_pin"
+  | "bluetooth_pair_provide_address"
+  | "bluetooth_unpair"
+  | "bluetooth_connect"
+  | "bluetooth_disconnect"
+
+  | "open_start_menu"
+  | "get_start_menu_favorites"
+
+  | "get_explorer_recents"
+
+  | "get_maximized_window_for_monitor"
+  | "get_maximized_windows"
+  | "get_windows_in_monitor"
+  | "get_all_windows"
+
+  | "set_workarea_margins"
+  | "set_workareas_margins"
+
+  | "get_all_monitors"
+  | "get_monitor_from_point"
+  | "get_primary_monitor"
+  | "get_monitor";
+
 /**
  * Sends a message to the backend.
  * @example
@@ -26,7 +62,7 @@ interface InvokeOptions {
  *
  * @since 1.0.0
  */
-declare function invoke<T>(cmd: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T>;
+declare function invoke<T>(cmd: InvokeCommand, args?: InvokeArgs, options?: InvokeOptions): Promise<T>;
 /**
  * Convert a device file path to an URL that can be loaded by the webview.
  * Note that `asset:` and `http://asset.localhost` must be added to [`app.security.csp`](https://v2.tauri.app/reference/config/#csp-1) in `tauri.conf.json`.

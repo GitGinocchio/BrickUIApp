@@ -1,9 +1,9 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use tauri::{AppHandle, Manager as _, State};
 
-use crate::state::generic::GenericState;
+use crate::{state::{cursors::CursorState, generic::GenericState}, winapi::cursors::{CursorType, Frame}};
 
 // TODO: Rimuovere questo metodo in quanto pericoloso
 // Rischia di rendere l'esperienza utente un problema
@@ -21,7 +21,8 @@ pub async fn hide_all_cursors(
 
     let cursor_path = resource_path.join("assets").join("transparent.cur");
 
-    crate::winapi::cursors::hide_cursors(cursor_path.to_string_lossy().to_string().as_str())
+    //crate::winapi::cursors::hide_cursors(cursor_path.to_string_lossy().to_string().as_str())
+    Ok(())
 }
 
 #[tauri::command(async)]
@@ -32,5 +33,27 @@ pub async fn restore_all_cursors(
     let state_guard = state.lock().await;
     let backup = state_guard.get_backup();
 
-    crate::winapi::cursors::restore_cursors(&backup.cursors)
+    //crate::winapi::cursors::restore_cursors(&backup.cursors)
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub async fn set_cursor(
+    state: State<'_, Arc<RwLock<CursorState>>>,
+    path: String,
+    cursor_type: CursorType
+) -> Result<(), String> {
+    let mut state_guard = state.write().await;
+    state_guard.set_cursor(&path, cursor_type)
+}
+
+#[tauri::command(async)]
+pub async fn set_animated_cursor(
+    state: State<'_, Arc<RwLock<CursorState>>>,
+    cursor_type: CursorType,
+    frames: Vec<Frame>,
+    fps: u32
+) -> Result<(), String> {
+    let mut state_guard = state.write().await;
+    state_guard.set_animated_cursor(cursor_type, frames, fps)
 }

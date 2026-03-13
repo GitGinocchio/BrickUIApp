@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     winapi::{
-        cursors::{CursorType, backup_cursors},
+        cursors::{CursorType},
         taskbar::is_taskbar_autohide,
     }
 };
@@ -59,7 +59,7 @@ impl Default for Backup {
     fn default() -> Self {
         Self {
             schema: default_schema(),
-            cursors: backup_cursors(),
+            cursors: HashMap::new(), //backup_cursors(),
             taskbar: Taskbar {
                 autohide: is_taskbar_autohide(),
             },
