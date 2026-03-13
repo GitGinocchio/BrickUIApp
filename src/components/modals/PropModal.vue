@@ -643,7 +643,7 @@ const maxInputField = computed(() => {
           placeholder: ['Int', 'Float'].includes(prop.value.prop_type) ? "Input the minumum allowed number" : "Input the maximum number of values",
           precision: prop.value.prop_type === 'Float' ? 2 : 0,
           clearable: true,
-          min: prop.value.min ? prop.value.min : 0.01,
+          min: prop.value.min ? prop.value.min : (prop.value.prop_type != 'Select' ? 0.01 : 1),
           step: prop.value.prop_type === 'Float' ? (prop.value.step ? prop.value.step : 0.1) : 1,
           "onUpdate:value": (val: number) => {
             console.log('max-value:', val);

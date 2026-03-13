@@ -69,6 +69,7 @@ export async function onBrickWarn(
   instance: ComponentPublicInstance | { name: string; author: string },
   _trace: string
 ) {
+  console.log(message, instance, _trace);
   let brickName: string;
   let brickAuthor: string;
   if (!instance) return;
