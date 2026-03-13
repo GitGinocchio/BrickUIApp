@@ -209,7 +209,7 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
     let path = resolver.app_data_dir()?;
 
     // General App State
-    let (mut generic, iconcache) = tauri::async_runtime::block_on(async move {
+    let (generic, iconcache) = tauri::async_runtime::block_on(async move {
         initialize_dirs(&path).await?;
         let generic = BrickUIGenericState::new(&path, &resource_path).await?;
         let iconcache = BrickUIconCacheState::new(&path).await?;
@@ -253,10 +253,6 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
                 ic_state.clone(), 
                 &app_handle_clone
             ).await?);
-
-            if let Err(e) = refresh_session_if_present(user_state).await {
-                eprintln!("An error occurred while refreshing session on startup: {e:#?}");
-            }
 
             Ok::<(), String>(())
         },
