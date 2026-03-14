@@ -278,6 +278,26 @@ function onRemoveColor() {
   }
 }
 
+function sanitizeSelectDefault(defaultValue: any, options: any[], max: number | null) {
+  if (max && max > 1) {
+    if (!Array.isArray(defaultValue)) {
+      return [];
+    }
+    return defaultValue.filter((value) => options.includes(value));
+  }
+
+  let normalized = defaultValue;
+  if (Array.isArray(defaultValue)) {
+    normalized = defaultValue.length > 0 ? defaultValue[0] : null;
+  }
+
+  if (normalized === null || normalized === undefined) {
+    return [];
+  }
+
+  return options.includes(normalized) ? [normalized] : [];
+}
+
 //let valueBeforeSkipAlpha = null;
 
 function onSkipAlphaChanged(skip_alpha: boolean) {
@@ -362,14 +382,22 @@ const defaultInputField = computed(() => {
       return h(
         NSelect,
         {
-          value: prop.value.default as any,
+          value: prop.value.default && prop.value.default.length > 0 ? (prop.value.max > 1 ? prop.value.default : prop.value.default[0]) : null,
           clearable: true,
           multiple: prop.value.max > 1,
           options: (prop.value.options || []).map(v => ({
             label: String(v),
             value: v
           })),
-          "onUpdate:value": (val: any) => (prop.value.default = val)
+          "onUpdate:value": (val: any) => {
+            if (val === null || val === undefined) {
+              prop.value.default = [];
+            } else if (Array.isArray(val)) {
+              prop.value.default = val;
+            } else {
+              prop.value.default = [val];
+            }
+          }
         }
       );
 
@@ -584,9 +612,7 @@ const optionsInputField = computed(() => {
             prop.value.options = [...new Set(parsedValue)];
 
             // @ts-ignore
-            if (!prop.value.options.includes(prop.value.default)) {
-              prop.value.default = null;
-            }
+            prop.value.default = sanitizeSelectDefault(prop.value.default, prop.value.options, prop.value.max);
           },
           type : 'info'
         }

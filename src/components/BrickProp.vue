@@ -136,7 +136,7 @@ const componentProps = computed(() => {
 
     case 'Select':
       return {
-        defaultValue: prop.default,
+        defaultValue: prop.default && prop.default.length > 0 ? (prop.max > 1 ? prop.default : prop.default[0]) : null,
         options: prop.options.map(option => ({ label: option, value: option })),
         placeholder: 'Select a value...',
         multiple: prop.max > 1,
@@ -318,14 +318,20 @@ const modelValue = computed<any>({
         break;
 
       case 'Select':
-        if (!Array.isArray(newValue)) { 
+        if (newValue === null || newValue === undefined) {
+          value = [];
+          break;
+        }
+
+        if (!Array.isArray(newValue)) {
           newValue = [newValue];
         }
-        else if (newValue.length > prop.max) {
+
+        if (prop.max && newValue.length > prop.max) {
           newValue = newValue.slice(0, prop.max);
         }
 
-        value = newValue !== null ? newValue : (prop.default ? prop.default : []);
+        value = newValue;
         break;
 
       case 'Color':

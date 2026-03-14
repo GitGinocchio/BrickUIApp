@@ -396,7 +396,7 @@ async function onMovePropDown(prop: Prop) {
     brick.value.props[index] = tmp;
   }
 
-  await invoke("save_brick", { brick: brick });
+  await invoke("save_brick", { brick: brick.value });
 }
 
 async function deleteBrick() {
