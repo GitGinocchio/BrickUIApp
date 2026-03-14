@@ -3,7 +3,8 @@
     <n-image 
       class="banner"
       :class="{ loaded: isBannerLoaded }"
-      object-fit="cover" 
+      object-fit="cover"
+      width="100%"
       :show-toolbar="false"
       :preview-disabled="true"
       :src="bannerUrl"
