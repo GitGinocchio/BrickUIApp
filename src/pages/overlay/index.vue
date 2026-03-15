@@ -14,11 +14,10 @@ import {
 } from "../../utils/mouseClickThrough";
 import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../../loader";
 import { onBrickError, onBrickWarn } from "#utils/errors";
-import { invoke } from "@tauri-apps/api/core";
 import type { Brick, Prop } from "../../interfaces/brick";
 import type { Settings } from "../../interfaces/settings";
 
-const { settings, theme } = useAppState();
+const { settings, theme, bricks } = useAppState();
 
 definePageMeta({
   layout: 'overlay'
@@ -33,7 +32,6 @@ const currentWindow = getCurrentWindow();
 const notification = useNotification();
 const isReady = ref(false);
 const overlay = ref<HTMLDivElement>();
-const bricks = ref<Array<Brick>>();
 
 listen<[number, number, string]>("global_mouse_pressed", async (event) =>
   simulateFakeMousePressed(event)
@@ -62,11 +60,9 @@ listen<{ name: string; prop: Prop }>(
 
 onMounted(async () => {
   try {
-
+    await currentWindow.hide();
     notification.destroyAll();
     await currentWindow.setIgnoreCursorEvents(true);
-
-    bricks.value = await invoke("get_bricks");
 
     await initLoader(
       bricks.value,
@@ -111,6 +107,7 @@ watch(
   () => JSON.parse(JSON.stringify(settings.value)) as Settings, 
   async (settings, old) => {
     if (!settings) return;
+
     if (settings.notifications.position !== old.notifications.position) {
       notification.destroyAll();
       notification.info({

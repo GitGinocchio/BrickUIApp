@@ -1,5 +1,6 @@
 <template>
   <NNotificationProvider
+    v-if="isReady"
     :theme="theme.Notification"
     :placement="settings.notifications.position"
   >
@@ -9,8 +10,6 @@
 
 <script setup lang="ts">
 import "#assets/css/overlay.css";
-
-import { NNotificationProvider } from "naive-ui";
-const { settings, theme } = useAppState();
+const { settings, theme, isReady } = useAppState();
 
 </script>
