@@ -65,7 +65,7 @@ import { NLayoutSider, NNotificationProvider, NLayoutContent, NLayout, NMenu, NC
 import { CircleUser, Cuboid, LayoutDashboard, SettingsIcon, StoreIcon } from 'lucide-vue-next';
 import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
-import { emit, emitTo, listen } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 import GenericModal from '#components/modals/GenericModal.vue';
 import type { Settings } from "~/interfaces/settings";
 
