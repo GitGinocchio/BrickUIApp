@@ -8,7 +8,7 @@ import type { User } from "#interfaces/user";
 
 export const useAppState = () => {
   // Stati reattivi globali (Nuxt li mantiene sincronizzati)
-  const settings = useState<Settings>('settings');
+  const settings = useState<Settings>('settings', () => null);
   const bricks = useState<Brick[]>('bricks',() => []);
   const user = useState<User | null>('user', () => null);
   const systemIsDark = useState<boolean>('systemIsDark', () => false);
@@ -18,6 +18,8 @@ export const useAppState = () => {
     settings.value = await invoke<Settings>("get_settings");
     bricks.value = await invoke<Brick[]>("load_bricks");
     systemIsDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    console.log(settings.value);
   };
 
   // Logica del Tema

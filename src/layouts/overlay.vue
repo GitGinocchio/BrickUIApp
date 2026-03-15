@@ -11,7 +11,6 @@
 import "#assets/css/overlay.css";
 
 import { NNotificationProvider } from "naive-ui";
-
 const { settings, theme } = useAppState();
 
 </script>

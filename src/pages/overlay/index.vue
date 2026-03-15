@@ -31,10 +31,6 @@ watchEffect(() => {
 
 const currentWindow = getCurrentWindow();
 const notification = useNotification();
-const lastNotificationPosition = ref<string>(
-  settings.value.notifications.position
-);
-//const lastTaskBarBehavior = ref<string>(settings.value.taskbar.behavior);
 const isReady = ref(false);
 const overlay = ref<HTMLDivElement>();
 const bricks = ref<Array<Brick>>();
@@ -88,7 +84,6 @@ onMounted(async () => {
 
     isReady.value = true;
 
-    await currentWindow.hide();
     await currentWindow.show();
   } catch (error) {
     let technicalMessage = "Unexpected error";
@@ -112,16 +107,20 @@ onMounted(async () => {
   }
 });
 
-listen<Settings>("changed-settings", async (event) => {
-  if (event.payload.notifications.position !== lastNotificationPosition.value) {
-    notification.destroyAll();
-    notification.info({
-      title: "Test notification",
-      duration: 750,
-    });
-    lastNotificationPosition.value = event.payload.notifications.position;
-  }
-});
+watch(
+  () => JSON.parse(JSON.stringify(settings.value)) as Settings, 
+  async (settings, old) => {
+    if (!settings) return;
+    if (settings.notifications.position !== old.notifications.position) {
+      notification.destroyAll();
+      notification.info({
+        title: "Test notification",
+        duration: 750,
+      });
+    }
+  }, 
+  { deep: true }
+);
 </script>
 
 <style scoped>

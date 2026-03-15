@@ -67,10 +67,11 @@ import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import GenericModal from '#components/modals/GenericModal.vue';
+import type { Settings } from "~/interfaces/settings";
 
 const { settings, theme, bricks } = useAppState();
 
-const { t } = useI18n();
+const { t, locale, setLocale } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const activeMenuKey = computed(() => {
@@ -115,7 +116,6 @@ function onMenuSelect(key: string) {
   clearTimeout(hoverTimer)
   router.push(key)
 }
-const { locale } = useI18n();
 
 // 2. Logica delle modali e listener (la tua logica originale)
 const showAddBrickModal = ref(false);
@@ -123,32 +123,42 @@ const showAlreadyImportedModal = ref(false);
 const addBrickModalMessage = ref("");
 const brickToImport = ref<[string, string] | null>(null);
 
-onMounted(async () => {
-  // Listener per i mattoncini
-  listen<[string, string]>("open_brick", (event) => {
-    const brick = event.payload;
-    if (bricks.value.some((b) => b.name === brick[1])) {
-      showAlreadyImportedModal.value = true;
-      return;
-    }
-    addBrickModalMessage.value = `Are you sure you want to import brick "${brick[1]}"`;
-    showAddBrickModal.value = true;
-    brickToImport.value = brick;
-  });
+// Listener per i mattoncini
+listen<[string, string]>("open_brick", (event) => {
+  const brick = event.payload;
+  if (bricks.value.some((b) => b.name === brick[1])) {
+    showAlreadyImportedModal.value = true;
+    return;
+  }
+  addBrickModalMessage.value = `Are you sure you want to import brick "${brick[1]}"`;
+  showAddBrickModal.value = true;
+  brickToImport.value = brick;
+});
 
-  // Listener per il routing remoto (da Rust)
-  listen<{ view: string }>("goto", (event) => {
-    navigateTo(event.payload.view);
-  });
+// Listener per il routing remoto (da Rust)
+listen<{ view: string }>("goto", (event) => {
+  navigateTo(event.payload.view);
+});
+
+onMounted(() => {
+  setLocale(settings.value.language);
 });
 
 // Watch per salvare le impostazioni
-watch(settings, async (newSettings) => {
-  if (!newSettings) return;
-  await invoke("save_settings", { settings: newSettings });
-  await emit("changed-settings", newSettings);
-  locale.value = newSettings.language;
-}, { deep: true });
+watch(
+  () => JSON.parse(JSON.stringify(settings.value)) as Settings, 
+  async (settings, old) => {
+    if (!settings) return;
+    await invoke("save_settings", { settings: settings });
+    await emit("changed-settings", settings);
+    setLocale(settings.language);
+
+    if (old.taskbar.behavior != settings.taskbar.behavior) {
+      await invoke(settings.taskbar.behavior == 'hide' ? "hide_taskbar" : "show_taskbar");
+    }
+  }, 
+  { deep: true }
+);
 
 async function onOpenBrickConfirm() {
   showAddBrickModal.value = false;
