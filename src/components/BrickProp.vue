@@ -46,14 +46,12 @@
 
 <script setup lang="ts">
 import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch, NDatePicker, NTimePicker } from 'naive-ui';
-import { computed, watch } from 'vue';
-//import { debounce } from 'lodash-es'; // puoi anche scrivere una funzione debounce a mano
-import type { PropType } from 'vue';
-import type { Prop as BrickPropType } from 'interfaces/brick';
-import { colorStringToRGBA } from '../utils/color';
-import MarkdownIt from 'markdown-it';
 import { Trash2, Wrench } from 'lucide-vue-next';
-import GradientPicker from './GradientPicker.vue';
+import MarkdownIt from 'markdown-it';
+
+import type { Prop as BrickPropType } from '#interfaces/brick';
+import { colorStringToRGBA } from '#utils/color';
+import GradientPicker from '#components/GradientPicker.vue';
 
 const md = new MarkdownIt();
 

@@ -28,20 +28,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onMounted, Ref, ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
-import { Brick } from "interfaces/brick";
-//import { useI18n } from "vue-i18n";
-import { listen } from "@tauri-apps/api/event";
-import BrickInfoCard from "../components/BrickInfoCard.vue";
-import Header from "../components/Header.vue";
-import BrickModal from "../components/modals/BrickModal.vue";
 import { Blocks, CirclePlus } from "lucide-vue-next";
-import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+
+import type { Brick } from "#interfaces/brick";
+import BrickInfoCard from "#components/BrickInfoCard.vue";
+import Header from "#components/Header.vue";
+import BrickModal from "#components/modals/BrickModal.vue"
 
 const { t } = useI18n();
 const router = useRouter();
+const { bricks } = useAppState();
 
 const sections = computed(() => {
   return [
@@ -53,7 +51,6 @@ const show = ref(false);
 const feedback = ref<string | null>(null);
 const editMode = ref(false);
 const initialBrick = ref<Brick|null>(null);
-const bricks = inject("bricks") as Ref<Brick[]>;
 const brick = ref<Brick>({
   name: null, 
   description: '',

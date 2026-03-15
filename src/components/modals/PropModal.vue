@@ -165,14 +165,14 @@
 
 <script setup lang="ts">
 import { NColorPicker, NDatePicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTimePicker, NTooltip } from 'naive-ui';
-import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock } from 'lucide-vue-next';
-import { computed, h, ref } from 'vue';
+import { type DatePickerType } from 'naive-ui/es/date-picker/src/config';
 
-import { createProp, Prop, PropTypeValue, propTypeValues } from '../../interfaces/brick';
-import { colorStringToRGBA } from '../../utils/color';
-import { deepEqual } from '../../utils/misc';
-import GradientPicker from '../GradientPicker.vue';
-import { DatePickerType } from 'naive-ui/es/date-picker/src/config';
+import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock } from 'lucide-vue-next';
+
+import { createProp, type Prop, type PropTypeValue, propTypeValues } from '#interfaces/brick';
+import { colorStringToRGBA } from '#utils/color';
+import { deepEqual } from '#utils/misc';
+import GradientPicker from '#components/GradientPicker.vue';
 
 
 const show = defineModel<boolean>("show");

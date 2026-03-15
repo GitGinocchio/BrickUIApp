@@ -29,3 +29,5 @@ src-tauri/trace.folded
 src-tauri/flamegraph.svg
 src-tauri/.env
 src-tauri/.env.*
+.nuxt
+/.output

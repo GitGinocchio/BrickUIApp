@@ -138,18 +138,18 @@
 
 <script setup lang="ts">
 import { UserRound, Pencil, Settings2, Upload, UserIcon, SaveAllIcon, Trash2Icon } from 'lucide-vue-next';
-import Header from '../components/Header.vue';
 import { NCard, NIcon, NInput, NImage, NButton, NFloatButton, useNotification } from 'naive-ui';
-import { computed, h, onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import { User } from 'interfaces/user';
-import EditableField from '../components/EditableField.vue';
+
+import type { User } from '#interfaces/user';
+import Header from '#components/Header.vue';
+import EditableField from '#components/EditableField.vue';
 
 const headerSections = [
   { defaultIcon: () => h(UserIcon), label: 'User' }
 ]
 
-const notify = useNotification();
+const _notify = useNotification();
 
 const loading = ref<boolean>(true);
 const user = ref<User>();

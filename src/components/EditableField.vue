@@ -26,7 +26,6 @@
 <script setup lang="ts">
 import { PencilIcon, PencilOffIcon, XCircleIcon } from 'lucide-vue-next';
 import { NButton, NSkeleton } from 'naive-ui';
-import { getCurrentInstance, computed, ref } from 'vue'
 
 const instance = getCurrentInstance()
 

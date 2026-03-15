@@ -73,14 +73,12 @@
 <script setup lang="ts">
 import { NSpace, NTag, NCard, NIcon, NButton, NDropdown, NImage } from "naive-ui"
 import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid, Share2 } from "lucide-vue-next"
-import { h, nextTick, onMounted, PropType, ref } from "vue"
-import GenericModal from "./modals/GenericModal.vue";
-import { Brick, Prop } from "../interfaces/brick";
+import GenericModal from "#components/modals/BrickModal.vue";
+import type { Brick, Prop } from "../interfaces/brick";
 import { emitTo } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from '@tauri-apps/plugin-dialog';
-import { useRouter } from "vue-router";
-import { appDataDir, sanitizePath } from "../utils/path";
+import { appDataDir, sanitizePath } from "#utils/path";
 
 const router = useRouter();
 
@@ -191,7 +189,7 @@ async function handleBrickAction(action: string) {
 }
 
 async function openBrickTab() {
-  await router.push(`brick/${props.brick.name}`)
+  await router.push(`bricks/${props.brick.name}`)
 }
 
 async function openBrick() {

@@ -1,4 +1,4 @@
-import { reactive, markRaw, Component } from "vue";
+import { reactive, markRaw, type Component } from "vue";
 
 export const bricksCache = reactive(new Map<string, Component>());
 

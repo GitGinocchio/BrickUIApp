@@ -40,7 +40,6 @@
 <script setup lang="ts">
 import { NBreadcrumb, NBreadcrumbItem, NImage } from 'naive-ui';
 import { Cuboid } from 'lucide-vue-next';
-import { PropType, ref } from 'vue';
 
 const loadedMap = ref<Record<number, boolean>>({});
 const readyMap = ref<Record<number, boolean>>({});

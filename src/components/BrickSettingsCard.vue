@@ -131,14 +131,14 @@ import {
   Text, Cog, Wifi, CirclePlus,
   ChevronDown, ChevronUp
 } from 'lucide-vue-next';
-import { Brick, Prop } from '../interfaces/brick'
-import ConfirmModal from './modals/ConfirmModal.vue';
-import PropModal from './modals/PropModal.vue';
-import BrickProp from './BrickProp.vue';
 import { emitTo } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import { computed, ref, h } from 'vue';
 import MarkdownIt from 'markdown-it';
+
+import type { Brick, Prop } from '#interfaces/brick'
+import ConfirmModal from '#components/modals/GenericModal.vue';
+import PropModal from '#components/modals/PropModal.vue';
+import BrickProp from '#components/BrickProp.vue';
 
 const md = new MarkdownIt();
 const renderedDescription = computed(() => md.render(props.brick.description));

@@ -1,4 +1,4 @@
-import { sanitizePath } from "../utils/path";
+import { sanitizePath } from "#utils/path";
 
 export function scopeCss(code: string, id: string): string {
   const scope = `data-v-${id}`;

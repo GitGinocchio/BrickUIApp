@@ -1,4 +1,4 @@
-import { Prop } from "interfaces/brick";
+import { type Prop } from "#interfaces/brick";
 
 export function formatPropsValueOrDefault(propsArray: Prop[]): Record<string, any> {
   return Object.fromEntries(

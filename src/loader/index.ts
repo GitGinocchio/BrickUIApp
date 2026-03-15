@@ -7,10 +7,10 @@ import {
   setBrickState,
 } from "./state";
 import { addBrickToCache, getBrickFromCache, removeBrickFromCache } from "./cache";
-import { Brick, Prop } from "interfaces/brick";
+import type { Brick, Prop } from "../interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
-import { appDataDir, sanitizePath } from "../utils/path";
+import { sanitizePath } from "../utils/path";
 import { formatPropValue } from "../utils/format";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";

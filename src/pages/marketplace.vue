@@ -21,16 +21,13 @@
 </template>
 
 <script setup lang="ts">
-import { Brick } from 'interfaces/brick'
-import Header from '../components/Header.vue';
 import { ShoppingBasket, Search } from 'lucide-vue-next';
 import { NTabs, NTabPane, NInput } from "naive-ui"
-import { computed, inject, Ref } from 'vue';
-import { useI18n } from 'vue-i18n';
+
+import Header from '#components/Header.vue';
 
 const { t } = useI18n();
 
-const bricks = inject("bricks") as Ref<Brick[]>;
 const sections = computed(() => {
   return [
     { icon: ShoppingBasket, label: t('marketplace') },

@@ -169,9 +169,7 @@
 
 <script setup lang="ts">
 import { NTabs, NTabPane, NButton, NSwitch, NInput, NTag, NImage } from "naive-ui";
-import { computed, nextTick, onBeforeMount, onMounted, ref, watch, watchEffect } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { useI18n } from "vue-i18n";
 import {
   Blocks,
   Cuboid,
@@ -186,40 +184,34 @@ import {
   Wifi,
   Shield,
 } from "lucide-vue-next";
-import GenericModal from "../components/modals/GenericModal.vue";
-import PropModal from "../components/modals/PropModal.vue";
-import BrickProp from "../components/BrickProp.vue";
-import Header from "../components/Header.vue";
-import { Brick, Prop } from "../interfaces/brick";
-import { useRouter } from "vue-router";
-import MarkdownIt from "markdown-it";
 import { emit, emitTo } from "@tauri-apps/api/event";
-import { appDataDir, sanitizePath } from "../utils/path";
+import MarkdownIt from "markdown-it";
+
+import { appDataDir, sanitizePath } from "#utils/path";
+import type { Brick, Prop } from "#interfaces/brick";
+import GenericModal from "#components/modals/GenericModal.vue";
+import PropModal from "#components/modals/PropModal.vue";
 
 const { t } = useI18n();
+const route = useRoute();
 const router = useRouter();
 const activeTab = ref<string>("description");
 let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const props = defineProps({
-  name: {
-    type: String,
-    required: true,
-  },
-});
+const brickName = computed(() => route.params.name as string);
 
 const brick = ref<Brick>(null);
 const sections = computed(() => {
   return [
     { icon: Blocks, label: t("bricks"), onclick: () => router.push("/bricks") },
-    { icon: iconUrl.value, defaultIcon: Cuboid, label: props.name },
+    { icon: iconUrl.value, defaultIcon: Cuboid, label: brickName.value },
   ];
 });
 
 const isBannerLoaded = ref<boolean>(false);
 const bannerUrl = ref<string | null>(null);
-const defaultBannerUrl = new URL("../assets/images/banner-brick-iso.svg", import.meta.url).href;
+const defaultBannerUrl = new URL("../../assets/images/banner-brick-iso.svg", import.meta.url).href;
 
 const iconUrl = ref<string | null>(null);
 
@@ -228,15 +220,15 @@ function onBannerLoad() {
 }
 
 onMounted(async () => {
-  brick.value = await invoke("get_brick_by_name", { name: props.name });
+  brick.value = await invoke("get_brick_by_name", { name: brickName.value });
 
   await nextTick();
   
   if (brick.value.banner) {
-    bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name ?? props.name}` });
+    bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
   }
   if (brick.value.icon) {
-    iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? props.name}` });
+    iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
   }
 });
 

@@ -21,7 +21,7 @@ html, body {
   overflow: hidden;
 }
 
-#app {
+#__nuxt {
   user-select: none;
   pointer-events: none;
 }

@@ -1,4 +1,4 @@
-import { Event } from "@tauri-apps/api/event";
+import { type Event } from "@tauri-apps/api/event";
 import { Window } from "@tauri-apps/api/window";
 
 let isClickThroughEnabled = true;

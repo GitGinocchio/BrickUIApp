@@ -14,7 +14,7 @@
       {
         "label": "main",
         "title": "Brick UI",
-        "url" : "index.html",
+        "url" : "/",
         "windowClassname": "BrickUIMainWindow",
         "width": 1000,
         "height": 800,
@@ -29,7 +29,7 @@
       {
         "label": "overlay",
         "title": "Brick UI [Overlay]",
-        "url" : "/overlay/index.html",
+        "url" : "/#overlay",
         "windowClassname": "BrickUIOverlayWindow",
         "transparent": true,
         "decorations": false,

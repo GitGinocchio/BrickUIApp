@@ -83,13 +83,19 @@
 
 <script setup lang="ts">
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
-import { notificationPositions, Settings, sidebarPositions, startMenuBehaviors, taskBarBehaviors, themes } from '../interfaces/settings'
 import { NSelect, NForm, NFormItem, NAlert, NSwitch, NTooltip, NCard } from 'naive-ui'
-import { h, inject, onMounted, ref, Ref } from 'vue'
-import Header from '../components/Header.vue';
 import { SettingsIcon } from 'lucide-vue-next';
 
-const settings = inject("settings") as Ref<Settings>;
+import { 
+  notificationPositions,
+  sidebarPositions, 
+  startMenuBehaviors, 
+  taskBarBehaviors, 
+  themes 
+} from '#interfaces/settings'
+import Header from '#components/Header.vue';
+
+const { settings } = useAppState();
 
 const labelWidth = ref<string>("8rem");
 

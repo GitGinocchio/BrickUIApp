@@ -37,8 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { NModal, NButton } from 'naive-ui';
-import { PropType } from 'vue';
+import { NModal } from 'naive-ui';
 
 const show = defineModel<boolean>('show');
 defineProps({

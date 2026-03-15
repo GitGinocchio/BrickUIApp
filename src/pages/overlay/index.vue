@@ -5,22 +5,24 @@
 <script setup lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { inject, onMounted, Ref, ref, watchEffect } from "vue";
-import { GlobalTheme, useNotification } from "naive-ui";
+import { onMounted, ref, watchEffect } from "vue";
+import { useNotification } from "naive-ui";
 import {
   handleClickThrough,
   simulateFakeMouseMoved,
   simulateFakeMousePressed,
-} from "../utils/mouseClickThrough";
-import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../loader";
-import { onBrickError, onBrickWarn } from "./errors";
+} from "../../utils/mouseClickThrough";
+import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../../loader";
+import { onBrickError, onBrickWarn } from "#utils/errors";
 import { invoke } from "@tauri-apps/api/core";
-import { Brick, Prop } from "interfaces/brick";
-import { Settings } from "interfaces/settings";
+import type { Brick, Prop } from "../../interfaces/brick";
+import type { Settings } from "../../interfaces/settings";
 
+const { settings, theme } = useAppState();
 
-const settings = inject("settings") as Ref<Settings>;
-const theme = inject("theme") as Ref<GlobalTheme>;
+definePageMeta({
+  layout: 'overlay'
+});
 
 const currentNotificationTheme = ref(theme.value.Notification);
 watchEffect(() => {

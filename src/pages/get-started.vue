@@ -103,16 +103,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
-import { NForm, NInput, NButton, FormInst, FormRules, FormItemRule, NCard, NTabs, NTabPane, NFormItemRow, useNotification } from 'naive-ui'
-import EyesClosed from '../components/icons/EyesClosed.vue'
-import EyesOpened from '../components/icons/EyesOpened.vue'
+import { NForm, NInput, NButton, type FormInst, type FormRules, type FormItemRule, NCard, NTabs, NTabPane, NFormItemRow, useNotification } from 'naive-ui';
 import { UserIcon } from 'lucide-vue-next';
-import { useRouter } from "vue-router";
-import Header from '../components/Header.vue';
-import { debounce, throttle } from '../utils/misc'
 import { invoke } from '@tauri-apps/api/core';
-import { useI18n } from 'vue-i18n';
+
+import Header from '#components/Header.vue';
+import EyesClosed from '#components/icons/EyesClosed.vue';
+import EyesOpened from '#components/icons/EyesOpened.vue';
+import { debounce, throttle } from '#utils/misc';
 
 const { t } = useI18n();
 const router = useRouter();
