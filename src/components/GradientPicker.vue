@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 import { Undo2 } from 'lucide-vue-next';
-import { NColorPicker, NButton, NInputNumber, NTooltip } from 'naive-ui'
+import { NColorPicker, NButton, NInputNumber } from 'naive-ui'
 import { colorStringToRGBA } from '#utils/color';
 import { GradientType } from '#interfaces/brick';
 
