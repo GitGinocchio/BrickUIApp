@@ -110,7 +110,7 @@ dotenvy = "0.15.7"
 url = "2.5.8"
 
 
-tauri = { version = "2.10.2", features = [
+tauri = { version = "2.10.3", features = [
     "protocol-asset",
     "unstable",
     "tray-icon",
