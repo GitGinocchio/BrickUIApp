@@ -42,7 +42,7 @@ tauri-build = { version = "2.5.3", features = [ "codegen" ] }
 [dependencies]
 # Dipendenze opzionali per profiling
 tracing = { version = "0.1.43", optional = true }
-tracing-subscriber = { version = "0.3.22", optional = true }
+tracing-subscriber = { version = "0.3.23", optional = true }
 tracing-flame = { version = "0.2.0", optional = true }
 inferno = { version = "0.12.6", optional = true }
 
