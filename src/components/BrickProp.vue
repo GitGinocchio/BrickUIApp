@@ -1,184 +1,144 @@
 <template>
-  <div class="brick-prop">
-    <n-tooltip :delay="600" :trigger="prop.description ? 'hover' : 'manual'" placement="top-start">
-      <template #trigger>
-        <label>{{ prop.prop_name }}</label>
-      </template>
-      <div v-html="renderedDescription" class="brick-prop-description"></div>
-    </n-tooltip>
-    <div class="prop-input-section">
-      <component
-        :is="currentComponent"
-        v-bind="componentProps"
-        v-model:value="modelValue"
-        class="prop-input-component"
-      >
-        <template v-if="currentComponent == NColorPicker && prop.prop_type == 'Color'" #action>
-          <n-tooltip trigger="hover" placement="bottom" :delay="500">
-            <template #trigger>
-              <n-button size="small" @click="onSaveColor">Save</n-button>
-            </template>
-            Clicca salva per salvare un colore
-          </n-tooltip>
-          <n-tooltip trigger="hover" placement="bottom" :delay="500">
-            <template #trigger>
-              <n-button size="small" @click="onRemoveColor">Remove</n-button>
-            </template>
-            Clicca rimuovi per eliminare un colore dai salvati
-          </n-tooltip>
-          <n-tooltip trigger="hover" placement="bottom" :delay="500">
-            <template #trigger>
-              <n-button size="small" @click="onClearColor">Clear</n-button>
-            </template>
-            Clicca pulisci per rimuovere il colore attuale
-          </n-tooltip>
-        </template>
-      </component>
-      <template v-if="editMode">
-        <div>
-          <n-button circle text @click="emit('edit:prop', prop)"><Wrench :size="16" /></n-button>
-          <n-button circle text @click="emit('delete:prop', prop)"><Trash2 :size="16" /></n-button> 
-        </div>
-      </template>
-    </div>
-  </div>
+  <component 
+    :is="currentComponent"
+    :key="prop.prop_name"
+    v-bind="componentProps" 
+    v-model:value="modelValue"
+  >
+    <template v-if="currentComponent === NColorPicker && prop.prop_type === 'Color'" #action>
+      <div class="color-picker-actions">
+        <n-tooltip trigger="hover" placement="bottom" :delay="500">
+          <template #trigger>
+            <n-button size="small" @click="onSaveColor">Save</n-button>
+          </template>
+          Salva nei preferiti
+        </n-tooltip>
+        <n-tooltip trigger="hover" placement="bottom" :delay="500">
+          <template #trigger>
+            <n-button size="small" @click="onRemoveColor">Remove</n-button>
+          </template>
+          Rimuovi dai preferiti
+        </n-tooltip>
+        <n-tooltip trigger="hover" placement="bottom" :delay="500">
+          <template #trigger>
+            <n-button size="small" @click="onClearColor">Clear</n-button>
+          </template>
+          Resetta colore
+        </n-tooltip>
+      </div>
+    </template>
+  </component>
 </template>
 
 <script setup lang="ts">
-import { NInput, NButton, NInputNumber, NTooltip, NSelect, NDynamicTags, NColorPicker, NSwitch, NDatePicker, NTimePicker } from 'naive-ui';
-import { Trash2, Wrench } from 'lucide-vue-next';
-import MarkdownIt from 'markdown-it';
-
+import { computed, type PropType } from 'vue';
+import {
+  NInput, NButton, NInputNumber, NTooltip, NSelect,
+  NDynamicTags, NColorPicker, NSwitch, NDatePicker, NTimePicker
+} from 'naive-ui';
 import type { Prop as BrickPropType } from '#interfaces/brick';
 import { colorStringToRGBA } from '#utils/color';
 import GradientPicker from '#components/GradientPicker.vue';
 
-const md = new MarkdownIt();
-
-let { prop, editMode } = defineProps({
-  prop: { 
-    type: Object as PropType<BrickPropType>, 
-    required: true 
-  },
-  editMode: {
-    type: Boolean,
+const props = defineProps({
+  prop: {
+    type: Object as PropType<BrickPropType>,
     required: true
   }
 });
 
 const emit = defineEmits<{
   (e: 'update:prop', prop: BrickPropType): void
-  (e: 'edit:prop', prop: BrickPropType): void
-  (e: 'delete:prop', prop: BrickPropType): void
 }>();
 
-
-const renderedDescription = computed(() => md.render(prop.description));
-
-// Mapping dei componenti
+// 1. Mapping dei componenti
 const componentMap: Record<string, any> = {
-  'String': NInput,
-  'Text' : NInput,
-  'Any': NInput,
-  'Int': NInputNumber,
-  'Float': NInputNumber,
-  'Bool' : NSwitch,
-  'StringSelect': NSelect,
-  'IntSelect': NSelect,
-  'FloatSelect': NSelect,
-  'Select': NSelect,
-  'Array': NDynamicTags,
-  'StringArray': NDynamicTags,
-  'IntArray': NDynamicTags,
-  'FloatArray': NDynamicTags,
-  'Color' : NColorPicker,
-  'Gradient' : GradientPicker,
-  'Date' : NDatePicker,
-  'Datetime' : NDatePicker,
-  'Time' : NTimePicker
+  'String': NInput, 'Text': NInput, 'Any': NInput,
+  'Int': NInputNumber, 'Float': NInputNumber,
+  'Bool': NSwitch,
+  'Select': NSelect, 'StringSelect': NSelect, 'IntSelect': NSelect, 'FloatSelect': NSelect,
+  'Array': NDynamicTags, 'StringArray': NDynamicTags, 'IntArray': NDynamicTags, 'FloatArray': NDynamicTags,
+  'Color': NColorPicker,
+  'Gradient': GradientPicker,
+  'Date': NDatePicker, 'Datetime': NDatePicker, 'Time': NTimePicker
 };
 
-const currentComponent = computed(() => componentMap[prop.prop_type] || NInput);
+const currentComponent = computed(() => componentMap[props.prop.prop_type] || NInput);
 
+// 2. Logica di trasformazione del valore (Getter/Setter)
+const modelValue = computed<any>({
+  get() {
+    const p = props.prop;
+    switch (p.prop_type) {
+      case 'Bool': return p.value ?? p.default ?? false;
+      case 'Select':
+        return p.max <= 1 ? (p.value?.[0] ?? p.default?.[0] ?? null) : (p.value ?? p.default ?? []);
+      case 'Array':
+        return (p.value ?? p.default ?? []).map((v: any) => ({ label: String(v), value: v }));
+      case 'Color': return p.value ?? p.default ?? '#00000000';
+      case 'Gradient': return p.value ?? p.default ?? [];
+      case 'Date': case 'Datetime': case 'Time': return p.value ?? p.default ?? null;
+      default: return p.value ?? p.default ?? null;
+    }
+  },
+  set(newValue) {
+    const p = props.prop;
+    let finalValue;
+
+    switch (p.prop_type) {
+      case 'Array':
+        finalValue = newValue ? newValue.map((item: any) => (typeof item === 'string' ? item : item.value)) : [];
+        if (p.value_type === 'Integer') finalValue = finalValue.map((v: any) => parseInt(v)).filter((v: any) => !isNaN(v));
+        break;
+      case 'Select':
+        finalValue = Array.isArray(newValue) ? newValue : (newValue ? [newValue] : []);
+        break;
+      case 'Color':
+        finalValue = newValue ? colorStringToRGBA(newValue) : "#00000000";
+        break;
+      default:
+        finalValue = newValue;
+    }
+
+    p.value = finalValue;
+    emit('update:prop', p);
+  }
+});
+
+// 3. Props dinamiche per i componenti Naive UI
 const componentProps = computed(() => {
-  switch (prop.prop_type) {
-    case 'Bool':
-      return {
-        round: true,
-        defaultValue: prop.default || false
-      };
-    case 'String':
-      return {
-        placeholder: 'Type a string value...',
-        defaultValue: prop.default,
-        clearable: true
-      };
-    case 'Int':
-    case 'Float':
-      return {
-        precision: prop.prop_type === 'Int' ? 0 : 2,
-        min: prop.min,
-        max: prop.max,
-        step: prop.step ? prop.step : (prop.prop_type === 'Float' ? 0.1 : 1),
-        defaultValue: prop.default,
-        placeholder: prop.default ? `${prop.default}` : 'Type a number...',
-        clearable: true
-      };
-    case 'Text':
-      return {
-        type: 'textarea',
-        placeholder: 'Type a multiline text value...',
-        defaultValue: prop.default,
-        clearable: true
-      };
+  const p = props.prop;
+  const base = { clearable: true, placeholder: 'Select/Type value...' };
 
+  switch (p.prop_type) {
+    case 'Bool': return { round: true };
+    case 'Int': case 'Float':
+      return { 
+        ...base, 
+        precision: p.prop_type === 'Int' ? 0 : 2, 
+        step: p.step || (p.prop_type === 'Float' ? 0.1 : 1), 
+        min: p.min, 
+        max: p.max 
+      };
+    case 'Text': return { ...base, type: 'textarea' };
     case 'Select':
-      return {
-        defaultValue: prop.default && prop.default.length > 0 ? (prop.max > 1 ? prop.default : prop.default[0]) : null,
-        options: prop.options.map(option => ({ label: option, value: option })),
-        placeholder: 'Select a value...',
-        multiple: prop.max > 1,
-        clearable: true
-      };
-
-    case 'Array':
-      return {
-        defaultValue: prop.default?.map(v => ({ label: String(v), value: v })) || [],
-        round: true,
-        min: prop.min,
-        max: prop.max
-      };
-    
+      return { ...base, options: p.options?.map(o => ({ label: o, value: o })), multiple: p.max > 1 };
     case 'Color':
-      const merged = [
-        ...(Array.isArray(prop.saved) ? prop.saved : []),
-        ...(Array.isArray(prop.swatches) ? prop.swatches : []),
-      ]
-
+      console.log([...(p.saved || []), ...(p.swatches || [])])
+      const swatches = [...(p.saved || []), ...(p.swatches || [])];
       return {
-        placement: "top-start",
-        swatches: merged.length > 0 ? merged : null,
-        'show-alpha': !prop.skip_alpha,
-        'show-preview': true
+        swatches: swatches.length > 0 ? swatches : null, 
+        'show-alpha': !p.skip_alpha 
       };
-
     case 'Gradient':
-      return {
-        defaultValue: prop.value,
-        "onUpdate:value" : (stops) => (prop.value = stops)
+      return { 
+        'show-alpha' : !p.skip_alpha,
+        'default': p.default
       };
-
-    case 'Date':
-    case "Datetime":
-    case "Time":
-      const allow_future = prop.allow_future;
-      const allow_past = prop.allow_past;
-
-      return {
-        type: prop.prop_type === 'Datetime' ? 'datetime' : 'date',
-        clearable: true,
-        defaultValue: prop.value,
-        "onUpdate:value": (value) => (prop.value = value),
+    case 'Date': case 'Datetime':
+      return { 
+        ...base, 
+        type: p.prop_type === 'Datetime' ? 'datetime' : 'date',
         isTimeDisabled: (current) => {
           const date = new Date(current);
           const now = new Date();
@@ -192,34 +152,32 @@ const componentProps = computed(() => {
             isHourDisabled: (hour: number) => {
               if (!isToday) return false;
 
-              if (!allow_past && allow_future) {
+              if (!p.allow_past && p.allow_future) {
                 return hour < now.getHours();
               }
-              if (!allow_future && allow_past) {
+              if (!p.allow_future && p.allow_past) {
                 return hour > now.getHours();
               }
               return false;
             },
-
             isMinuteDisabled: (minute: number, hour: number) => {
               if (!isToday) return false;
 
-              if (!allow_past && allow_future && hour === now.getHours()) {
+              if (!p.allow_past && p.allow_future && hour === now.getHours()) {
                 return minute < now.getMinutes();
               }
-              if (!allow_future && allow_past && hour === now.getHours()) {
+              if (!p.allow_future && p.allow_past && hour === now.getHours()) {
                 return minute > now.getMinutes();
               }
               return false;
             },
-
             isSecondDisabled: (second: number, minute: number, hour: number) => {
               if (!isToday) return false;
 
-              if (!allow_past && allow_future && hour === now.getHours() && minute === now.getMinutes()) {
+              if (!p.allow_past && p.allow_future && hour === now.getHours() && minute === now.getMinutes()) {
                 return second < now.getSeconds();
               }
-              if (!allow_future && allow_past && hour === now.getHours() && minute === now.getMinutes()) {
+              if (!p.allow_future && p.allow_past && hour === now.getHours() && minute === now.getMinutes()) {
                 return second > now.getSeconds();
               }
               return false;
@@ -229,252 +187,82 @@ const componentProps = computed(() => {
         isDateDisabled: (ts: number) => {
           const date = new Date(ts);
           const now = new Date();
-          if (allow_future) now.setHours(now.getHours() - 24);
+          if (p.allow_future) now.setHours(now.getHours() - 24);
 
-          if (allow_future && date.getTime() >= now.getTime()) {
+          if (p.allow_future && date.getTime() >= now.getTime()) {
             return false;
           }
-          if (allow_past && date.getTime() <= now.getTime()) {
+          if (p.allow_past && date.getTime() <= now.getTime()) {
             return false;
           }
 
           return true;
         }
       };
-
-    default:
-      return {};
+    case 'Time':
+      return { ...base, type: 'time' };
+    default: {};
   }
 });
 
-const modelValue = computed<any>({
-  get() {
-    switch (prop.prop_type) {
-      case 'Bool':
-        return prop.value ?? prop.default ?? false;
-      case 'String':
-        return prop.value ?? prop.default ?? null;
-      case 'Text':
-        return prop.value ?? prop.default ?? null;
-      case 'Int':
-        return prop.value ?? prop.default ?? null;
-      case 'Float':
-        return prop.value ?? prop.default ?? null;
-
-      case 'Select':
-        if (prop.max <= 1) {
-          return prop.value[0] ?? prop.default[0] ?? null;
-        }
-        return prop.value ?? prop.default ?? [];
-
-      case 'Array':
-        return (prop.value ?? prop.default ?? []).map(v => ({ label: String(v), value: v }));
-
-      case 'Color':
-        return prop.value ?? prop.default ?? '#00000000';
-
-      case 'Gradient':
-        return prop.value ?? prop.default ?? [];
-
-      case "Date":
-      case "Datetime":
-      case "Time":
-        return prop.value ?? prop.default ?? null;
-
-      default:
-        return [];
-    }
-  },
-  set(newValue) {
-    console.log(newValue);
-    let value;
-    switch (prop.prop_type) {
-      case 'Array':
-        if (prop.value_type === 'String') {
-          value = newValue
-            ? newValue
-                .map(item => (typeof item === 'string' ? item : item.value))
-            : prop.default ?? [];
-          break;
-        }
-        else if (prop.value_type === 'Integer') {
-          value = newValue
-            ? newValue
-                .map(item => (typeof item === 'string' ? /[a-zA-Z]/.test(item) ? NaN : parseInt(item.replace(',', '.')) : item.value))
-                .filter(val => !isNaN(val))
-            : prop.default ?? [];
-          break;
-        }
-        else if (prop.value_type === 'Float') {
-          value = newValue
-            ? newValue
-                .map(item => (typeof item === 'string' ? (/[a-zA-Z]/.test(item) ? NaN : parseFloat(item.replace(',', '.'))) : item.value))
-                .filter(val => !isNaN(val))
-            : prop.default ?? [];
-          break;
-        }
-        break;
-
-      case 'Select':
-        if (newValue === null || newValue === undefined) {
-          value = [];
-          break;
-        }
-
-        if (!Array.isArray(newValue)) {
-          newValue = [newValue];
-        }
-
-        if (prop.max && newValue.length > prop.max) {
-          newValue = newValue.slice(0, prop.max);
-        }
-
-        value = newValue;
-        break;
-
-      case 'Color':
-        value = newValue ? colorStringToRGBA(newValue) : (prop.default ?? "#00000000");
-        break;
-
-      case 'Gradient':
-        value = newValue;
-        break;
-
-      case 'Bool':
-        value = newValue;
-        break;
-
-      case 'Date':
-      case 'Datetime':
-      case 'Time':
-        value = newValue;
-        break;
-
-      default:
-        value =  newValue !== null ? newValue : (prop.default ? prop.default : null);
-    }
-    prop.value = value;
-  }
-});
-
-function onClearColor() {
-  modelValue.value = null;
-}
-
+// 4. Azioni specifiche Color Picker
+function onClearColor() { modelValue.value = null; }
 function onSaveColor() {
-  if (prop.prop_type !== 'Color') return;
-
-  // Se il colore è già nei swatches, non fare nulla
-  if (prop.swatches && prop.swatches.includes(prop.value)) return;
-
-  // Aggiungi il colore a saved se non presente
-  if (prop.saved) {
-    if (!prop.saved.includes(prop.value)) {
-      prop.saved.unshift(prop.value);
-    }
-  } else {
-    prop.saved = [prop.value];
+  if (props.prop.prop_type !== 'Color') return;
+  if (!props.prop.saved) props.prop.saved = [];
+  if (!props.prop.saved.includes(props.prop.value)) {
+    props.prop.saved.unshift(props.prop.value);
+    emit('update:prop', props.prop);
   }
-  emit("update:prop", prop)
 }
-
 function onRemoveColor() {
-  if (prop.prop_type !== 'Color') return;
-
-  if (prop.saved && prop.saved.includes(prop.value)) {
-    prop.saved = prop.saved.filter((value) => value !== prop.value);
+  if (props.prop.prop_type === 'Color' && props.prop.saved) {
+    props.prop.saved = props.prop.saved.filter(v => v !== props.prop.value);
+    emit('update:prop', props.prop);
   }
-  emit("update:prop", prop)
 }
-
-// Watch per salvare automaticamente
-watch(modelValue, () => {
-  emit("update:prop", prop)
-});
 </script>
 
-<style scoped>
-.brick-prop {
+<style>
+.n-color-picker-swatches {
   display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  margin-top: 0.5rem;
-  margin-left: 0.75rem;
-  margin-right: 0.75rem;
+  align-items: flex-end;
+  min-height: 22px;
+}
+/* Vedere se mantenere o migliorare questo */
+.n-color-picker-swatch {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.brick-prop label {
-  font-weight: normal;
-  margin-left: 0rem;
-}
-
-::deep(.n-popover__content) {
-  display: flex;
-}
-
-.n-input-number,
-.n-date-picker,
-.n-time-picker {
-  width: 100%;
-}
-
-.prop-input-section {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  flex-direction: row;
-  gap: 0.5rem;
-}
-
-.prop-input-section div {
-  display: flex;
-  flex-direction: row;
-  gap: 0.5rem;
-}
-
-.prop-input-component {
-  justify-content: flex-start;
+.n-color-picker-swatch:focus {
+  outline: none !important;
+  
+  /* Un bordo nero solido ma più spesso */
+  border: 2px solid black !important;
+  
+  /* Un'ombra netta e scura per staccarlo decisamente dal fondo */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  
+  border-radius: 4px;
+  
+  /* Solleviamo lo swatch */
+  transform: translateY(-2px);
 }
 </style>
 
-<style>
-.brick-prop-description * {
-  margin: 0;
-}
-
-.brick-prop-description {
-  white-space: pre-line; 
+<style scoped>
+.color-picker-actions {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-flow: row;
+  gap: 8px;
+  padding: 4px;
 }
 
-.brick-prop-description p {
-  display: flex;
-  flex-direction: row;
-  gap: 0.25rem;
-}
-
-.brick-prop-description ul {
-  display: flex;
-  flex-direction: column;
-  list-style-type: disc;
-  padding-left: 1.2em;   /* spazio per i puntini */
-  margin: 0;             /* opzionale, per togliere margini */
-}
-
-.brick-prop-description li {
-  margin-bottom: 0.003em;
-}
-
-.brick-prop-description code {
-  background-color: #f5f5f5;   /* grigio chiaro */
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9em;
-  color: #c7254e;  /* un rosso scuro, ma puoi scegliere altro */
+/* Fix larghezza per picker specifici */
+:deep(.n-input-number),
+:deep(.n-date-picker),
+:deep(.n-time-picker),
+:deep(.n-select) {
+  width: 100% !important;
 }
 </style>

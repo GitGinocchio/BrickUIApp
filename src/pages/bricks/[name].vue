@@ -1,6 +1,6 @@
 <template>
-  <div class="container" v-if="brick">
-    <n-image 
+  <div class="container" v-if="brick" @scroll="handleScroll">
+    <n-image
       class="banner"
       :class="{ loaded: isBannerLoaded }"
       object-fit="cover"
@@ -16,7 +16,7 @@
       </template>
     </n-image>
 
-    <Header :sections="sections" class="header">
+    <Header :sections="sections" class="header" :style="{ '--scroll-opacity': headerOpacity }">
       <template #actions>
         <div style="display: flex; align-items: center; gap: 1rem">
           <n-switch
@@ -65,56 +65,17 @@
           </div>
         </n-tab-pane>
 
-        <n-tab-pane name="props" class="properties-container">
+        <n-tab-pane name="props" class="props-container">
           <template #tab>
             <div class="tab-header">
               <Cog :size="16" />
               <span>Props</span>
             </div>
           </template>
-          <div class="tab-content">
-            <div class="tab-actions">
-              <n-button @click="onEditPropMode" text circle size="medium">
-                <Pencil v-if="!propsEditMode" :size="16" />
-                <PencilOff v-else :size="16" />
-              </n-button>
-            </div>
-            <div
-              class="movable"
-              v-for="(prop, index) in brick.props"
-              :key="prop.prop_name"
-            >
-              <span v-if="propsEditMode" class="arrows">
-                <ChevronUp
-                  v-if="index !== 0"
-                  @click="onMovePropUp(prop)"
-                  :size="16"
-                />
-                <ChevronDown
-                  v-if="index < brick.props.length - 1"
-                  @click="onMovePropDown(prop)"
-                  :size="16"
-                />
-              </span>
-              <BrickProp
-                :prop="prop"
-                :edit-mode="propsEditMode"
-                @update:prop="onPropValueChanged"
-                @edit:prop="onEditProp"
-                @delete:prop="onDeleteProp"
-              />
-            </div>
-            <div v-if="brick.props.length == 0">
-              <p>This brick has no props!</p>
-            </div>
-            <n-button
-              size="small"
-              v-if="propsEditMode"
-              class="add-prop"
-              @click="onNewProp"
-              ><CirclePlus :size="16" />Add</n-button
-            >
-          </div>
+          <template #suffix>
+
+          </template>
+          <PropsPanel v-model:brick="brick" />
         </n-tab-pane>
 
         <n-tab-pane name="emits" class="emits-container">
@@ -142,28 +103,6 @@
         </n-tab-pane>
       </n-tabs>
     </div>
-
-    <!-- Confirm Delete Modal -->
-    <GenericModal
-      v-model:show="deleteModalShow"
-      :message="deleteModalMessage"
-      :title="deleteModalTitle"
-      negative="Cancel"
-      positive="Delete"
-      type="warning"
-      @confirm="deleteModalOnConfirm"
-      @decline="deleteModalOnDecline"
-    />
-
-    <!-- New/Edit Prop Modal -->
-    <PropModal
-      v-model:show="propModalShow"
-      v-model:prop="targetProp"
-      v-model:initialProp="initialProp"
-      :editMode="propModalEditMode"
-      :props="brick.props"
-      @finished="onPropEditFinished"
-    />
   </div>
 </template>
 
@@ -178,9 +117,6 @@ import {
   Pencil,
   PencilOff,
   Cog,
-  CirclePlus,
-  ChevronDown,
-  ChevronUp,
   Wifi,
   Shield,
 } from "lucide-vue-next";
@@ -188,16 +124,13 @@ import { emit, emitTo } from "@tauri-apps/api/event";
 import MarkdownIt from "markdown-it";
 
 import { appDataDir, sanitizePath } from "#utils/path";
-import type { Brick, Prop } from "#interfaces/brick";
-import GenericModal from "#components/modals/GenericModal.vue";
-import PropModal from "#components/modals/PropModal.vue";
+import type { Brick } from "#interfaces/brick";
+import PropsPanel from "#components/panels/PropsPanel.vue";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const activeTab = ref<string>("description");
-let updateTimeout: ReturnType<typeof setTimeout> | null = null;
-let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const brickName = computed(() => route.params.name as string);
 
@@ -209,15 +142,27 @@ const sections = computed(() => {
   ];
 });
 
+const headerOpacity = ref(0);
+
+function handleScroll(e: Event) {
+  const target = e.target as HTMLElement;
+  const scrollTop = target.scrollTop;
+  
+  const maxScroll = 150; 
+  headerOpacity.value = Math.min(scrollTop / maxScroll, 1);
+
+  console.log(headerOpacity.value);
+}
+
 const isBannerLoaded = ref<boolean>(false);
 const bannerUrl = ref<string | null>(null);
 const defaultBannerUrl = new URL("../../assets/images/banner-brick-iso.svg", import.meta.url).href;
-
 const iconUrl = ref<string | null>(null);
 
 function onBannerLoad() {
   setTimeout(() => { isBannerLoaded.value = true; }, 15);
 }
+
 
 onMounted(async () => {
   brick.value = await invoke("get_brick_by_name", { name: brickName.value });
@@ -231,14 +176,6 @@ onMounted(async () => {
     iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
   }
 });
-
-/* Delete Modal */
-const deleteModalTitle = ref<string>("");
-const deleteModalMessage = ref<string>("");
-const deleteModalShow = ref<boolean>(false);
-const deleteModalOnConfirm = ref<() => void | null>();
-const deleteModalOnDecline = ref<() => void | null>();
-const propToDelete = ref<Prop | null>(null);
 
 /* Description */
 
@@ -258,141 +195,9 @@ async function onEditDescription(_event?: Event) {
   }
 }
 
-/* Props */
-const propsEditMode = ref<boolean>(false);
-const propModalShow = ref<boolean>(false);
-const propModalEditMode = ref<boolean>(false);
-const targetProp = ref<Prop | null>(null);
-const initialProp = ref<Prop | null>(null);
-
-function onNewProp() {
-  targetProp.value = { prop_type: "String", prop_name: "", description: null };
-  initialProp.value = null;
-  propModalEditMode.value = false;
-  propModalShow.value = true;
-}
-
-function onEditProp(prop: Prop) {
-  targetProp.value = JSON.parse(JSON.stringify(prop));
-  initialProp.value = JSON.parse(JSON.stringify(prop));
-  propModalEditMode.value = true;
-  propModalShow.value = true;
-}
-
-async function onDeleteProp(prop: Prop) {
-  propToDelete.value = prop;
-
-  deleteModalTitle.value = "Confirm deletion";
-  deleteModalMessage.value = `Are you sure you want to delete "${prop.prop_name}"?`;
-  deleteModalOnConfirm.value = deleteProp;
-  deleteModalShow.value = true;
-}
-
-async function deleteProp() {
-  const index = brick.value.props.findIndex(
-    (p) => p.prop_name === propToDelete.value.prop_name
-  );
-  brick.value.props.splice(index, 1);
-
-  await invoke("save_brick", { brick: brick.value });
-  emit("changed");
-}
-
-async function onPropValueChanged(prop: Prop) {
-  console.log(`Prop update: ${prop}`);
-  const index = brick.value.props.findIndex(
-    (p) => p.prop_name === prop.prop_name
-  );
-  if (index !== -1) brick.value.props[index] = prop;
-  else brick.value.props.push(prop);
-
-  if (updateTimeout) clearTimeout(updateTimeout);
-  updateTimeout = setTimeout(async () => {
-    await emitTo("overlay", "update-brick", {
-      name: brick.value.name,
-      prop: prop,
-    });
-    updateTimeout = null;
-  }, 50);
-
-  // Debounce del salvataggio
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(async () => {
-    await invoke("save_brick", { brick: brick.value });
-    saveTimeout = null;
-  }, 3000);
-}
-
-async function onPropEditFinished(before: Prop, clone?: boolean) {
-  if (propModalEditMode.value) {
-    const index = brick.value.props.findIndex(
-      (p) => p.prop_name === before.prop_name
-    );
-
-    if (index !== -1 && clone) {
-      targetProp.value.prop_name = `${before.prop_name}-copy`;
-      brick.value.props.splice(index + 1, 0, targetProp.value);
-    } else if (index !== -1) {
-      brick.value.props[index] = targetProp.value;
-    } else {
-      brick.value.props.push(targetProp.value);
-    }
-  } else {
-    brick.value.props.push(targetProp.value);
-  }
-
-  await invoke("save_brick", { brick: brick.value });
-  emit("changed");
-}
-
-/* Brick actions */
-async function onEditPropMode(_event?: Event) {
-  propsEditMode.value = !propsEditMode.value;
-
-  if (propsEditMode.value && activeTab.value !== "props") {
-    activeTab.value = "props";
-  }
-}
-
 async function onToggle() {
   await emitTo("overlay", "toggle-brick", { brick: brick.value });
   await invoke("save_brick", { brick: brick.value });
-  emit("changed");
-}
-
-async function onOpenBrick() {
-  await invoke("open_brick", { brickName: brick.value.name });
-}
-
-async function onMovePropUp(prop: Prop) {
-  const index = brick.value.props.findIndex(
-    (p) => p.prop_name === prop.prop_name
-  );
-  if (index > 0) {
-    // scambia con l'elemento precedente
-    const tmp = brick.value.props[index - 1];
-    brick.value.props[index - 1] = brick.value.props[index];
-    brick.value.props[index] = tmp;
-  }
-
-  await invoke("save_brick", { brick: brick.value });
-}
-
-async function onMovePropDown(prop: Prop) {
-  const index = brick.value.props.findIndex(
-    (p) => p.prop_name === prop.prop_name
-  );
-  if (index >= 0 && index < brick.value.props.length - 1) {
-    const tmp = brick.value.props[index + 1];
-    brick.value.props[index + 1] = brick.value.props[index];
-    brick.value.props[index] = tmp;
-  }
-
-  await invoke("save_brick", { brick: brick.value });
-}
-
-async function deleteBrick() {
-  await invoke("delete_brick", { brick: brick.value });
   emit("changed");
 }
 </script>
@@ -426,12 +231,33 @@ async function deleteBrick() {
 }
 
 .header {
-  padding-top: 1rem;
-  padding-left: 1rem;
-  position: absolute;
-  display: flex;
-  width: calc(100% - 3rem);
+  position: fixed;
   top: 0;
+  width: calc(100% - 7rem);
+  z-index: 1000 !important;
+  margin: 0 !important;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+
+  padding-top: clamp(1rem, 2rem - (var(--layout-scroll-top, 0px) / 10), 2rem);
+  padding-bottom: clamp(1rem, 2rem - (var(--layout-scroll-top, 0px) / 10), 2rem);
+
+  background-color: rgba(24, 24, 28, clamp(0, var(--layout-scroll-top, 0px) / 150, 0.9));
+  backdrop-filter: blur(clamp(0px, var(--layout-scroll-top, 0px) / 15, 12px));
+  -webkit-backdrop-filter: blur(clamp(0px, var(--layout-scroll-top, 0px) / 15, 12px));
+
+  transition: 
+    background-color 0.1s linear, 
+    backdrop-filter 0.1s linear,
+    padding 0.1s ease-out;
+
+  border-bottom: 1px solid rgba(255, 255, 255, clamp(0, var(--layout-scroll-top, 0px) / 300, 0.1));
 }
 
 .header * {
@@ -465,7 +291,6 @@ async function deleteBrick() {
 
 .tab-content {
   position: relative;
-  padding: 1rem 0;
 }
 
 .tab-actions {

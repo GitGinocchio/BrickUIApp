@@ -1,216 +1,126 @@
 <template>
-  <n-modal
-    v-model:show="show"
-    :auto-focus="true"
-    preset="dialog"
-    :title="editMode ? 'Edit Prop' : 'New Prop'"
-    :draggable="true"
-    @keyup.enter="onFinished(false)"
-  >
-    <n-form>
-      <n-form-item 
-        label="Prop name"
-        :validation-status="feedback ? 'error' : undefined"
-        :show-feedback="feedback ? true : false"
-        :feedback="feedback"
-      >
-        <n-input
-          :value="prop.prop_name"
-          placeholder="Type the prop's name"
-          @update:value="onPropNameInput"
-        />
-      </n-form-item>
-      <n-form-item 
-        label="Prop Description"
-        :show-feedback="false"
-        :feedback="null"
-      >
+  <div class="brick-prop-options">
+    <n-form class="brick-prop-items">
+      <n-form-item label="Description:">
         <n-input
           v-model:value="prop.description"
-          :default-value="prop.description"
-          @update:value="(value) => prop.description = value"
-          placeholder="Type the prop's description"
+          placeholder="Type the prop's description (Markdown supported)"
           type="textarea"
+          maxlength="512"
+          show-count
+          resizable
+          :autosize="{ minRows: 2 }"
         />
       </n-form-item>
-      <n-form-item 
-        label="Prop type"
-      >
+
+      <n-form-item label="Type:">
         <n-select 
-          v-model:value="prop.prop_type" 
+          :value="prop.prop_type" 
           :options="propTypes"
-          @update:value="(value) => {
-            onNewPropTypeSelected(value)
-            if (prop.prop_type === 'Select' || prop.prop_type === 'Array') prop.value_type = 'String'
-          }"
           :render-label="renderLabel"
+          @update:value="(value) => onNewPropTypeSelected(value)"
         />
       </n-form-item>
+
       <n-form-item 
         label="Value type"
         v-if="prop.prop_type === 'Select' || prop.prop_type === 'Array'"
       >
         <n-select
           v-model:value="prop.value_type"
-          :options="[
-            { label: 'String', value: 'String', icon: h(Type, { size: 16 }) }, 
-            { label: 'Float', value: 'Float', icon: h(DecimalsArrowRight, { size: 16 }) },
-            { label: 'Integer', value: 'Integer', icon: h(ArrowUp10, { size: 16 }) },
-          ]"
-          :render-label="(option: { label: string, value: string, icon: any }) => {
-            return h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
-              option.icon,
-              h('span', option.label)
-            ]);
-          }"
-          @update:value="() => { 
-            if (prop.prop_type === 'Select') {
-              prop.options = []
-            } else if (prop.prop_type === 'Array') {
-              prop.default = [] 
-            }
-          }"
+          :options="valueTypeOptions"
+          :render-label="renderValueTypeLabel"
+          @update:value="onValueTypeChanged"
         />
       </n-form-item>
       
-      <n-form-item v-if="optionsInputField" label="Options">
+      <n-form-item v-if="optionsInputField" label="Options:">
         <component :is="optionsInputField" />
       </n-form-item>
-      <n-form-item v-if="prop.prop_type === 'Gradient' || prop.prop_type === 'Color'" label="Skip Alpha">
-        <n-switch v-model:value="prop.skip_alpha" :default-value="false" @update:value="onSkipAlphaChanged"></n-switch>
+
+      <n-form-item v-if="prop.prop_type == 'Color' || prop.prop_type == 'Gradient'" label="Skip Alpha:">
+        <n-switch v-model:value="prop.skip_alpha" @update:value="onSkipAlphaChanged" />
       </n-form-item>
-      <n-form-item v-if="defaultInputField" label="Default value">
-        <component :is="defaultInputField">
-          <template v-if="prop.prop_type == 'Color'" #action>
-            <n-tooltip trigger="hover" placement="bottom" :delay="500">
-              <template #trigger>
+
+      <n-form-item v-if="defaultInputField" label="Default value:">
+        <div class="default-input-wrapper">
+          <component :is="defaultInputField">
+            <template v-if="prop.prop_type === 'Color'" #action>
+              <n-space size="small" style="padding: 4px; flex-flow: row;">
                 <n-button size="small" @click="onSaveColor">Save</n-button>
-              </template>
-              Clicca salva per creare un campione di colore
-            </n-tooltip>
-            <n-tooltip trigger="hover" placement="bottom" :delay="500">
-              <template #trigger>
                 <n-button size="small" @click="onRemoveColor">Remove</n-button>
-              </template>
-              Clicca rimuovi per eliminare un campione di colore
-            </n-tooltip>
-            <n-tooltip trigger="hover" placement="bottom" :delay="500">
-              <template #trigger>
                 <n-button size="small" @click="onClearColor">Clear</n-button>
-              </template>
-              Clicca pulisci per rimuovere il colore di default
-            </n-tooltip>
-          </template>
-        </component>
+              </n-space>
+            </template>
+          </component>
+        </div>
       </n-form-item>
-      <n-form-item v-if="minInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Minimum allowed number' : 'Minimum number of values'">
+
+      <n-form-item v-if="minInputField" :label="minLabel">
         <component :is="minInputField" />
       </n-form-item>
-      <n-form-item v-if="maxInputField" :label="['Int', 'Float'].includes(prop.prop_type) ? 'Maximum allowed number' : 'Maximum number of values'">
+
+      <n-form-item v-if="maxInputField" :label="maxLabel">
         <component :is="maxInputField" />
       </n-form-item>
-      <n-form-item v-if="stepInputField" label="Step value">
+
+      <n-form-item v-if="stepInputField" label="Step value:">
         <component :is="stepInputField" />
       </n-form-item>
-      <n-form-item label="Allow past" v-if="prop.prop_type === 'Date' || prop.prop_type === 'Datetime'">
-        <n-switch
-          :value="prop.allow_past"
-          v-on:update:value="(value: boolean) => {
-            if (prop.prop_type !== 'Date' && prop.prop_type !== 'Datetime') return;
-            
-            prop.allow_past = value;
 
-            if (prop.allow_future === prop.allow_past && prop.allow_future === false) {
-              prop.allow_future = !prop.allow_past
-            }
-          }"
-        />
-      </n-form-item>
-      <n-form-item label="Allow future" v-if="prop.prop_type === 'Date' || prop.prop_type === 'Datetime'">
-        <n-switch
-          :value="prop.allow_future"
-          v-on:update:value="(value: boolean) => {
-            if (prop.prop_type !== 'Date' && prop.prop_type !== 'Datetime') return;
-            
-            prop.allow_future = value;
-
-            if (prop.allow_future === prop.allow_past && prop.allow_future === false) {
-              prop.allow_past = !prop.allow_future
-            }
-          }"
-        />
-      </n-form-item>
+      <template v-if="prop.prop_type == 'Date' || prop.prop_type == 'Datetime'">
+        <n-form-item label="Allow past:">
+          <n-switch :value="prop.allow_past" @update:value="v => toggleDateConstraint('past', v)" />
+        </n-form-item>
+        <n-form-item label="Allow future:">
+          <n-switch :value="prop.allow_future" @update:value="v => toggleDateConstraint('future', v)" />
+        </n-form-item>
+      </template>
     </n-form>
-    <template #action>
-      <n-space justify="end">
-        <n-button
-          v-if="editMode"
-          type="secondary"
-          @click="onFinished(true)"
-        >
-        Duplicate
-        </n-button>
-        <n-button @click="show = !show">Cancel</n-button>
-        <n-button
-          type="primary"
-          :disabled="editMode ? deepEqual(initialProp, prop) || feedback != null : feedback || !prop.prop_name ? true : false"
-          @click="onFinished(false)"
-        >   
-          {{ editMode ? 'Save' : 'Create' }}
-        </n-button>
-      </n-space>
-    </template>
-  </n-modal>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { NColorPicker, NDatePicker, NDynamicTags, NInput, NInputNumber, NSelect, NSwitch, NTimePicker, NTooltip } from 'naive-ui';
-import { type DatePickerType } from 'naive-ui/es/date-picker/src/config';
+import { 
+  NInput, NButton, NInputNumber, NSelect, NSwitch, 
+  NDynamicTags, NColorPicker, NDatePicker, NTimePicker, NSpace, NForm, NFormItem, 
+  useDialog
+} from 'naive-ui';
+import { 
+  List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, 
+  DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock
+} from 'lucide-vue-next';
 
-import { List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock } from 'lucide-vue-next';
-
-import { createProp, type Prop, type PropTypeValue, propTypeValues } from '#interfaces/brick';
+import { createProp, type Prop, type PropTypeValue, propTypeValues, type SelectablePropType } from '#interfaces/brick';
 import { colorStringToRGBA } from '#utils/color';
-import { deepEqual } from '#utils/misc';
 import GradientPicker from '#components/GradientPicker.vue';
+import type { DatePickerType } from 'naive-ui/es/date-picker/src/config';
 
+const dialog = useDialog();
 
-const show = defineModel<boolean>("show");
-const prop = defineModel<Prop>("prop");
-const initialProp = defineModel<Prop>("initialProp");
-
-const emit = defineEmits<{
-  (e: "finished", before: Prop, clone?: boolean): void
-}>();
-
+// --- Props & Emits ---
+const prop = defineModel<Prop>("prop", { required: true });
 const props = defineProps({
-  editMode: {
-    type: Boolean,
-    default: false,
-    required: false
-  },
-  props: {
-    type: Array<Prop>,
+  allProps: {
+    type: Object as PropType<Prop[]>,
     required: true
+  },
+  showAlertOnTypeChange: {
+    default: true
   }
 });
+const emit = defineEmits<{
+  (e: 'update:prop', prop: Prop): void
+}>();
 
-const feedback = ref<string|null>(null);
+watch(() => prop.value, (updated) => emit("update:prop", updated), { deep: true });
 
+// --- Mapping Icone e Tipi ---
 const iconsMap: Record<string, any> = {
-  Select: ListTodo,
-  Array: List,
-  String: Type,
-  Text: Text,
-  Int: ArrowUp10,
-  Float: DecimalsArrowRight,
-  Bool: ToggleLeft,
-
-  Color: PaintBucket,
-  Gradient: SwatchBook,
-  Datetime: CalendarClock,
-  Date: Calendar1,
-  Time: Clock
+  Select: ListTodo, Array: List, String: Type, Text: Text,
+  Int: ArrowUp10, Float: DecimalsArrowRight, Bool: ToggleLeft,
+  Color: PaintBucket, Gradient: SwatchBook, Datetime: CalendarClock, 
+  Date: Calendar1, Time: Clock
 };
 
 const propTypes = propTypeValues.map((value) => ({
@@ -219,113 +129,77 @@ const propTypes = propTypeValues.map((value) => ({
   icon: () => h(iconsMap[value], { size: 16 })
 }));
 
-function renderLabel(option) {
-  return h("div", { style: "display: flex; align-items: center; gap: 6px;" }, [
-    option.icon && option.icon(),
-    h("span", option.label)
-  ]);
+const valueTypeOptions = [
+  { label: 'String', value: 'String', icon: h(Type, { size: 16 }) }, 
+  { label: 'Float', value: 'Float', icon: h(DecimalsArrowRight, { size: 16 }) },
+  { label: 'Integer', value: 'Integer', icon: h(ArrowUp10, { size: 16 }) },
+];
+
+// --- Helper Functions ---
+const renderLabel = (option: any) => h("div", [option.icon(), h("span", option.label)]);
+const renderValueTypeLabel = (option: any) => h('div', [option.icon, h('span', option.label)]);
+
+const minLabel = computed(() => ['Int', 'Float'].includes(prop.value.prop_type) ? 'Minimum allowed number:' : 'Minimum number of values:');
+const maxLabel = computed(() => ['Int', 'Float'].includes(prop.value.prop_type) ? 'Maximum allowed number:' : 'Maximum number of values:');
+
+function onNewPropTypeSelected(newPropType: PropTypeValue) {
+  const onPositiveClick = () => {
+    const current = prop.value;
+    const subType = (newPropType === 'Select' || newPropType === 'Array') ? 'String' : null;
+    prop.value = createProp(newPropType, current.prop_name, current.description, subType);
+  }
+
+  if (!props.showAlertOnTypeChange) {
+    onPositiveClick();
+    return;
+  }
+
+  dialog.warning({
+    title: 'Confirm new prop type',
+    content: () => [
+      h("p", {},`Are you sure you want to change "${prop.value.prop_name}" type from ${prop.value.prop_type} to ${newPropType}?`),
+      h("p", {}, "You will lose all the prop's settings. The action is irreversible.")
+    ],
+    positiveText: 'Change',
+    negativeText: 'Cancel',
+    onPositiveClick: onPositiveClick
+  });
 }
 
-function onNewPropTypeSelected(value: PropTypeValue) {
-  prop.value = createProp(
-    value, 
-    prop.value.prop_name, 
-    prop.value.description, 
-    (prop.value.prop_type === 'Select' || prop.value.prop_type === 'Array' ? prop.value.value_type ?? 'String' : null)
-  );
+function onValueTypeChanged() {
+  if (prop.value.prop_type === 'Select') prop.value.options = [];
+  else if (prop.value.prop_type === 'Array') prop.value.default = [];
 }
 
-function onPropNameInput(value: string) {
-  const componentNameRegex = /^[A-Za-z][A-Za-z0-9]*(?:[-_][A-Za-z0-9]+)*$/;
-  const other_props = initialProp.value ? props.props.filter((p) => p.prop_name !== initialProp.value.prop_name) : props.props;
-
-  if (!componentNameRegex.test(value)) {
-    feedback.value = "Must start with a letter. Only letters, numbers, and underscores are allowed.";
-  } else if (other_props.some((p) => p.prop_name === value)) {
-    feedback.value = "A prop with this name already exists.";
+function toggleDateConstraint(type: 'past' | 'future', value: boolean) {
+  if (prop.value.prop_type !== 'Date' && prop.value.prop_type !== 'Datetime') return;
+  if (type === 'past') {
+    prop.value.allow_past = value;
+    if (!value && !prop.value.allow_future) prop.value.allow_future = true;
   } else {
-    feedback.value = null;
+    prop.value.allow_future = value;
+    if (!value && !prop.value.allow_past) prop.value.allow_past = true;
   }
-
-  prop.value.prop_name = value;
 }
 
-function onFinished(clone: boolean) {
-  show.value = false; 
-
-  emit('finished', initialProp.value, clone)
-}
-
-function onClearColor() {
-  prop.value.default = null;
-}
-
+// --- Gestione Colori ---
 function onSaveColor() {
-  if (prop.value.prop_type !== 'Color') return;
-
-  // Se il colore è già nei swatches, non fare nulla
-  if (prop.value.swatches && prop.value.swatches.includes(prop.value.default)) return;
-
-  if (prop.value.swatches) prop.value.swatches = [prop.value.default, ...(prop.value.swatches || [])];
-  else prop.value.swatches = [prop.value.default]
+  if (prop.value.prop_type !== 'Color' || !prop.value.default) return;
+  if (!prop.value.swatches) prop.value.swatches = [];
+  if (!prop.value.swatches.includes(prop.value.default)) {
+    prop.value.swatches = [prop.value.default, ...prop.value.swatches];
+  }
 }
-
 function onRemoveColor() {
-  if (prop.value.prop_type !== 'Color') return;
-
-  if (prop.value.swatches && prop.value.swatches.includes(prop.value.default)) {
-    prop.value.swatches = prop.value.swatches.filter((value) => value !== prop.value.default);
+  if (prop.value.prop_type === 'Color' && prop.value.swatches) {
+    prop.value.swatches = prop.value.swatches.filter(v => v !== prop.value.default);
   }
 }
+function onClearColor() { prop.value.default = null; }
 
-function sanitizeSelectDefault(defaultValue: any, options: any[], max: number | null) {
-  if (max && max > 1) {
-    if (!Array.isArray(defaultValue)) {
-      return [];
-    }
-    return defaultValue.filter((value) => options.includes(value));
-  }
-
-  let normalized = defaultValue;
-  if (Array.isArray(defaultValue)) {
-    normalized = defaultValue.length > 0 ? defaultValue[0] : null;
-  }
-
-  if (normalized === null || normalized === undefined) {
-    return [];
-  }
-
-  return options.includes(normalized) ? [normalized] : [];
-}
-
-//let valueBeforeSkipAlpha = null;
-
-function onSkipAlphaChanged(skip_alpha: boolean) {
-  /*
-  if (skip_alpha) {
-    valueBeforeSkipAlpha = prop.value.default;
-  }
-  */
-
-  if (prop.value.prop_type === 'Color') {
-    //prop.value.default = skip_alpha ? prop.value.default.slice(0, 7) + "FF" : valueBeforeSkipAlpha;
-    prop.value.default = prop.value.default?.slice(0, 7) + (skip_alpha ? "FF" : "CC");
-  }
-  else if (prop.value.prop_type === 'Gradient') {
-    /*
-    prop.value.default = skip_alpha ? prop.value.default.map((gradient_stop) => {
-      return {
-        'color': gradient_stop.color.slice(0, 7) + (skip_alpha ? "FF" : "CC"),
-        'position': gradient_stop.position
-      }
-    }) : valueBeforeSkipAlpha;
-    */
-    prop.value.default = prop.value.default?.map((gradient_stop) => {
-      return {
-        'color': gradient_stop.color.slice(0, 7) + (skip_alpha ? "FF" : "CC"),
-        'position': gradient_stop.position
-      }
-    });
+function onSkipAlphaChanged(skip: boolean) {
+  if (prop.value.prop_type === 'Color' && prop.value.default) {
+    prop.value.default = prop.value.default.slice(0, 7) + (skip ? "FF" : "CC");
   }
 }
 
@@ -573,11 +447,12 @@ const defaultInputField = computed(() => {
 const optionsInputField = computed(() => {
   switch (prop.value.prop_type) {
     case "Select":
-      const value_type = prop.value.value_type;
+      const p = prop.value as SelectablePropType<any>;
+      const value_type = p.value_type;
       return h(
         NDynamicTags, 
         {
-          value: prop.value.options.map((value) => String(value)),
+          value: p.options.map((value) => String(value)),
           "onUpdate:value": (newValue: any[]) => {
             let parsedValue;
 
@@ -608,16 +483,13 @@ const optionsInputField = computed(() => {
               parsedValue = newValue;
             }
             
-            // @ts-ignore
-            prop.value.options = [...new Set(parsedValue)];
+            p.options = [...new Set(parsedValue)];
 
-            // @ts-ignore
-            prop.value.default = sanitizeSelectDefault(prop.value.default, prop.value.options, prop.value.max);
+            p.default = p.options.includes(p.default) ? p.default : null;
           },
           type : 'info'
         }
       );
-
     default:
       return null;
   };
@@ -708,9 +580,57 @@ const stepInputField = computed(() => {
 </script>
 
 <style scoped>
-.n-input-number,
-.n-date-picker,
-.n-time-picker {
+.brick-prop-options {
   width: 100%;
+}
+
+.brick-prop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.default-input-wrapper {
+  width: 100%;
+}
+:deep(.n-input-number), :deep(.n-date-picker), :deep(.n-time-picker) {
+  width: 100%;
+}
+
+:deep(.n-base-selection-input__content > div), :deep(.n-base-select-option__content > div) {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+:deep(.n-form-item.n-form-item--top-labelled) {
+  /* Definiamo due colonne: la prima per la label, la seconda per l'input */
+  grid-template-areas:
+    "label blank"
+    "label feedback"; /* Il feedback (errore) solitamente sta sotto l'input */
+  
+  /* Larghezza: es. 120px per la label e il resto all'input */
+  grid-template-columns: 12rem 1fr; 
+  
+  /* Allineamento verticale al centro */
+  align-items: center;
+  
+  /* Reset delle righe se necessario */
+  grid-template-rows: auto auto;
+  
+  column-gap: 1rem; /* Spazio tra label e input */
+}
+
+@media (max-width: 800px) {
+  :deep(.n-form-item.n-form-item--top-labelled) {
+    grid-template-columns: 100% !important;
+    grid-template-areas: "label" "blank" "feedback" !important;
+  }
+}
+
+:deep(.n-form-item-label) {
+  justify-content: flex-end;
+  text-align: left;
+  padding-right: 12px;
 }
 </style>

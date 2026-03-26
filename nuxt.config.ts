@@ -11,6 +11,10 @@ export default defineNuxtConfig({
   // Enable SSG
   ssr: false,
 
+  experimental: {
+    payloadExtraction: 'client'
+  },
+
   // Assicurati che il router usi il sistema di file relativo (opzionale ma consigliato per Tauri)
   router: {
     options: {

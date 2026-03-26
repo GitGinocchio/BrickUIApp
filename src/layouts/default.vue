@@ -15,14 +15,17 @@
         <n-menu :value="activeMenuKey" :collapsed="collapsed" :options="bottomMenuOptions" @update:value="onMenuSelect" />
       </NLayoutSider>
 
-      <NLayoutContent :native-scrollbar="false">
-          <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
-            <slot />
-          </NNotificationProvider>
+      <NLayoutContent :native-scrollbar="false" @scroll="(event) => handleScroll(event)">
+          <NDialogProvider>
+            <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
+              <slot />
+            </NNotificationProvider>
+          </NDialogProvider>
       </NLayoutContent>
       
       <SystemTray v-if="settings?.systemtray" />
       
+      <!-- TODO: Sostituire con useDialog -->
       <GenericModal
         :message="addBrickModalMessage"
         title="Import brick"
@@ -44,6 +47,7 @@
         </template>
       </GenericModal>
 
+      <!-- TODO: Sostituire con useDialog -->
       <GenericModal
         title="Brick already imported"
         type="error"
@@ -61,7 +65,7 @@
 <script setup lang="ts">
 import "#assets/css/default.css";
 
-import { NLayoutSider, NNotificationProvider, NLayoutContent, NLayout, NMenu, NConfigProvider } from 'naive-ui';
+import { NLayoutSider, NNotificationProvider, NDialogProvider, NLayoutContent, NLayout, NMenu, NConfigProvider } from 'naive-ui';
 import { CircleUser, Cuboid, LayoutDashboard, SettingsIcon, StoreIcon } from 'lucide-vue-next';
 import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
@@ -99,6 +103,12 @@ function handleMouseLeave() {
   }
   // richiudi subito al mouseleave
   collapsed.value = true
+}
+
+function handleScroll(e: Event) {
+  const target = e.target as HTMLElement;
+  // Impostiamo la variabile sul documento in modo che sia accessibile ovunque
+  document.documentElement.style.setProperty('--layout-scroll-top', `${target.scrollTop}px`);
 }
 
 const menuOptions = computed(() => [

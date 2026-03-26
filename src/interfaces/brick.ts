@@ -144,6 +144,15 @@ export interface GradientPropType extends PropType<Array<GradientStop>> {
   skip_alpha? : boolean;
 }
 
+export const CollectionValueTypes = [
+  'String',
+  'Integer',
+  'Float'
+] as const;
+
+// Tipo unione inferito automaticamente
+export type CollectionValueType = typeof CollectionValueTypes[number];
+
 /** Array property container with typed values. */
 export interface ArrayPropType<T> extends PropType<Array<T>> {
   /** Minimum number of items allowed in the array. */
@@ -151,6 +160,9 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
 
   /** Maximum number of items allowed in the array. */
   max?: number;
+
+  /** Options type */
+  value_type?: any,
 
   /** Minimum value allowed in the array. */
   min_value?: number;
@@ -163,6 +175,9 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
 export interface SelectablePropType<T> extends PropType<Array<T>> {
   /** List of selectable options. */
   options: T[];
+
+  /** Selectable options type */
+  value_type?: any,
 
   /** Minimum number of selections allowed. */
   min?: number;
@@ -215,14 +230,14 @@ function createArrayProp<T>(name: string, description = null): ArrayPropType<T> 
   }
 }
 
-export function createProp(type: PropTypeValue, name: string, description: string, value_type?: 'String' | 'Integer' | 'Float'): Prop {
+export function createProp(type: PropTypeValue, name: string, description: string, value_type?: CollectionValueType): Prop {
   switch (type) {
     case "String":
       return { prop_type: "String", ...createBaseProp<string>(name, description) }
     case "Text":
       return { prop_type: "Text", ...createBaseProp<string>(name, description) }
     case "Bool":
-      return { prop_type: "Bool", ...createBaseProp<boolean>(name, description), default: false }
+      return { prop_type: "Bool", default: false, ...createBaseProp<boolean>(name, description) }
     case "Int":
       return { prop_type: "Int", ...createNumericProp(name, description) }
     case "Float":
@@ -230,20 +245,20 @@ export function createProp(type: PropTypeValue, name: string, description: strin
     
     case "Select":
       switch (value_type) {
-        case 'String':
-          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
         case 'Float':
         case 'Integer':
-          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<number>(name, [], description) }
+          return { prop_type: "Select", value_type: value_type,...createSelectableProp<number>(name, [], description) }
+        default:
+          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
       }
     
     case "Array":
       switch (value_type) {
-        case 'String':
-          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
         case 'Float':
         case 'Integer':
           return { prop_type: "Array", value_type: value_type, ...createArrayProp<number>(name, description) }
+        default:
+          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
       }
 
     case "Color":

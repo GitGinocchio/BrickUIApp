@@ -1,59 +1,72 @@
 <template>
-  <div class="gradient-editor">
-    <!-- Anteprima del gradiente -->
-    <div 
-      class="gradient-preview"
-      ref="previewRef"
-      :style="{ background: gradientString }"
-      @dblclick.prevent="addStopAt($event)"
-    >
-      <!-- Stop handles -->
-      <n-color-picker
-        v-for="(stop, index) in value"
-        :key="index"
-        size="large"
-        class="stop-handle"
-        :style="{ left: stop.position + '%', background: stop.color }"
-        :show-alpha="!skip_alpha"
-        :value="stop.color"
-        @update:value="(color) => onSetColor(index, color)"
-        @mousedown.prevent="startDrag(index, $event)"
+  <div class="gradient-picker">
+    <div class="gradient-editor">
+      <!-- Anteprima del gradiente -->
+      <div 
+        class="gradient-preview"
+        ref="previewRef"
+        :style="{ background: gradientString }"
+        @dblclick.prevent="addStopAt($event)"
       >
-      <template #label>
-        <!-- Vuoto per togliere la label default -->
-      </template>
-      <template #action>
-        <div class="actions"> 
-          <!--
-          <n-select
-            size="small"
-            :options="gradientTypeOptions"
-          />
-          -->
-          <n-input-number 
-            size="small" 
-            :precision="2"
-            :default-value="0.0"
-            placeholder="Stop color position"
-            :step="0.5"
-            :max="100"
-            :min="0"
-            :value="parseFloat(stop.position.toFixed(2))"
-            @update:value="(position) => onSetPosition(index, position ?? 0)"
-          />
-          <div class="bottom">
-            <n-button size="small" @click="duplicateStop(index)">Clone</n-button>
-            <n-button size="small" @click="removeStop(index)">Remove</n-button>
-          </div>   
+        <div 
+          v-for="(stop, index) in value" 
+          :key="index"
+          class="stop-handle"
+          :style="{ left: stop.position + '%', position: 'absolute' }"
+          @mousedown.prevent="startDrag(index, $event)"
+        >
+          <!-- Stop handles -->
+          <n-color-picker
+            size="large"
+            :show-alpha="!skip_alpha"
+            :value="stop.color"
+            @update:value="(color) => onSetColor(index, color)"
+          >
+            <template #label>
+              <!-- Vuoto per togliere la label default -->
+            </template>
+            <template #action>
+              <div class="actions"> 
+                <!--
+                <n-select
+                  size="small"
+                  :options="gradientTypeOptions"
+                />
+                -->
+                <n-input-number 
+                  size="small" 
+                  :precision="2"
+                  :default-value="0.0"
+                  placeholder="Stop color position"
+                  :step="0.5"
+                  :max="100"
+                  :min="0"
+                  :value="parseFloat(stop.position.toFixed(2))"
+                  @update:value="(position) => onSetPosition(index, position ?? 0)"
+                />
+                <div class="bottom">
+                  <n-button size="small" @click="duplicateStop(index)">Clone</n-button>
+                  <n-button size="small" @click="removeStop(index)">Remove</n-button>
+                </div>   
+              </div>
+            </template>
+          </n-color-picker>
         </div>
-      </template>
-      </n-color-picker>
+      </div>
+    </div>
+    <div>
+      <n-button v-if="canReset" class="restore-button" @click="onRestoreDefault">
+        <template #icon>
+          <Undo2 :size="16" />
+        </template>
+      </n-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { NColorPicker, NButton, NInputNumber } from 'naive-ui'
+import { Undo2 } from 'lucide-vue-next';
+import { NColorPicker, NButton, NInputNumber, NTooltip } from 'naive-ui'
 import { colorStringToRGBA } from '#utils/color';
 import { GradientType } from '#interfaces/brick';
 
@@ -63,6 +76,15 @@ interface Stop {
 }
 
 const props = defineProps({
+  color: {
+    type: Object as PropType<String>,
+    default: "grey"
+  },
+  default: {
+    type: Object as PropType<Stop[]>,
+    default: [],
+    required: false
+  },
   skip_alpha: {
     type: Boolean,
     value: false
@@ -71,8 +93,19 @@ const props = defineProps({
 
 // Model reattivo, usa sempre v-model:value nel parent
 const steps = defineModel<Stop[]>("value", { 
-  default: [{ color: '#00000000', position: 50 }] 
+  default: []
 })
+
+const canReset = computed(() => {
+  if (steps.value.length !== props.default?.length) return true;
+
+  const serialize = (arr: any[]) => arr.map(obj => JSON.stringify(obj)).sort();
+
+  const sortedA = serialize(steps.value);
+  const sortedB = serialize(props.default);
+
+  return sortedA.some((val, index) => val !== sortedB[index]);
+});
 
 /*
 const gradientTypeOptions = [
@@ -89,7 +122,7 @@ const draggingStop = ref<number | null>(null)
 
 // Gradiente CSS
 const gradientString = computed(() => {
-  const sorted = steps.value.slice().sort((a, b) => a.position - b.position)
+  const sorted = steps.value?.slice().sort((a, b) => a.position - b.position) ?? []
   return `${gradientType.value.toLowerCase()}-gradient(90deg, ${sorted.map(s => `${s.color} ${s.position}%`).join(', ')})`
 })
 
@@ -105,7 +138,7 @@ function removeStop(index: number) {
   let newStops = steps.value.slice()
   newStops.splice(index, 1)
   if (newStops.length === 0) {
-    newStops = [{ color: props.skip_alpha ? '#000000FF' : '#00000000', position: 50 }]
+    newStops = []
   }
   steps.value = newStops
 }
@@ -167,12 +200,23 @@ function stopDrag() {
   document.removeEventListener("mousemove", onDrag)
   document.removeEventListener("mouseup", stopDrag)
 }
+
+function onRestoreDefault() {
+  steps.value = props.default;
+}
 </script>
 
 
 
 <style scoped>
+.gradient-picker {
+  display: flex;
+  flex-direction: row;
+}
 
+.restore-button {
+  width: 1rem;
+}
 
 .gradient-editor {
   width: 100%;
@@ -188,20 +232,22 @@ function stopDrag() {
 .gradient-preview {
   position: relative;
   display: flex;
+  align-items: center;
   flex-grow: 1;
+  
 }
 
 .gradient-preview::before {
   content: "";
   position: absolute; 
   inset: 0;
-  background-image: 
-    linear-gradient(45deg, #f5f5f5 25%, transparent 25%), 
-    linear-gradient(-45deg, #f5f5f5 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #f5f5f5 75%), 
-    linear-gradient(-45deg, transparent 75%, #f5f5f5 75%);
-  background-size: 17px 17px;
-  background-position: 8.5px 8.5px, 8.5px 0, 0 0, 0 8.5px;
+  background-image: conic-gradient(
+    v-bind('props.color') 90deg, 
+    transparent 90deg 180deg, 
+    v-bind('props.color') 180deg 270deg, 
+    transparent 270deg
+  );
+  background-size: 18px 18px;
   z-index: 0;
 }
 
@@ -209,7 +255,7 @@ function stopDrag() {
   content: "";
   position: absolute;
   inset: 0;
-  background: v-bind('gradientString'); /* Vue 3 <style scoped> binding */
+  background: v-bind('gradientString');
   z-index: 1;
 }
 
@@ -223,7 +269,7 @@ function stopDrag() {
   z-index: 2; /* stop handle sopra al gradiente */
 }
 
-.stop-handle {
+.stop-handle :deep(.n-color-picker) {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
