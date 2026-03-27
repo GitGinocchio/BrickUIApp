@@ -88,7 +88,8 @@ import {
 } from 'naive-ui';
 import { 
   List, ListTodo, PaintBucket, SwatchBook, ToggleLeft, Type, Text, 
-  DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock
+  DecimalsArrowRight, ArrowUp10, Clock, Calendar1, CalendarClock,
+  CircleSlash
 } from 'lucide-vue-next';
 
 import { createProp, type Prop, type PropTypeValue, propTypeValues, type SelectablePropType } from '#interfaces/brick';
@@ -120,14 +121,18 @@ const iconsMap: Record<string, any> = {
   Select: ListTodo, Array: List, String: Type, Text: Text,
   Int: ArrowUp10, Float: DecimalsArrowRight, Bool: ToggleLeft,
   Color: PaintBucket, Gradient: SwatchBook, Datetime: CalendarClock, 
-  Date: Calendar1, Time: Clock
+  Date: Calendar1, Time: Clock,
+  Null: CircleSlash,
 };
 
-const propTypes = propTypeValues.map((value) => ({
-  label: value.replace(/([A-Z])/g, " $1").trim(),
-  value,
-  icon: () => h(iconsMap[value], { size: 16 })
-}));
+const propTypes = propTypeValues
+  .filter((value) => !['Deprecated', 'Unknown'].includes(value))
+  .map((value) => ({
+    label: value.replace(/([A-Z])/g, " $1").trim(),
+    value,
+    icon: () => h(iconsMap[value], { size: 16 })
+  })
+);
 
 const valueTypeOptions = [
   { label: 'String', value: 'String', icon: h(Type, { size: 16 }) }, 
@@ -143,6 +148,8 @@ const minLabel = computed(() => ['Int', 'Float'].includes(prop.value.prop_type) 
 const maxLabel = computed(() => ['Int', 'Float'].includes(prop.value.prop_type) ? 'Maximum allowed number:' : 'Maximum number of values:');
 
 function onNewPropTypeSelected(newPropType: PropTypeValue) {
+  if (prop.value.prop_type === newPropType) return;
+
   const onPositiveClick = () => {
     const current = prop.value;
     const subType = (newPropType === 'Select' || newPropType === 'Array') ? 'String' : null;

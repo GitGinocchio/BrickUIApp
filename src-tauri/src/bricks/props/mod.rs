@@ -51,66 +51,101 @@ pub struct PropType<T: Default> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)] 
+pub enum Prop {
+    /// 1. Prova a matchare i tipi conosciuti (Bool, String, ecc.)
+    Known(KnownProp),
+
+    #[schemars(description = "Inferred Null property (missing prop_type).")]
+    Null {
+        #[serde(flatten)]
+        data: PropMeta,
+    },
+
+    /// 2. Se 'prop_type' esiste ma non è in KnownProp, catturalo qui.
+    /// Questa variante funge da "Deprecated" perché cattura la stringa originale.
+    #[schemars(description = "Deprecated property.")]
+    Deprecated {
+        #[serde(default, rename = "prop_type")]
+        deprecated_type: String,
+        #[serde(flatten)]
+        data: PropMeta,
+    },
+
+    /// 3. Fallback finale: se non ha nemmeno la struttura di PropMeta.
+    /// In un enum untagged, l'ultima variante senza campi cattura tutto il resto.
+    #[schemars(description = "Fallback for completely unknown or malformed structures.")]
+    Unknown(serde_json::Value),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "prop_type")]
 #[schemars(description = "Enumeration of supported property types for a Brick.")]
-pub enum Prop {
-    // Primitives
+pub enum KnownProp {
+    // Bool
     #[schemars(description = "Boolean property type.")]
     Bool {
         #[serde(flatten)]
         data: PropType<bool>,
     },
 
+    // String
     #[schemars(description = "String property type.")]
     String {
         #[serde(flatten)]
         data: PropType<String>,
     },
 
+    // Text
     #[schemars(description = "Multiline text property type.")]
     Text {
         #[serde(flatten)]
         data: PropType<String>,
     },
 
+    // Int
     #[schemars(description = "Integer property type.")]
     Int {
         #[serde(flatten)]
         data: NumericPropType<i64>,
     },
 
+    // Float
     #[schemars(description = "Floating point property type.")]
     Float {
         #[serde(flatten)]
         data: NumericPropType<f64>,
     },
 
-    // Color / Gradient
+    // Color
     #[schemars(description = "Color property type.")]
     Color {
         #[serde(flatten)]
         data: Color,
     },
 
+    // Gradient
     #[schemars(description = "Gradient property type.")]
     Gradient {
         #[serde(flatten)]
         data: Gradient,
     },
 
-    // Dates and times
+    // Date
     #[schemars(description = "Date property type.")]
     Date {
         #[serde(flatten)]
         data: DatePropType,
     },
 
+    // Datetime
     #[schemars(description = "Datetime property type.")]
     Datetime {
         #[serde(flatten)]
         data: DateTimePropType,
     },
 
+    // Time
     #[schemars(description = "Time property type.")]
     Time {
         #[serde(flatten)]
@@ -130,4 +165,11 @@ pub enum Prop {
         #[serde(flatten)]
         data: SelectPropType,
     },
+
+    // Null
+    #[schemars(description = "Null property type.")]
+    Null {
+        #[serde(flatten)]
+        data: PropMeta
+    }
 }

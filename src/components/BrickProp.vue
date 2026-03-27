@@ -60,7 +60,8 @@ const componentMap: Record<string, any> = {
   'Array': NDynamicTags, 'StringArray': NDynamicTags, 'IntArray': NDynamicTags, 'FloatArray': NDynamicTags,
   'Color': NColorPicker,
   'Gradient': GradientPicker,
-  'Date': NDatePicker, 'Datetime': NDatePicker, 'Time': NTimePicker
+  'Date': NDatePicker, 'Datetime': NDatePicker, 'Time': NTimePicker,
+  'Null' : null, 'Deprecated' : null, 'Unknown' : null
 };
 
 const currentComponent = computed(() => componentMap[props.prop.prop_type] || NInput);
@@ -108,7 +109,7 @@ const modelValue = computed<any>({
 // 3. Props dinamiche per i componenti Naive UI
 const componentProps = computed(() => {
   const p = props.prop;
-  const base = { clearable: true, placeholder: 'Select/Type value...' };
+  const base = { clearable: true, placeholder: 'Select or type a value' };
 
   switch (p.prop_type) {
     case 'Bool': return { round: true };
@@ -124,11 +125,11 @@ const componentProps = computed(() => {
     case 'Select':
       return { ...base, options: p.options?.map(o => ({ label: o, value: o })), multiple: p.max > 1 };
     case 'Color':
-      console.log([...(p.saved || []), ...(p.swatches || [])])
       const swatches = [...(p.saved || []), ...(p.swatches || [])];
       return {
         swatches: swatches.length > 0 ? swatches : null, 
-        'show-alpha': !p.skip_alpha 
+        'show-alpha': !p.skip_alpha,
+        default: p.default
       };
     case 'Gradient':
       return { 
@@ -137,7 +138,8 @@ const componentProps = computed(() => {
       };
     case 'Date': case 'Datetime':
       return { 
-        ...base, 
+        ...base,
+        placeholder: p.prop_type === 'Datetime' ? 'Type or choose a datetime' : 'Type or choose a date',
         type: p.prop_type === 'Datetime' ? 'datetime' : 'date',
         isTimeDisabled: (current) => {
           const date = new Date(current);
@@ -200,13 +202,21 @@ const componentProps = computed(() => {
         }
       };
     case 'Time':
-      return { ...base, type: 'time' };
+      return { ...base, placeholder: 'Type or choose a time', type: 'time' };
+    
+    case 'Null':
+    case 'Deprecated':
+    case 'Unknown':
+      return { placeholder: 'Input disabled because prop_type is Null', disabled: true };
     default: {};
   }
 });
 
 // 4. Azioni specifiche Color Picker
-function onClearColor() { modelValue.value = null; }
+function onClearColor() {
+  if (props.prop.prop_type !== 'Color') return;
+  modelValue.value = props.prop.default ? props.prop.default : null; 
+}
 function onSaveColor() {
   if (props.prop.prop_type !== 'Color') return;
   if (!props.prop.saved) props.prop.saved = [];
@@ -216,8 +226,10 @@ function onSaveColor() {
   }
 }
 function onRemoveColor() {
-  if (props.prop.prop_type === 'Color' && props.prop.saved) {
-    props.prop.saved = props.prop.saved.filter(v => v !== props.prop.value);
+  if (props.prop.prop_type !== 'Color') return;
+
+  if (props.prop.saved) {
+    props.prop.saved = props.prop.saved.filter(v => v !== (props.prop as any).value);
     emit('update:prop', props.prop);
   }
 }
