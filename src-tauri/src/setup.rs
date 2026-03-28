@@ -11,14 +11,12 @@ use crate::profiler::{
 };
 
 use crate::{
-    api::deeplink::handle_deeplink, config::settings::TaskBarBehavior, state::{
+    api::deeplink::handle_deeplink, bricks::brick::Brick, config::{generate_types_if_missing, settings::TaskBarBehavior, write_schema_if_missing}, state::{
         bluetooth::BrickUIBluetoothState, generic::BrickUIGenericState, iconcache::BrickUIconCacheState, user::{
             BrickUIUserState, 
             refresh_session_if_present
         }
-    }, 
-    utils::focus_window, 
-    winapi::{
+    }, utils::focus_window, winapi::{
         bluetooth::start_bluetooth_watcher, 
         com::{
             initialize_com, 
@@ -35,7 +33,7 @@ use crate::{
     }
 };
 
-async fn initialize_dirs(path: &PathBuf) -> Result<(), String> {
+async fn initialize_dirs(path: &PathBuf, resource_path: &PathBuf) -> Result<(), String> {
     tokio::fs::create_dir_all(path)
         .await
         .map_err(|e| format!("Errore nella creazione della directory di dati: {e}"))?;
@@ -48,7 +46,7 @@ async fn initialize_dirs(path: &PathBuf) -> Result<(), String> {
         .await
         .map_err(|e| format!("Errore nella creazione della directory per i widgets (walls): {e}"))?;
     
-    tokio::fs::create_dir_all(path.join(".schemas"))
+    tokio::fs::create_dir_all(resource_path.join(".schemas"))
         .await
         .map_err(|e| format!("Errore nella creazione della directory per gli schemas: {e}"))?;
 
@@ -210,9 +208,12 @@ pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
 
     // General App State
     let (generic, iconcache) = tauri::async_runtime::block_on(async move {
-        initialize_dirs(&path).await?;
-        let generic = BrickUIGenericState::new(&path, &resource_path).await?;
-        let iconcache = BrickUIconCacheState::new(&path).await?;
+        initialize_dirs(&path, &resource_path).await?;
+        generate_types_if_missing(&resource_path, &path).await?;
+        write_schema_if_missing::<Brick>(&resource_path, "brick.schema.json").await?;
+
+        let generic = BrickUIGenericState::new(&resource_path).await?;
+        let iconcache = BrickUIconCacheState::new(&resource_path).await?;
 
         Ok::<(BrickUIGenericState, BrickUIconCacheState), String>((generic, iconcache))
     })?;

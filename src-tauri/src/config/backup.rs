@@ -30,7 +30,7 @@ pub struct Taskbar {
     description = "A Backup file containing all windows settings before Brick UI customizations"
 )]
 pub struct Backup {
-    #[serde(default = "default_schema", rename = "$schema", skip)]
+    #[serde(default = "default_schema", rename = "$schema")]
     #[schemars(description = "The JSON Schema version or URI for this Backup definition.")]
     pub schema: String,
 
@@ -39,7 +39,7 @@ pub struct Backup {
 }
 
 fn default_schema() -> String {
-    "./.schemas/settings.schema.json".to_string()
+    "./.schemas/backup.schema.json".to_string()
 }
 
 impl Backup {

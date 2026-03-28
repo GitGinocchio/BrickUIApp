@@ -10,15 +10,9 @@ use crate::winapi::icons::resolver::extract_icon_png_bytes;
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
-    let mut key = match std::fs::canonicalize(path) {
-        Ok(p) => p.to_string_lossy().to_string(),
-        Err(_) => path.to_string_lossy().to_string(),
-    };
-
-    // Rimuove prefisso \\?\
-    if let Some(stripped) = key.strip_prefix(r"\\?\") {
-        key = stripped.to_string();
-    }
+    let mut key = dunce::simplified(&path)
+        .to_string_lossy()
+        .to_string();
 
     // Windows è case-insensitive
     key = key.to_lowercase();
@@ -53,8 +47,9 @@ pub fn get_or_insert_sync(
         let cached_path = dir.join(format!("{}.png", hash));
 
         if cached_path.exists() {
-            println!("icon cache hit: {}", cached_path.to_string_lossy());
-            return Ok(cached_path.to_string_lossy().to_string());
+            let canonical = dunce::simplified(&cached_path).to_string_lossy().to_string();
+            println!("icon cache hit: {}", canonical);
+            return Ok(canonical);
         }
 
         println!("icon cache miss: {}", cached_path.to_string_lossy());
@@ -116,8 +111,9 @@ pub async fn get_or_insert(
             .await
             .map_err(|e| e.to_string())?
         {
-            println!("icon cache hit: {}", cached_path.to_string_lossy().to_string());
-            return Ok(cached_path.to_string_lossy().to_string());
+            let canonical = dunce::simplified(&cached_path).to_string_lossy().to_string();
+            println!("icon cache hit: {}", canonical);
+            return Ok(canonical);
         }
 
         println!("icon cache miss: {}", cached_path.to_string_lossy().to_string());

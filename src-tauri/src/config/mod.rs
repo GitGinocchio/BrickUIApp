@@ -2,10 +2,11 @@ pub mod backup;
 pub mod settings;
 pub mod icons;
 
-use fs_extra::dir::{CopyOptions, copy};
 use schemars::{JsonSchema, schema_for};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use std::fmt::Debug;
+use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -30,9 +31,16 @@ where
 {
     // Controllo se la struct ha campo `schema`
     let content = if let Some(schema) = extract_schema_field(data) {
+        // Serializziamo normalmente
         let yaml_string = serde_yaml::to_string(data)
             .map_err(|e| format!("Error serializing YAML: {e}"))?;
-        format!("# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}", schema, yaml_string)
+
+        let schema_path = path.join(&schema);
+
+        format!(
+            "# yaml-language-server: $schema={0}\n{1}",
+            dunce::simplified(&schema_path).to_string_lossy(), yaml_string
+        )
     } else {
         serde_yaml::to_string(data)
             .map_err(|e| format!("Error serializing YAML: {e}"))?
@@ -86,9 +94,13 @@ where
         let yaml_string = serde_yaml::to_string(data)
             .map_err(|e| format!("Error serializing YAML: {e}"))?;
 
+        let parent = path.parent().unwrap_or_else(|| path.as_path());
+
+        let schema_path = parent.join(&schema);
+
         format!(
-            "# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}",
-            schema, yaml_string
+            "# yaml-language-server: $schema={0}\n{1}",
+            dunce::simplified(&schema_path).to_string_lossy(), yaml_string
         )
     } else {
         serde_yaml::to_string(data)
@@ -143,11 +155,11 @@ fn extract_schema_field<T: Serialize>(data: &T) -> Option<String> {
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn write_schema_if_missing<T>(dir: &PathBuf, filename: &str) -> Result<(), String>
+pub async fn write_schema_if_missing<T>(path: &PathBuf, filename: &str) -> Result<(), String>
 where
     T: JsonSchema + Serialize,
 {
-    let file_path = dir.join(".schemas").join(filename);
+    let file_path = path.join(".schemas").join(filename);
     
     if !tokio::fs::try_exists(&file_path)
         .await
@@ -167,7 +179,7 @@ where
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn write_template_if_missing<T>(path: &PathBuf, filename: &str) -> Result<(), String>
 where
-    T: Serialize + Default,
+    T: Serialize + Default + Debug,
 {
     let file_path = path.join(filename);
 
@@ -187,18 +199,17 @@ where
         let yaml_string = serde_yaml::to_string(&default_value)
             .map_err(|e| format!("Error serializing YAML: {e}"))?;
 
+        let schema_path = path.join(&schema);
+        let canonical = fs::canonicalize(&schema_path)
+            .map_err(|e| format!("Error obtaining canonical schema_path: {e}"))?;
+        
         format!(
-            "# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}",
-            schema, yaml_string
+            "# yaml-language-server: $schema={0}\n{1}",
+            canonical.to_string_lossy(), yaml_string 
         )
     } else {
-        // Fallback: usa il path predefinito come schema
-        let yaml_string = serde_yaml::to_string(&default_value)
-            .map_err(|e| format!("Error serializing YAML: {e}"))?;
-
-        let schema_filename = filename.replace(".yml", ".schema.json");
-        let schema_uri = format!("../../.schemas/{schema_filename}");
-        format!("# yaml-language-server: $schema={0}\n$schema: {0}\n\n{1}", schema_uri, yaml_string)
+        serde_yaml::to_string(&default_value)
+            .map_err(|e| format!("Error serializing YAML: {e}"))?
     };
 
     // Crea la cartella padre se non esiste
@@ -238,14 +249,14 @@ pub async fn generate_types_if_missing(resource_path: &PathBuf, path: &PathBuf) 
     let path = path.clone();
 
     tokio::task::spawn_blocking(move || {
-        let mut options = CopyOptions::new();
+        let mut options = fs_extra::dir::CopyOptions::new();
         options.overwrite = true; // sovrascrive i file se esistono
         options.copy_inside = true; // copia il contenuto della cartella, non la cartella stessa
         options.content_only = true;
         options.skip_exist = true;
         options.depth = 0;
 
-        copy(
+        fs_extra::dir::copy(
             resource_path.join("assets").join("types"),
             path.join("bricks"),
             &options,

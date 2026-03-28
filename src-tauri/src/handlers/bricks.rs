@@ -40,8 +40,6 @@ pub async fn load_bricks(
 
     let bricks = bricks::load_bricks(&path)?;
 
-    println!("bricks: {bricks:?}");
-
     let mut state_guard = state.lock().await;
     *state_guard.get_mut_bricks() = bricks.clone();
 

@@ -12,7 +12,7 @@ use super::load_yaml_async;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(description = "Top-level application settings.")]
 pub struct Settings {
-    #[serde(default = "default_schema", rename = "$schema", skip)]
+    #[serde(default = "default_schema", rename = "$schema")]
     #[schemars(description = "The JSON Schema version or URI for this Settings definition.")]
     pub schema: String,
 
@@ -62,7 +62,7 @@ impl Settings {
 }
 
 fn default_theme() -> Theme {
-    Theme::Light
+    Theme::System
 }
 fn default_language() -> Language {
     Language::EN

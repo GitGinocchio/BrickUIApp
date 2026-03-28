@@ -124,3 +124,4 @@ tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 tauri-plugin-shell = "2.3.4"
 tauri-plugin-http = "2.5.6"
 tauri-plugin-deep-link = "2.4.7"
+dunce = "1.0.5"

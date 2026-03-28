@@ -14,13 +14,22 @@ use super::write_template_if_missing;
 // In questo modo viene calcolato solo una volta l'hash del contenuto di un icona
 // In base al percorso del file si puo' ottenere l'hash del contenuto (che e' anche il nome del file)
 // In questo modo abbiamo un singolo file per ogni icona diversa
-#[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct IconsMap {
-    #[serde(default = "default_schema", rename = "$schema", skip)]
+    #[serde(default = "default_schema", rename = "$schema")]
     #[schemars(description = "The JSON Schema version or URI for this Settings definition.")]
     pub schema: String,
 
     pub entries: HashMap<String, IconEntry>,
+}
+
+impl Default for IconsMap {
+    fn default() -> Self {
+        Self {
+            schema: default_schema(),
+            entries: HashMap::new()
+        }
+    }
 }
 
 impl IconsMap {

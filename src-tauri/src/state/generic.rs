@@ -5,8 +5,6 @@ use crate::{
     config::{backup::Backup,icons::IconsMap, settings::Settings},
 };
 
-use crate::config::{generate_types_if_missing, write_schema_if_missing};
-
 #[derive(Debug)]
 pub struct BrickUIGenericState {
     settings: Settings,
@@ -17,13 +15,9 @@ pub struct BrickUIGenericState {
 
 impl BrickUIGenericState {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub async fn new(path: &PathBuf, resource_path: &PathBuf) -> Result<Self, String> {
-        // TODO: Questi due chiamate qui sotto andrebbero spostate...
-        generate_types_if_missing(resource_path, path).await?;
-        write_schema_if_missing::<Brick>(path, "brick.schema.json").await?;
-
-        let settings = Settings::load(path).await?;
-        let backup = Backup::load(path).await?;
+    pub async fn new(resource_path: &PathBuf) -> Result<Self, String> {
+        let settings = Settings::load(resource_path).await?;
+        let backup = Backup::load(resource_path).await?;
 
         Ok(Self {
             settings,
