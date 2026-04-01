@@ -18,29 +18,30 @@
 
     <Header :sections="sections" class="header" :style="{ '--scroll-opacity': headerOpacity }">
       <template #actions>
-        <div style="display: flex; align-items: center; gap: 1rem">
+        <div class="actions">
           <n-switch
             style="margin: 0"
             size="large"
             v-model:value="brick.enabled"
-            @update:value="onToggle"
+            @update:value="toggleBrick(brick)"
           />
-          <n-tag round :bordered="false" type="info">
-            v. {{ brick.version.join(".") }}
-            <template #icon>
-              <BadgeCheck />
-            </template>
-          </n-tag>
+          <n-dropdown :options="options" trigger="click" placement="bottom-end" @select="onBrickActionSelected">
+            <n-button circle secondary size="small">
+              <template #icon>
+                <EllipsisVertical />
+              </template>
+            </n-button>
+          </n-dropdown>
         </div>
       </template>
     </Header>
     <div class="content">
       <n-tabs type="line" v-model:value="activeTab" animated>
-        <n-tab-pane name="description">
+        <n-tab-pane name="info">
           <template #tab>
             <div class="tab-header">
-              <Text :size="16" />
-              <span>Description</span>
+              <Info :size="16" />
+              <span>Info</span>
             </div>
           </template>
           <div class="tab-content">
@@ -65,7 +66,7 @@
           </div>
         </n-tab-pane>
 
-        <n-tab-pane name="props" class="props-container">
+        <n-tab-pane name="props">
           <template #tab>
             <div class="tab-header">
               <Cog :size="16" />
@@ -73,12 +74,11 @@
             </div>
           </template>
           <template #suffix>
-
           </template>
           <PropsPanel v-model:brick="brick" />
         </n-tab-pane>
 
-        <n-tab-pane name="emits" class="emits-container">
+        <n-tab-pane name="emits">
           <template #tab>
             <div class="tab-header">
               <Wifi :size="16" />
@@ -90,7 +90,7 @@
           </div>
         </n-tab-pane>
 
-        <n-tab-pane name="permissions" class="permissions-container">
+        <n-tab-pane name="permissions">
           <template #tab>
             <div class="tab-header">
               <Shield :size="16" />
@@ -107,30 +107,36 @@
 </template>
 
 <script setup lang="ts">
-import { NTabs, NTabPane, NButton, NSwitch, NInput, NTag, NImage } from "naive-ui";
+import { NTabs, NTabPane, NButton, NSwitch, NInput, NImage, NDropdown, type DropdownOption } from "naive-ui";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Blocks,
   Cuboid,
   BadgeCheck,
-  Text,
+  EllipsisVertical,
   Pencil,
   PencilOff,
   Cog,
   Wifi,
   Shield,
+  Info,
+  Trash2,
+  Copy,
 } from "lucide-vue-next";
-import { emit, emitTo } from "@tauri-apps/api/event";
+import { emitTo } from "@tauri-apps/api/event";
 import MarkdownIt from "markdown-it";
 
 import { appDataDir, sanitizePath } from "#utils/path";
 import type { Brick } from "#interfaces/brick";
 import PropsPanel from "#components/panels/PropsPanel.vue";
+import { useBrickActions } from "~/composables/useBrickActions";
 
 const { t } = useI18n();
+const { bricks, theme } = useAppState();
+const { renameBrick, deleteBrick, duplicateBrick,  toggleBrick } = useBrickActions(bricks, theme);
 const route = useRoute();
 const router = useRouter();
-const activeTab = ref<string>("description");
+const activeTab = ref<string>("info");
 
 const brickName = computed(() => route.params.name as string);
 
@@ -142,16 +148,86 @@ const sections = computed(() => {
   ];
 });
 
-const headerOpacity = ref(0);
+const options = computed<DropdownOption[]>(() => [
+  {
+    label: 'Rename',
+    key: 'rename',
+    icon: () => h(Pencil)
+  },
+  {
+    label: 'Duplicate',
+    key: 'duplicate',
+    icon: () => h(Copy)
+  },
+  {
+    label: () => h('div', { style: { 'color' : 'red'} }, { default: () => 'Delete' }),
+    icon: () => h(Trash2, { color: 'red' }), 
+    key: 'delete'
+  },
+  {
+    type: 'divider',
+    key: 'd1'
+  },
+  {
+    key: 'version-info',
+    icon: () => h(BadgeCheck, { style: { color: '#2080f0', opacity: 1 } }),
+    label: () => h(
+      'span', 
+      { 
+        style: { 
+          color: '#2080f0', 
+          opacity: 1,
+          fontWeight: '500'
+        } 
+      }, 
+      `v. ${brick.value?.version.join(".")}`
+    ),
+    disabled: true
+  },
+]);
 
+async function onBrickActionSelected(option: string) {
+  switch (option) {
+    case 'rename':
+      await renameBrick(brick.value, (newName: string) => router.push(`/bricks/${newName}`));
+      break;
+    case 'duplicate':
+      duplicateBrick(brick.value, () => router.push(`/bricks/${brick.value.name}Copy`));
+      break;
+    case 'delete':
+      await deleteBrick(brick.value, () => router.push("/bricks"));
+      break;
+    default:
+      console.warn(`azione brick non riconosciuta: ${option}`);
+  }
+}
+
+/* Description */
+
+const md = new MarkdownIt();
+const renderedDescription = computed(() => md.render(brick.value.description));
+const descriptionEditMode = ref<boolean>(false);
+
+async function onEditDescription(_event?: Event) {
+  descriptionEditMode.value = !descriptionEditMode.value;
+
+  if (descriptionEditMode.value && activeTab.value !== "description") {
+    activeTab.value = "description";
+  }
+
+  if (!descriptionEditMode.value) {
+    await invoke("save_brick", { brick: brick.value });
+    await emitTo("main", "update_bricks");
+  }
+}
+
+const headerOpacity = ref(0);
 function handleScroll(e: Event) {
   const target = e.target as HTMLElement;
   const scrollTop = target.scrollTop;
   
   const maxScroll = 150; 
   headerOpacity.value = Math.min(scrollTop / maxScroll, 1);
-
-  console.log(headerOpacity.value);
 }
 
 const isBannerLoaded = ref<boolean>(false);
@@ -163,43 +239,18 @@ function onBannerLoad() {
   setTimeout(() => { isBannerLoaded.value = true; }, 15);
 }
 
-
 onMounted(async () => {
   brick.value = await invoke("get_brick_by_name", { name: brickName.value });
 
   await nextTick();
   
-  if (brick.value.banner) {
+  if (brick.value?.banner) {
     bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
   }
-  if (brick.value.icon) {
+  if (brick.value?.icon) {
     iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
   }
 });
-
-/* Description */
-
-const md = new MarkdownIt();
-const renderedDescription = computed(() => md.render(brick.value.description));
-const descriptionEditMode = ref<boolean>(false);
-async function onEditDescription(_event?: Event) {
-  descriptionEditMode.value = !descriptionEditMode.value;
-
-  if (descriptionEditMode.value && activeTab.value !== "description") {
-    activeTab.value = "description";
-  }
-
-  if (!descriptionEditMode.value) {
-    await invoke("save_brick", { brick: brick.value });
-    emit("changed");
-  }
-}
-
-async function onToggle() {
-  await emitTo("overlay", "toggle-brick", { brick: brick.value });
-  await invoke("save_brick", { brick: brick.value });
-  emit("changed");
-}
 </script>
 
 <style scoped>
@@ -262,6 +313,12 @@ async function onToggle() {
 
 .header * {
   margin: 0;
+}
+
+.header .actions {
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem
 }
 
 .header,

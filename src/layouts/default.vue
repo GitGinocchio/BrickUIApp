@@ -24,40 +24,6 @@
       </NLayoutContent>
       
       <SystemTray v-if="settings?.systemtray" />
-      
-      <!-- TODO: Sostituire con useDialog -->
-      <GenericModal
-        :message="addBrickModalMessage"
-        title="Import brick"
-        type="warning"
-        v-model:show="showAddBrickModal"
-      >
-        <template #extra>
-          <n-alert title="Warning" type="warning">
-            Careful when importing bricks from untrusted sources
-          </n-alert>
-          <n-alert title="Info" type="info">
-            You can verify the brick by yourself by changing the file extension
-            from <code>.brick</code> to <code>.zip</code> and look to the code inside
-          </n-alert>
-        </template>
-        <template #actions>
-          <n-button type="warning" :secondary="true" @click="showAddBrickModal = false">Cancel</n-button>
-          <n-button type="warning" @click="onOpenBrickConfirm">Import</n-button>
-        </template>
-      </GenericModal>
-
-      <!-- TODO: Sostituire con useDialog -->
-      <GenericModal
-        title="Brick already imported"
-        type="error"
-        message="There is already a brick with this name"
-        v-model:show="showAlreadyImportedModal"
-      >
-        <template #actions>
-          <n-button type="error" @click="showAlreadyImportedModal = false">Ok</n-button>
-        </template>
-      </GenericModal>
     </NLayout>
   </NConfigProvider>
 </template>
@@ -65,19 +31,32 @@
 <script setup lang="ts">
 import "#assets/css/default.css";
 
-import { NLayoutSider, NNotificationProvider, NDialogProvider, NLayoutContent, NLayout, NMenu, NConfigProvider } from 'naive-ui';
+import { NLayoutSider, NNotificationProvider, NDialogProvider, NLayoutContent, NLayout, NMenu, NConfigProvider, NSpace, NAlert } from 'naive-ui';
 import { CircleUser, Cuboid, LayoutDashboard, SettingsIcon, StoreIcon } from 'lucide-vue-next';
 import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import GenericModal from '#components/modals/GenericModal.vue';
 import type { Settings } from "~/interfaces/settings";
-
+import { createDiscreteApi } from 'naive-ui';
+import { useBrickActions } from "~/composables/useBrickActions";
 const { settings, theme, bricks } = useAppState();
 
+const { dialog, notification } = createDiscreteApi(['dialog', 'notification'], {
+  configProviderProps: {
+    theme: theme.value
+  },
+  notificationProviderProps: {
+    themeOverrides: theme.value.Notification,
+    placement: 'bottom-right'
+  }
+});
+
+const { openBrick } = useBrickActions(bricks, theme, dialog, notification);
 const { t, setLocale } = useI18n();
 const router = useRouter();
 const route = useRoute();
+
+
 const activeMenuKey = computed(() => {
   if (route.path.startsWith('/user')) {
     return '/get-started'
@@ -127,32 +106,10 @@ function onMenuSelect(key: string) {
   router.push(key)
 }
 
-// 2. Logica delle modali e listener (la tua logica originale)
-const showAddBrickModal = ref(false);
-const showAlreadyImportedModal = ref(false);
-const addBrickModalMessage = ref("");
-const brickToImport = ref<[string, string] | null>(null);
+listen<{ view: string }>("goto", (event) => navigateTo(event.payload.view));
+listen<[string, string]>("open_brick", (event) => openBrick(event.payload));
 
-// Listener per i mattoncini
-listen<[string, string]>("open_brick", (event) => {
-  const brick = event.payload;
-  if (bricks.value.some((b) => b.name === brick[1])) {
-    showAlreadyImportedModal.value = true;
-    return;
-  }
-  addBrickModalMessage.value = `Are you sure you want to import brick "${brick[1]}"`;
-  showAddBrickModal.value = true;
-  brickToImport.value = brick;
-});
-
-// Listener per il routing remoto (da Rust)
-listen<{ view: string }>("goto", (event) => {
-  navigateTo(event.payload.view);
-});
-
-onMounted(() => {
-  setLocale(settings.value.language);
-});
+onMounted(() => setLocale(settings.value.language));
 
 // Watch per salvare le impostazioni
 watch(
@@ -168,17 +125,6 @@ watch(
   }, 
   { deep: true }
 );
-
-async function onOpenBrickConfirm() {
-  showAddBrickModal.value = false;
-  await invoke("unpack_brick", { 
-    brickPath: brickToImport.value?.[0], 
-    brickName: brickToImport.value?.[1] 
-  });
-  bricks.value = await invoke("load_bricks");
-  navigateTo(`/bricks/${brickToImport.value?.[1]}`);
-}
-
 </script>
 
 <style scoped>

@@ -66,6 +66,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + 
         bluetooth_disconnect,
         */
         // Explorer
+        open_file_folder,
         get_explorer_recents,
         // Start Menu
         open_start_menu,

@@ -2,7 +2,7 @@
   <div class="container">
     <Header :sections="sections">
       <template #actions>
-        <n-button text circle @click="onNewBrick">
+        <n-button text circle @click="openNewBrickDialog">
           <CirclePlus />
         </n-button>
       </template>
@@ -13,33 +13,23 @@
         :key="brick.name" 
         :brick="brick" 
         :offline="true"
-        @edit="onEditBrick" 
-        @changed="updateBricks" 
       />
     </div>
   </div>
-  <BrickModal
-    v-model:brick="brick" 
-    v-model:edit-mode="editMode"
-    v-model:initial-brick="initialBrick"
-    v-model:show="show"
-    v-model:feedback="feedback"
-  />
 </template>
 
 <script setup lang="ts">
-import { Blocks, CirclePlus } from "lucide-vue-next";
+import { Blocks, CirclePlus, PartyPopper } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-
 import type { Brick } from "#interfaces/brick";
 import BrickInfoCard from "#components/BrickInfoCard.vue";
 import Header from "#components/Header.vue";
-import BrickModal from "#components/modals/BrickModal.vue"
+import { NFormItem, NInput, useDialog } from "naive-ui";
 
 const { t } = useI18n();
 const router = useRouter();
 const { bricks } = useAppState();
+const dialog = useDialog();
 
 const sections = computed(() => {
   return [
@@ -47,54 +37,73 @@ const sections = computed(() => {
   ]
 });
 
-const show = ref(false);
-const feedback = ref<string | null>(null);
-const editMode = ref(false);
-const initialBrick = ref<Brick|null>(null);
-const brick = ref<Brick>({
-  name: null, 
-  description: '',
-  author: null,
-  props: [],
-  dependencies: [],
-  tags: [],
-  version: [0, 1, 0],
-  enabled: true,
-});
-
-onMounted(async () => await loadBricks());
-listen("update_bricks",async () => await updateBricks());
-
-function onNewBrick() {
-  brick.value = { 
-    name: null, 
-    description: '', 
-    author: null, 
-    props: [], 
-    dependencies: [], 
-    tags: [], 
-    version: [0, 1, 0], 
-    enabled: true 
-  }
-  feedback.value = null;
-  show.value = true;
-  editMode.value = false;
+async function onNewBrick(brickName: string) {
+  const brick: Brick = {
+    name: brickName, 
+    description: '',
+    author: null,
+    props: [],
+    dependencies: [],
+    tags: [],
+    version: [0, 1, 0],
+    enabled: true,
+  };
+  await invoke("new_brick", { brick: brick });
+  bricks.value.push(brick);
 }
 
-function onEditBrick(b: Brick) {
-  brick.value = JSON.parse(JSON.stringify(b));
-  initialBrick.value = JSON.parse(JSON.stringify(b));
-  feedback.value = null;
-  show.value = true;
-  editMode.value = true;
-};
+function openNewBrickDialog() {
+  const brickName = ref("");
+  const feedback = ref<string | null>(null);
 
-async function updateBricks() {
-  bricks.value = await invoke<Brick[]>("get_bricks", {});
-}
+  const componentNameRegex = /^[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*$/;
 
-async function loadBricks() {
-  bricks.value = await invoke<Brick[]>("load_bricks", {});
+  const d = dialog.create({
+    title: t('modals.new_brick_title', 'New Brick'),
+    icon: () => h(PartyPopper),
+    content: () => 
+      h(NFormItem, {
+        label: t('fields.name', 'Name'),
+        validationStatus: feedback.value ? 'error' : undefined,
+        feedback: feedback.value,
+      }, {
+        default: () => h(NInput, {
+          value: brickName.value,
+          placeholder: t('placeholders.brick_name', "Type your brick's name"),
+          onUpdateValue: (v: string) => {
+            brickName.value = v;
+            
+            if (!v) {
+              feedback.value = null;
+            } else if (!componentNameRegex.test(v)) {
+              feedback.value = t('errors.invalid_name', "Must start with a letter. Only letters, numbers, and underscores allowed.");
+            } else if (bricks.value.some(b => b.name === v)) {
+              feedback.value = t('errors.duplicate_name', "A brick with this name already exists.");
+            } else {
+              feedback.value = null;
+            }
+
+            d.positiveButtonProps = {
+              disabled: !brickName.value || feedback.value !== null
+            };
+          },
+          onKeyup: async (e: KeyboardEvent) => {
+            if (e.key === 'Enter' && brickName.value && !feedback.value) {
+              d.destroy();
+              await onNewBrick(brickName.value);
+            }
+          }
+        })
+      }),
+    positiveText: t('actions.create', 'Create'),
+    negativeText: t('actions.cancel', 'Cancel'),
+    positiveButtonProps: {
+      disabled: true 
+    },
+    onPositiveClick: async () => {
+      await onNewBrick(brickName.value);
+    }
+  });
 }
 </script>
 

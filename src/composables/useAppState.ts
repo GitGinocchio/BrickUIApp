@@ -6,18 +6,112 @@ import type { Brick } from "~/interfaces/brick";
 import type { Settings } from "~/interfaces/settings";
 import type { User } from "~/interfaces/user";
 
+/**
+ * Recupera i dati iniziali dal backend Rust (BrickUI Core)
+ */
+async function fetchInitialData() {
+  const [settings, bricks] = await Promise.all([
+    invoke<Settings>("get_settings"),
+    invoke<Brick[]>("load_bricks")
+  ]);
+  return { settings, bricks };
+}
+
+/**
+ * Gestisce la logica di sincronizzazione per la finestra Main
+ */
+async function setupMainSync(
+  isReady: Ref<boolean>, 
+  getState: () => any
+) {
+  // Risponde alle richieste di stato delle altre finestre (es. Overlay, Wallpaper)
+  await listen("request-full-state", async () => {
+    if (!isReady.value) {
+      const unwatch = watch(isReady, (ready) => {
+        if (ready) {
+          emit("sync-full-state", getState());
+          unwatch();
+        }
+      });
+    } else {
+      await emit("sync-full-state", getState());
+    }
+  });
+
+  // Notifica i cambiamenti a tutte le finestre
+  watch(getState, (newState) => {
+    if (isReady.value) {
+      emit("state-changed", newState);
+    }
+  }, { deep: true });
+}
+
+/**
+ * Gestisce la logica di sincronizzazione per le finestre secondarie
+ */
+async function setupSecondarySync(
+  updateState: (payload: any) => void,
+  setReady: (val: boolean) => void
+) {
+  const fetchState = () => emit("request-full-state");
+
+  await once<any>("sync-full-state", (event) => {
+    updateState(event.payload);
+    setReady(true);
+  });
+
+  await listen<any>("state-changed", (event) => {
+    updateState(event.payload);
+  });
+
+  await fetchState();
+  
+  setTimeout(() => {
+    if (!setReady) fetchState();
+  }, 500);
+}
+
 export const useAppState = () => {
   const settings = useState<Settings | undefined>('settings', () => undefined);
   const bricks = useState<Brick[]>('bricks', () => []);
   const user = useState<User | null | undefined>('user', () => undefined);
   const systemIsDark = useState<boolean>('systemIsDark', () => false);
-  
-  // Flag cruciale per la sincronizzazione
   const isReady = useState<boolean>('appStateReady', () => false);
   const isInitialized = useState<boolean>('appStateInitialized', () => false);
 
   const appWindow = getCurrentWindow();
   const isMain = appWindow.label === 'main';
+
+  const getFullState = () => ({
+    settings: settings.value,
+    bricks: bricks.value,
+    user: user.value,
+    systemIsDark: systemIsDark.value
+  });
+
+  const updateAll = (payload: any) => {
+    settings.value = payload.settings;
+    bricks.value = payload.bricks;
+    user.value = payload.user;
+    systemIsDark.value = payload.systemIsDark;
+  };
+
+  const init = async () => {
+    if (isInitialized.value) return;
+    isInitialized.value = true;
+
+    if (isMain) {
+      const data = await fetchInitialData();
+      settings.value = data.settings;
+      bricks.value = data.bricks;
+      systemIsDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      isReady.value = true;
+      await setupMainSync(isReady, getFullState);
+    } else {
+      await setupSecondarySync(updateAll, (val) => isReady.value = val);
+    }
+  };
 
   const theme = computed(() => {
     switch (settings.value?.theme) {
@@ -27,88 +121,6 @@ export const useAppState = () => {
       default: return darkTheme;
     }
   });
-
-  const getFullState = () => ({
-    settings: settings.value,
-    bricks: bricks.value,
-    user: user.value,
-    systemIsDark: systemIsDark.value
-  });
-
-  const init = async () => {
-    if (isInitialized.value) return;
-    isInitialized.value = true;
-
-    if (isMain) {
-      // --- LOGICA MAIN ---
-      
-      // Carichiamo i dati
-      const [s, b] = await Promise.all([
-        invoke<Settings>("get_settings"),
-        invoke<Brick[]>("load_bricks")
-      ]);
-      
-      settings.value = s;
-      bricks.value = b;
-      systemIsDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-      // DICHIARIAMO CHE I DATI SONO PRONTI
-      isReady.value = true;
-
-      // Listener per le richieste delle altre finestre
-      await listen("request-full-state", async () => {
-        // Se per qualche motivo isReady fosse ancora false, aspettiamo un ciclo
-        if (!isReady.value) {
-          const unwatch = watch(isReady, (ready) => {
-            if (ready) {
-              emit("sync-full-state", getFullState());
-              unwatch();
-            }
-          });
-        } else {
-          await emit("sync-full-state", getFullState());
-        }
-      });
-
-      // Watcher per modifiche live (solo dopo il caricamento iniziale)
-      watch([settings, bricks, user, systemIsDark], () => {
-        if (isReady.value) {
-          emit("state-changed", getFullState());
-        }
-      }, { deep: true });
-
-    } else {
-      // --- LOGICA ALTRE FINESTRE ---
-      
-      // Funzione ricorsiva o con retry per chiedere lo stato
-      const fetchState = async () => {
-        await emit("request-full-state");
-      };
-
-      // Ascolta la risposta
-      await once<any>("sync-full-state", (event) => {
-        settings.value = event.payload.settings;
-        bricks.value = event.payload.bricks;
-        user.value = event.payload.user;
-        systemIsDark.value = event.payload.systemIsDark;
-        isReady.value = true;
-      });
-
-      await fetchState();
-
-      // Fallback: se la Main era chiusa o non ha risposto, riprova dopo 500ms
-      setTimeout(() => {
-        if (!isReady.value) fetchState();
-      }, 500);
-
-      await listen<any>("state-changed", (event) => {
-        settings.value = event.payload.settings;
-        bricks.value = event.payload.bricks;
-        user.value = event.payload.user;
-        systemIsDark.value = event.payload.systemIsDark;
-      });
-    }
-  };
 
   return { settings, bricks, user, theme, systemIsDark, init, isReady };
 };

@@ -19,12 +19,12 @@
         <div class="brick-title">
           <strong>{{ brick.name }}</strong>
         </div>
-        <n-button text circle size="tiny" @click.stop="openBrick">
+        <n-button text circle size="tiny" @click.stop="onOpenBrick">
           <ExternalLink :size="18" />
         </n-button>
       </div>
       <div class="brick-controls" v-if="offline">
-        <n-switch v-model:value="brick.enabled" @update:value="onToggle" @click.stop="() => {}" />
+        <n-switch v-model:value="brick.enabled" @update:value="toggleBrick(brick)" @click.stop="() => {}" />
         <n-dropdown :options="brickOptions" trigger="click" :animated="true" @select="handleBrickAction">
           <n-button text circle @click.stop="() => {}"><MoreVertical/></n-button>
         </n-dropdown>
@@ -56,31 +56,18 @@
       </div>
     </div>
   </n-card>
-
-  <!-- Confirm Delete Modal -->
-  <GenericModal
-    v-model:show="deleteModalShow"
-    :message="deleteModalMessage"
-    :title="deleteModalTitle"
-    negative="Cancel"
-    positive="Delete"
-    type="error"
-    @confirm="deleteModalOnConfirm"
-    @decline="deleteModalOnDecline"
-  />
 </template>
 
 <script setup lang="ts">
 import { NSpace, NTag, NCard, NIcon, NButton, NDropdown, NImage } from "naive-ui"
-import { ExternalLink, Download, Pencil, Trash2, Copy, MoreVertical, Cuboid, Share2 } from "lucide-vue-next"
-import GenericModal from "#components/modals/BrickModal.vue";
-import type { Brick, Prop } from "../interfaces/brick";
-import { emitTo } from "@tauri-apps/api/event";
+import { ExternalLink, Download, Trash2, Copy, MoreVertical, Cuboid, Share2, Pencil } from "lucide-vue-next"
+import type { Brick } from "../interfaces/brick";
 import { invoke } from "@tauri-apps/api/core";
-import { save } from '@tauri-apps/plugin-dialog';
 import { appDataDir, sanitizePath } from "#utils/path";
-
+import { useBrickActions } from "~/composables/useBrickActions";
 const router = useRouter();
+const { bricks, theme } = useAppState();
+const { renameBrick, deleteBrick, toggleBrick, duplicateBrick, shareBrick } = useBrickActions(bricks, theme);
 
 const props = defineProps({
   brick: {
@@ -93,11 +80,6 @@ const props = defineProps({
     default: false
   }
 });
-
-const emit = defineEmits<{
-  (e: "changed"): void
-  (e: "edit", brick: Brick): void
-}>();
 
 const canShowDefaultIcon = ref<boolean>(false);
 const isIconLoaded = ref<boolean>(false);
@@ -118,70 +100,26 @@ onMounted(async () => {
   }
 });
 
-// Delete Modal variables
-const deleteModalTitle = ref<string>('');
-const deleteModalMessage = ref<string>('');
-const deleteModalShow = ref<boolean>(false);
-const deleteModalOnConfirm = ref<() => void | Promise<void>>();
-const deleteModalOnDecline = ref<() => void|null>();
-const propToDelete = ref<Prop|null>(null);
-
-const openLink = () => {
-  if (props.brick.icon) {
-    window.open(props.brick.icon, "_blank")
-  }
-}
-
 const brickOptions = ref([
-  { label: 'Edit', key: 'edit', icon: () => h(Pencil) },
+  { label: 'Rename', key: 'rename', icon: () => h(Pencil) },
   { label: 'Delete', key: 'delete', type: 'error', icon: () => h(Trash2) },
   { label: 'Duplicate', key: 'duplicate', icon: () => h(Copy) },
   { label: 'Share', key: 'share', icon: () => h(Share2)}
 ]);
 
-async function onToggle() {
-  await emitTo("overlay", "toggle-brick", { brick: props.brick });
-  await invoke("save_brick", { brick: props.brick });
-  emit("changed");
-}
-
-async function deleteBrick() {
-  await emitTo("overlay", "delete-brick", { brick: props.brick });
-  await invoke("delete_brick", { brick: props.brick });
-  emit("changed");
-}
-
 async function handleBrickAction(action: string) {
   switch (action) {
-    case "delete":
-      deleteModalTitle.value = "Confirm deletion";
-      deleteModalMessage.value = `Are you sure you want to delete "${props.brick.name}"?`;
-      deleteModalOnConfirm.value = deleteBrick;
-      deleteModalShow.value = true;
+    case "rename":
+      await renameBrick(props.brick);
       break;
-    case "edit":
-      emit("edit", props.brick)
+    case "delete":
+      await deleteBrick(props.brick);
       break;
     case "duplicate":
-      await invoke("duplicate_brick", { brick: props.brick});
-      emit("changed");
+      duplicateBrick(props.brick);
       break;
     case "share":
-      const path = await save({
-        title: "Save your brick!",
-        defaultPath: `${props.brick.name}.brk`,
-        filters: [
-          { name: "Brick files", extensions: ["brick", "brck", "brk", "bk"] },
-          { name: "All files", extensions: ["*"] }
-        ]
-      });
-
-      if (path) {
-        console.log(props.brick.name, path);
-        await invoke("pack_brick", { brickName: props.brick.name, outputPath: path });
-      } else {
-        console.log("Operazione annullata");
-      }
+      await shareBrick(props.brick);
       break;
     default:
       console.error(`azione non riconosciuta: ${action}`);
@@ -192,7 +130,7 @@ async function openBrickTab() {
   await router.push(`bricks/${props.brick.name}`)
 }
 
-async function openBrick() {
+async function onOpenBrick() {
   if (props.offline) {
     await invoke("open_brick", { brickName: props.brick.name });
   }

@@ -52,26 +52,23 @@ pub async fn save_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
-) -> Result<(), String> {
+) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
     let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
     bricks::save_brick(&path, &brick)?;
 
     let mut state_guard = state.lock().await;
+    let bricks = state_guard.get_mut_bricks();
 
     // Aggiorna lo stato in memoria
-    if let Some(existing) = state_guard
-        .get_mut_bricks()
-        .iter_mut()
-        .find(|b| b.name == brick.name)
-    {
+    if let Some(existing) = bricks.iter_mut().find(|b| b.name == brick.name) {
         *existing = brick;
     } else {
-        state_guard.get_mut_bricks().push(brick);
+        bricks.push(brick);
     }
 
-    Ok(())
+    Ok(bricks.to_vec())
 }
 
 #[tauri::command(async)]
@@ -81,7 +78,7 @@ pub async fn rename_brick(
     app_handle: AppHandle,
     old_name: String,
     new_name: String,
-) -> Result<(), String> {
+) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
     let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
@@ -95,7 +92,7 @@ pub async fn rename_brick(
         brick.name = new_name;
     }
 
-    Ok(())
+    Ok(bricks.to_vec())
 }
 
 #[tauri::command(async)]
@@ -104,17 +101,31 @@ pub async fn duplicate_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
-) -> Result<(), String> {
+) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
     let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
-    let new_brick = bricks::duplicate_brick(&path, brick)?;
+    {
+        let state_guard = state.lock().await;
+        let copy_name = format!("{}Copy", brick.name);
+        if state_guard.get_bricks().iter().any(|other| other.name == copy_name) {
+            return Err(format!("Brick '{copy_name}' already exists"))
+        }
+    }
+
+    let new_brick = bricks::duplicate_brick(&path, &brick)?;
     
     let mut state_guard = state.lock().await;
-    let bricks = state_guard.get_mut_bricks();
-    bricks.push(new_brick);
+    let bricks_vec = state_guard.get_mut_bricks();
 
-    Ok(())
+    let original_index = bricks_vec
+        .iter()
+        .position(|b| b.name == brick.name)
+        .ok_or_else(|| "Cannot find the original brick index".to_string())?;
+
+    bricks_vec.insert(original_index + 1, new_brick);
+
+    Ok(bricks_vec.to_vec())
 }
 
 // Questo non serve a molto potrebbe essere sostituito con il plugin opener e basta
@@ -136,7 +147,7 @@ pub async fn delete_brick(
     state: State<'_, Arc<Mutex<BrickUIGenericState>>>,
     app_handle: AppHandle,
     brick: Brick,
-) -> Result<(), String> {
+) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
     let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
@@ -146,7 +157,7 @@ pub async fn delete_brick(
     let bricks = state_guard.get_mut_bricks();
     bricks.retain(|b| b.name != brick.name);
 
-    Ok(())
+    Ok(bricks.to_vec())
 }
 
 #[tauri::command(async)]
@@ -191,7 +202,7 @@ pub async fn unpack_brick(
     app_handle: AppHandle,
     brick_path: String,
     brick_name: String,
-) -> Result<(), String> {
+) -> Result<Vec<Brick>, String> {
     let resolver = app_handle.path();
     let path = resolver.app_data_dir().map_err(|e| format!("Error resolving appdata dir: {e}"))?;
 
@@ -204,5 +215,5 @@ pub async fn unpack_brick(
     let bricks = state_guard.get_mut_bricks();
     bricks.push(brick);
 
-    Ok(())
+    Ok(bricks.to_vec())
 }

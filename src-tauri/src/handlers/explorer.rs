@@ -1,15 +1,23 @@
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    state::{
-        iconcache::BrickUIconCacheState, 
-        user::BrickUIUserState
-    }, 
+    state::iconcache::BrickUIconCacheState, 
     winapi::explorer::recents::Recent
 };
+
+#[tauri::command]
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+pub async fn open_file_folder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        crate::winapi::explorer::open_file_folder(&path)?;
+    }
+    
+    Ok(())
+}
 
 #[tauri::command(async)]
 #[cfg_attr(feature = "profiling", tracing::instrument)]
