@@ -122,5 +122,5 @@ export const useAppState = () => {
     }
   });
 
-  return { settings, bricks, user, theme, systemIsDark, init, isReady };
+  return { settings, bricks, user, theme, systemIsDark, init, isReady, isMain };
 };

@@ -16,11 +16,11 @@
       </NLayoutSider>
 
       <NLayoutContent :native-scrollbar="false" @scroll="(event) => handleScroll(event)">
-          <NDialogProvider>
-            <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
-              <slot />
-            </NNotificationProvider>
-          </NDialogProvider>
+        <NDialogProvider>
+          <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
+            <slot />
+          </NNotificationProvider>
+        </NDialogProvider>
       </NLayoutContent>
       
       <SystemTray v-if="settings?.systemtray" />
