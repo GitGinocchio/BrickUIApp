@@ -3,13 +3,14 @@ import {
   bricksState,
   disableBrick,
   getBrickFromState,
+  removeBrickFromState,
   setBrickState,
 } from "./state";
-import { addBrickToCache, getBrickFromCache } from "./cache";
-import { Brick, Prop } from "interfaces/brick";
+import { addBrickToCache, getBrickFromCache, removeBrickFromCache } from "./cache";
+import type { Brick, Prop } from "../interfaces/brick";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
-import { appDataDir, sanitizePath } from "../utils/path";
+import { sanitizePath } from "../utils/path";
 import { formatPropValue } from "../utils/format";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -87,6 +88,12 @@ export async function toggleBrick(brick: Brick) {
 export async function updateBrickProp(name: string, prop: Prop) {
   const brick = getBrickFromState(name);
   if (brick) brick.props[prop.prop_name] = formatPropValue(prop);
+}
+
+export async function deleteBrick(brick: Brick) {
+  disableBrick(brick.name);
+  removeBrickFromState(brick.name);
+  removeBrickFromCache(brick.name);
 }
 
 export async function reloadBrick(brick: Brick) {

@@ -1,4 +1,4 @@
-import { Event } from "@tauri-apps/api/event";
+import { type Event } from "@tauri-apps/api/event";
 import { Window } from "@tauri-apps/api/window";
 
 let isClickThroughEnabled = true;
@@ -24,15 +24,16 @@ export async function handleClickThrough(
 
   // se click-through abilitato, genera eventi finti
   if (isClickThroughEnabled && element) {
-    simulateFakeMouseMoved(element, screenX, screenY);
+    oldSimulateFakeMouseMoved(element, screenX, screenY);
   }
 }
 
 export function simulateFakeMousePressed(event: {
   payload: [number, number, string];
 }) {
-  let button = null;
-  let buttons = null;
+  let button = 0;
+  let buttons = 0;
+
   switch (event.payload[2]) {
     case "Left":
       button = 0;
@@ -46,20 +47,20 @@ export function simulateFakeMousePressed(event: {
       button = 2;
       buttons = 2;
       break;
-    default:
-      button = 0;
-      buttons = 0;
   }
 
-  const element = document.elementFromPoint(event.payload[0], event.payload[1]);
-  if (!element) return;
+  const [x, y] = event.payload;
+  const element = document.elementFromPoint(x, y);
+  if (!element || element instanceof HTMLButtonElement) return;
+
+  console.log(`Sending click to element: ${element}`);
 
   ["mousedown", "mouseup", "click"].forEach((type) => {
     const evt = new MouseEvent(type, {
-      clientX: event.payload[0],
-      clientY: event.payload[1],
-      screenX: event.payload[0],
-      screenY: event.payload[1],
+      clientX: x,
+      clientY: y,
+      screenX: x,
+      screenY: y,
       bubbles: true,
       cancelable: true,
       button,
@@ -69,7 +70,22 @@ export function simulateFakeMousePressed(event: {
   });
 }
 
-export function simulateFakeMouseMoved(element: Element, x: number, y: number) {
+export function oldSimulateFakeMouseMoved(element: Element, x: number, y: number) {
+  ["mousemove", "mouseover"].forEach((type) => {
+    const event = new MouseEvent(type, {
+      clientX: x,
+      clientY: y,
+      bubbles: true,
+      cancelable: true,
+    });
+    (element ?? document).dispatchEvent(event);
+  });
+}
+
+export function simulateFakeMouseMoved(x: number, y: number) {
+  const element = document.elementFromPoint(x, y);
+  if (!element) return;
+
   ["mousemove", "mouseover"].forEach((type) => {
     const event = new MouseEvent(type, {
       clientX: x,

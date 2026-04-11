@@ -1,4 +1,4 @@
-import { sanitizePath } from "../utils/path";
+import { sanitizePath } from "#utils/path";
 
 export function scopeCss(code: string, id: string): string {
   const scope = `data-v-${id}`;
@@ -39,9 +39,7 @@ export function scopeCss(code: string, id: string): string {
   return code;
 }
 
-
-
-export async function processStyle(source: string, lang: string = "css", componentPath: string, id: string) {
+export async function processStyle(source: string, _lang: string = "css", componentPath: string, id: string) {
   source = scopeCss(source, id);
 
   const parts = [];
@@ -50,7 +48,7 @@ export async function processStyle(source: string, lang: string = "css", compone
   let match;
 
   while ((match = regex.exec(source)) !== null) {
-    const [full, quote, path] = match;
+    const [full, _quote, path] = match;
     parts.push(source.slice(lastIndex, match.index));
 
     if (path.startsWith("https://")) {

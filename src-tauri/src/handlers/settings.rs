@@ -22,11 +22,11 @@ pub async fn save_settings(
     settings: Settings,
 ) -> Result<(), String> {
     let resolver = app_handle.path();
-    let path = resolver
-        .app_data_dir()
+    let resource_path = resolver
+        .resource_dir()
         .map_err(|e| format!("error obtaining config dir: {e}"))?;
 
-    crate::config::save_settings(&path, &settings)?;
+    settings.save(&resource_path).await?;
 
     let mut state_guard = state.lock().await;
     let current_settings = state_guard.get_mut_settings();

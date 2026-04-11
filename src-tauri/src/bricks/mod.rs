@@ -99,10 +99,10 @@ pub fn rename_brick(path: &PathBuf, old_name: &String, new_name: &String) -> Res
     Ok(())
 }
 
-pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<Brick, String> {
+pub fn duplicate_brick(path: &PathBuf, brick: &Brick) -> Result<Brick, String> {
     let brick_name = brick.name.as_str();
     let src = path.join("bricks").join(brick_name);
-    let dst = path.join("bricks").join(format!("{brick_name}-copy"));
+    let dst = path.join("bricks").join(format!("{brick_name}Copy"));
 
     // Opzioni di copia
     let mut options = CopyOptions::new();
@@ -114,7 +114,7 @@ pub fn duplicate_brick(path: &PathBuf, brick: Brick) -> Result<Brick, String> {
         .map_err(|e| format!("Errore durante la duplicazione del brick: {e}"))?;
 
     let mut brick = load_brick(&dst.join("brick.yml"))?;
-    brick.name = format!("{brick_name}-copy");
+    brick.name = format!("{brick_name}Copy");
     brick.enabled = false;
 
     save_brick(&path, &brick)?;

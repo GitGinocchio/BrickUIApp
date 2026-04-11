@@ -1,7 +1,7 @@
 import { reactive } from "vue";
-import { BrickError, BrickState } from "./types";
-import { Brick } from "interfaces/brick";
-import { formatProps } from "../utils/format";
+import type { BrickError, BrickState } from "./types";
+import type { Brick } from "#interfaces/brick";
+import { formatProps } from "#utils/format";
 
 export const bricksState = reactive(new Map<string, BrickState>());
 
@@ -32,6 +32,10 @@ export function isBrickInState(name: string) {
 
 export function getBrickFromState(name: string) {
   return bricksState.get(name);
+}
+
+export function removeBrickFromState(name: string) {
+  bricksState.delete(name);
 }
 
 export function addErrorToBrickState(error: BrickError) {

@@ -17,7 +17,7 @@ pub struct Plugins {
 impl Default for Plugins {
     fn default() -> Self {
         Self {
-            schema: "../.schemas/plugins.schema.json".to_string(),
+            schema: "./.schemas/plugins.schema.json".to_string(),
             plugins: Vec::new(),
         }
     }

@@ -1,5 +1,5 @@
-import { SFCDescriptor } from "@vue/compiler-sfc";
-import { sanitizePath } from "../utils/path";
+import { type SFCDescriptor } from "@vue/compiler-sfc";
+import { sanitizePath } from "#utils/path";
 
 interface ImportBinding {
   isType: boolean;

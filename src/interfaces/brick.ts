@@ -49,13 +49,44 @@ export const propTypeValues = [
   "Gradient",
   "Date",
   "Datetime",
-  "Time"
+  "Time",
+
+  "Null",
+  "Deprecated",
+  "Unknown"
 ] as const;
 
 // Tipo unione inferito automaticamente
 export type PropTypeValue = typeof propTypeValues[number];
 
+/*
+// I metadati base che ogni proprietà possiede
+interface PropMeta {
+  prop_name: string;
+  description?: string;
+}
 
+// Il tipo KnownProp (quello con tag obbligatorio)
+type KnownProp = 
+  | { prop_type: 'Bool'; data: { meta: PropMeta; value?: boolean; default?: boolean } }
+  | { prop_type: 'String'; data: { meta: PropMeta; value?: string; default?: string } }
+  | { prop_type: 'Int'; data: { meta: PropMeta; value?: number; default?: number } }
+  // ... aggiungi gli altri tipi (Color, Date, ecc.)
+  | { prop_type: 'Null'; data: PropMeta };
+
+// Il tipo finale Prop (l'enum untagged)
+export type Prop =
+  | KnownProp
+  // Caso Null Implicito: ha i metadati ma NON ha prop_type
+  | (PropMeta & { prop_type?: never })
+  // Caso Deprecated: ha un prop_type sconosciuto e i metadati
+  | (PropMeta & { prop_type: string })
+  // Caso Unknown/Fallback: accetta qualunque chiave stringa (il tuo "skibidi")
+  | { [key: string]: any };
+
+TODO: Da sostituire con una struttura del genere...
+      o semplicemente passare a zod ._.
+*/
 /** Enumeration of supported property types for a Brick (flatten respected). */
 export type Prop =
   | ({ prop_type: 'String' } & PropType<string>)
@@ -71,10 +102,13 @@ export type Prop =
   | ({ prop_type: 'Date'} & DatePropType)
   | ({ prop_type: 'Datetime'} & DatePropType)
   | ({ prop_type: 'Time'} & DatePropType)
+
+  | ({ prop_type: 'Null' } & PropType<any>)
+  | ({ prop_type: 'Deprecated', deprecated_type: String } & PropType<any>)
+  | ({ prop_type: 'Unknown', [key: string]: any })
 ;
 
-/** Generic property container. */
-export interface PropType<T> {
+export interface PropMeta {
   /** The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization. */
   prop_name: string;
 
@@ -83,7 +117,10 @@ export interface PropType<T> {
    * This helps users understand the purpose or usage of the property.
    */
   description?: string | null;
+}
 
+/** Generic property container. */
+export interface PropType<T> extends PropMeta {
   /** Current value of the property. May be null if `nullable` is true. */
   value?: T | null;
 
@@ -144,6 +181,15 @@ export interface GradientPropType extends PropType<Array<GradientStop>> {
   skip_alpha? : boolean;
 }
 
+export const CollectionValueTypes = [
+  'String',
+  'Integer',
+  'Float'
+] as const;
+
+// Tipo unione inferito automaticamente
+export type CollectionValueType = typeof CollectionValueTypes[number];
+
 /** Array property container with typed values. */
 export interface ArrayPropType<T> extends PropType<Array<T>> {
   /** Minimum number of items allowed in the array. */
@@ -151,6 +197,9 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
 
   /** Maximum number of items allowed in the array. */
   max?: number;
+
+  /** Options type */
+  value_type?: any,
 
   /** Minimum value allowed in the array. */
   min_value?: number;
@@ -163,6 +212,9 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
 export interface SelectablePropType<T> extends PropType<Array<T>> {
   /** List of selectable options. */
   options: T[];
+
+  /** Selectable options type */
+  value_type?: any,
 
   /** Minimum number of selections allowed. */
   min?: number;
@@ -215,14 +267,14 @@ function createArrayProp<T>(name: string, description = null): ArrayPropType<T> 
   }
 }
 
-export function createProp(type: PropTypeValue, name: string, description: string, value_type?: 'String' | 'Integer' | 'Float'): Prop {
+export function createProp(type: PropTypeValue, name: string, description: string, value_type?: CollectionValueType): Prop {
   switch (type) {
     case "String":
       return { prop_type: "String", ...createBaseProp<string>(name, description) }
     case "Text":
       return { prop_type: "Text", ...createBaseProp<string>(name, description) }
     case "Bool":
-      return { prop_type: "Bool", ...createBaseProp<boolean>(name, description), default: false }
+      return { prop_type: "Bool", default: false, ...createBaseProp<boolean>(name, description) }
     case "Int":
       return { prop_type: "Int", ...createNumericProp(name, description) }
     case "Float":
@@ -230,20 +282,20 @@ export function createProp(type: PropTypeValue, name: string, description: strin
     
     case "Select":
       switch (value_type) {
-        case 'String':
-          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
         case 'Float':
         case 'Integer':
-          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<number>(name, [], description) }
+          return { prop_type: "Select", value_type: value_type,...createSelectableProp<number>(name, [], description) }
+        default:
+          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
       }
     
     case "Array":
       switch (value_type) {
-        case 'String':
-          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
         case 'Float':
         case 'Integer':
           return { prop_type: "Array", value_type: value_type, ...createArrayProp<number>(name, description) }
+        default:
+          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
       }
 
     case "Color":
@@ -258,6 +310,9 @@ export function createProp(type: PropTypeValue, name: string, description: strin
     case "Time":
       return { prop_type: "Time", ...createBaseProp<number>(name, description), allow_future: true, allow_past: true }
     
+    case "Null":
+      return { prop_type: "Null", prop_name: name }
+
     default:
       throw new Error(`Invalid prop type ${type}`);
   }

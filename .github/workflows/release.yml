@@ -18,12 +18,25 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - &install-gh-cli
+        name: Install GitHub CLI (Local only)
+        if: ${{ env.ACT }}
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+
       - &checkout
         name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          persist-credentials: false
+          token: ${{ secrets.RELEASE_TOKEN }}
+          persist-credentials: true
+
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -48,6 +61,7 @@ jobs:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
     steps:
+      - *install-gh-cli
       - *checkout
       - *install-rust
 
