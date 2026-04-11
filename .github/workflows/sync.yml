@@ -1,18 +1,30 @@
-name: Sync
+name: Sync Dev with Main
+
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
-  sync:
+  sync-dev:
+    # Esegui il job solo se la PR è stata mergiata 
+    # e se il branch sorgente era quello di release-plz
+    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release-plz-')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v5
-      - run: |
-          git fetch origin
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }} # Necessario per pushare su dev
+
+      - name: Sync dev branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Passa a dev, resetta su main e pusha forzatamente
           git checkout dev
           git reset --hard origin/main
           git push origin dev --force

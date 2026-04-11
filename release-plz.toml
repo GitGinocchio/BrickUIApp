@@ -9,5 +9,6 @@ changelog_config = "./cliff.toml"
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
 changelog_path = "../CHANGELOG.md"
 
+git_only = true
 git_release_type = "auto"
 git_release_enable = true
