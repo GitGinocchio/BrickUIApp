@@ -40,6 +40,11 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Debug Git History
+        run: |
+          git log --oneline --graph -n 10
+          git tag --list
+          cat src-tauri/Cargo.toml | grep version
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
