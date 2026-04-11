@@ -31,3 +31,4 @@ src-tauri/.env
 src-tauri/.env.*
 .nuxt
 /.output
+.secrets
