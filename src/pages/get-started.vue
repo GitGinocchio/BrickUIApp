@@ -212,7 +212,7 @@ async function handleRegister() {
         'Successfully registered!',
         `We've sent a confirmation email to ${form.value.email}.\nClick the link to activate your account.`,
         true
-      )
+      );
       startCooldown(60);
       activeTab.value = 'signin';
       return;
