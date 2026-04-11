@@ -3,6 +3,7 @@ publish = false
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
 release_commits = "^(feat|fix|refactor):"
 dependencies_update = true
+allow_dirty = true
 
 changelog_config = "cliff.toml"
 changelog_path = "CHANGELOG.md"
@@ -15,7 +16,3 @@ pr_labels = ["release"]
 git_only = true
 git_release_type = "auto"
 git_release_enable = true
-
-[[package]]
-name = "brickui"
-publish = false
