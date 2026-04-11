@@ -65,7 +65,7 @@ const activeMenuKey = computed(() => {
 });
 
 const collapsed = ref(true);
-let hoverTimer: number | null = null
+let hoverTimer: number | null = null;
 
 function handleMouseEnter() {
   // Avvia il timer (es. 500ms prima di aprire)
