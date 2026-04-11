@@ -78,6 +78,11 @@ jobs:
           else
             echo "No open release PR"
           fi
+      - name: Debug Git History
+        run: |
+          git log --oneline --graph -n 10
+          git tag --list
+          cat src-tauri/Cargo.toml | grep version
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
