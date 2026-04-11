@@ -158,7 +158,7 @@ const editingPropNames = ref<Map<String, String|null>>(new Map());
 const expanded = ref<string[]>([]);
 const layout = ref<'grid' | 'list' | 'adaptive'>('adaptive');
 
-const dialog = useDialog()
+const dialog = useDialog();
 const notification = useNotification();
 const brick = defineModel<Brick>("brick", { required: true });
 
