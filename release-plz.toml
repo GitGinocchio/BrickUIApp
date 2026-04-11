@@ -15,7 +15,3 @@ pr_labels = ["release"]
 git_only = true
 git_release_type = "auto"
 git_release_enable = true
-
-[[package]]
-name = "brickui"
-publish = false
