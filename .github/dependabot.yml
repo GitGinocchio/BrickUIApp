@@ -5,13 +5,18 @@
 
 version: 2
 updates:
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  target-branch: "main"
 - package-ecosystem: "cargo"
   directory: "/src-tauri"
   schedule:
     interval: "weekly"
   target-branch: "dev"
 - package-ecosystem: "npm"
-  directory: "."
+  directory: "/"
   schedule:
     interval: "weekly"
   target-branch: "dev"

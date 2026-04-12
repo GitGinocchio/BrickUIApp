@@ -1,25 +1,28 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
 
 env:
   CARGO_TERM_COLOR: always
-
+  RELEASE_PLZ_LOG: DEBUG release-plz
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  # Release unpublished packages.
-  create-release:
-    name: Create release
+  release:
+    name: Release-plz
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'BrickUIApp' }}
     permissions:
       contents: write
       pull-requests: write
+    
     steps:
-      - &install-gh-cli
-        name: Install GitHub CLI (Local only)
+      - name: Install GitHub CLI (Local only)
         if: ${{ env.ACT }}
         run: |
           type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
@@ -28,61 +31,27 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt update
           sudo apt install gh -y
-
-      - &checkout
-        name: Checkout repository
-        uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          fetch-tags: true
           token: ${{ secrets.RELEASE_TOKEN }}
           persist-credentials: true
 
-      - &install-rust
-        name: Install Rust toolchain
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Run release-plz
-        uses: release-plz/action@v0.5
-        with:
-          command: release
-          manifest_path: ./src-tauri/Cargo.toml
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Create a PR with the new versions and changelog, preparing the next release.
-  create-release-pr:
-    name: Release pull request
-    runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'BrickUIApp' }}
-    permissions:
-      contents: write
-      pull-requests: write
-    concurrency:
-      group: release-plz-${{ github.ref }}
-      cancel-in-progress: false
-    steps:
-      - *install-gh-cli
-      - *checkout
-      - *install-rust
-
-      - name: Close old release PR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Force Sync Tags
         run: |
-          # List all opened PRs which head branch starts with "release-plz-"
-          release_pr=$(gh pr list --state='open' --json number,headRefName --jq '.[] | select(.headRefName | startswith("release-plz-")) | .number')
-          # Close the release PR if there is one
-          if [[ -n "$release_pr" ]]; then
-            echo "Closing old release PR $release_pr"
-            gh pr close $release_pr
-          else
-            echo "No open release PR"
-          fi
+          git tag -l | xargs git tag -d
+          git fetch --tags --force
+
       - name: Run release-plz
-        uses: release-plz/action@v0.5
+        uses: release-plz/action@v0.5.128
         with:
-          command: release-pr
           manifest_path: ./src-tauri/Cargo.toml
+          verbose: true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
