@@ -171,11 +171,10 @@ impl Device {
         Err(format!("Device has no backend available!"))
     }
 
-    pub async fn unpair(&mut self) -> Result<(), String> {
+    pub fn unpair(&mut self) -> Result<(), String> {
         if let Some(winrt) = &mut self.winrt {
             winrt
                 .unpair()
-                .await
                 .map_err(|e| format!("WinRT unregister failed: {e}"))?;
         } else if let Some(win32) = &mut self.win32 {
             win32

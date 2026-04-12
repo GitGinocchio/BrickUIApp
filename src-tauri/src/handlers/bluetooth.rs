@@ -174,7 +174,7 @@ pub async fn bluetooth_unpair(
         .get_mut(&address)
         .ok_or_else(|| format!("Device {address} not found!"))?;
 
-    device.unpair().await
+    device.unpair()
 }
 
 /*
