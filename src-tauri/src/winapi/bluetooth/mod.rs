@@ -9,11 +9,11 @@ use windows::{
         Bluetooth::{BluetoothConnectionStatus, BluetoothDevice},
         Enumeration::{DeviceInformation, DeviceInformationUpdate, DeviceWatcher},
     },
-    Foundation::TypedEventHandler
+    Foundation::TypedEventHandler, core::{Error, HRESULT}
 };
 
 use crate::{
-    state::bluetooth::BrickUIBluetoothState, 
+    state::{bluetooth::BrickUIBluetoothState, iconcache::BrickUIconCacheState}, 
     winapi::bluetooth::{
         win32::Win32Device, 
         winrt::{
@@ -242,7 +242,11 @@ pub async fn scan(duration: Option<u8>) -> Result<HashMap<String, Device>, Strin
 */
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn start_bluetooth_watcher(state: Arc<RwLock<BrickUIBluetoothState>>, app_handle: &AppHandle) -> Result<DeviceWatcher, String> {
+pub async fn start_bluetooth_watcher(
+    bluetooth_state: Arc<RwLock<BrickUIBluetoothState>>,
+    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
+    app_handle: &AppHandle
+) -> Result<DeviceWatcher, String> {
     // Selector AEP (Classic + audio/HID)
     //let selector = HSTRING::from(r#"System.Devices.Aep.ProtocolId:="{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}""#);
 
@@ -254,12 +258,14 @@ pub async fn start_bluetooth_watcher(state: Arc<RwLock<BrickUIBluetoothState>>, 
         ::CreateWatcherAqsFilter(&selector)
         .map_err(|e| format!("Error creating device watcher: {e}"))?;
 
-    let state_arc = state.clone();
+    let ic_state_arc = icon_cache.clone();
+    let bt_state_arc = bluetooth_state.clone();
     let app_handle_arc = app_handle.clone();
 
     watcher.Added(&TypedEventHandler::<DeviceWatcher, DeviceInformation>::new(move |_watcher, info| {
         let info = info.as_ref().expect("[watcher:added]: Error obtaining args");
-        let state_clone = state_arc.clone();
+        let bt_state = bt_state_arc.clone();
+        let ic_state = ic_state_arc.clone();
         let app_handle_clone = app_handle_arc.clone();
         let info_clone = info.clone();
 
@@ -271,95 +277,88 @@ pub async fn start_bluetooth_watcher(state: Arc<RwLock<BrickUIBluetoothState>>, 
 
         let address = extract_winrt_device_address(&id);
 
-        tauri::async_runtime::spawn(async move {
-            let mut guard = state_clone.write().await;
+        let mut guard = bt_state.blocking_write();
 
-            let winrt = WinRTDevice::from_info(&info_clone).ok();
-            let win32 = Win32Device::from_mac(&address).ok();
+        let winrt = WinRTDevice::from_info(&info_clone, ic_state).ok();
+        let win32 = Win32Device::from_mac(&address).ok();
+        let device = Device::new(win32, winrt);
 
-            let device = Device::new(win32, winrt);
+        println!("Device added: {device:?}");
 
-            println!("Device added: {device:?}");
+        app_handle_clone
+            .emit("bluetooth_device_added", device.clone())
+            .map_err(|e| Error::new(HRESULT(-1), e.to_string()))?;
 
-            app_handle_clone
-                .emit("bluetooth_device_added", device.clone())
-                .map_err(|e| format!("Error sending new device: {e}"))?;
-
-            guard.devices.insert(address, device);
+        guard.devices.insert(address, device);
             
-
-            Ok::<(), String>(())
-        });
         Ok(())
     })).map_err(|e| format!("Error setting Added watcher: {e}"))?;
 
-    let state_arc = state.clone();
+    let bt_state_arc = bluetooth_state.clone();
     let app_handle_arc = app_handle.clone();
 
     watcher.Updated(&TypedEventHandler::<DeviceWatcher, DeviceInformationUpdate>::new(move |_watcher, uinfo| {
         let uinfo = uinfo.as_ref().expect("[watcher:updated]: Error obtaining args");
         let app_handle_clone = app_handle_arc.clone();
-        let state_clone = state_arc.clone();
+        let state_clone = bt_state_arc.clone();
         let uinfo_clone = uinfo.clone();
 
         println!("device updated: {:#?}", uinfo.Id()?);
 
-        tauri::async_runtime::spawn(async move {
-            let mut guard = state_clone.write().await;
+        let mut guard = state_clone.blocking_write();
 
-            let id = uinfo_clone
-                .Id()
-                .map_err(|e| format!("Error obtaining id: {e}"))?
-                .to_string_lossy()
-                .to_string();
+        let id = uinfo_clone
+            .Id()
+            .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Id: {e}")))?
+            .to_string_lossy()
+            .to_string();
 
-            let address = extract_winrt_device_address(&id);
+        let address = extract_winrt_device_address(&id);
 
-            if let Some(device) = guard.devices.get_mut(&address) && let Some(winrt) = &mut device.winrt {
-                let kind = uinfo_clone.Kind().map_err(|e| format!("Error obtaining kind: {e}"))?;
-                winrt.kind = format!("{:?}", kind);
+        if let Some(device) = guard.devices.get_mut(&address) && let Some(winrt) = &mut device.winrt {
+            let kind = uinfo_clone
+                .Kind()
+                .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Kind: {e}")))?;
+            
+            winrt.kind = format!("{:?}", kind);
 
-                device.win32 = Some(Win32Device::from_mac(&winrt.address)?);
+            let win32 = Win32Device::from_mac(&winrt.address)
+                .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Win32Device: {e}")))?;
 
-                app_handle_clone
-                    .emit("bluetooth_device_updated", device.clone())
-                    .map_err(|e| format!("Error sending new device: {e}"))?;
-            }
+            device.win32 = Some(win32);
 
-            Ok::<(), String>(())
-        });
+            app_handle_clone
+                .emit("bluetooth_device_updated", device.clone())
+                .map_err(|e| Error::new(HRESULT(-1), e.to_string()))?;
+        }
 
         Ok(())
     })).map_err(|e| format!("Error setting Added watcher: {e}"))?;
 
-    let state_arc = state.clone();
+    let bt_state_arc = bluetooth_state.clone();
     let app_handle_arc = app_handle.clone();
 
     watcher.Removed(&TypedEventHandler::<DeviceWatcher, DeviceInformationUpdate>::new(move |_watcher, uinfo| {
         let uinfo = uinfo.as_ref().expect("[watcher:updated]: Error obtaining args");
         let app_handle_clone = app_handle_arc.clone();
-        let state_clone = state_arc.clone();
+        let state_clone = bt_state_arc.clone();
         let uinfo_clone = uinfo.clone();
 
         println!("device removed: {:#?}", uinfo.Id()?);
 
-        tauri::async_runtime::spawn(async move {
-            let mut guard = state_clone.write().await;
+        let mut guard = state_clone.blocking_write();
 
-            let id = uinfo_clone
-                .Id()
-                .map_err(|e| format!("Error obtaining id: {e}"))?
-                .to_string_lossy()
-                .to_string();
+        let id = uinfo_clone
+            .Id()
+            .map_err(|e| Error::new(HRESULT(-1), format!("Error obtaining Id: {e}")))?
+            .to_string_lossy()
+            .to_string();
 
-            if let Some(removed) = guard.devices.remove(&id) {
-                app_handle_clone
-                    .emit("bluetooth_device_removed", removed)
-                    .map_err(|e| format!("Error sending new device: {e}"))?;
-            }
-
-            Ok::<(), String>(())
-        });
+        if let Some(removed) = guard.devices.remove(&id) {
+            app_handle_clone
+                .emit("bluetooth_device_removed", removed)
+                .map_err(|e| Error::new(HRESULT(-1), format!("Error sending removed device: {e}")))?
+        }
         
         Ok(())
     })).map_err(|e| format!("Error setting Removed watcher: {e}"))?;

@@ -9,65 +9,43 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Release unpublished packages.
-  create-release:
-    name: Create release
+  release:
+    name: Release-plz
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'BrickUIApp' }}
     permissions:
       contents: write
       pull-requests: write
+    
     steps:
-      - &checkout
-        name: Checkout repository
+      - name: Install GitHub CLI (Local only)
+        if: ${{ env.ACT }}
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          persist-credentials: false
-      - &install-rust
-        name: Install Rust toolchain
+          fetch-tags: true
+          token: ${{ secrets.RELEASE_TOKEN }}
+          persist-credentials: true
+
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Run release-plz
-        uses: release-plz/action@v0.5
-        with:
-          command: release
-          manifest_path: ./src-tauri/Cargo.toml
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Create a PR with the new versions and changelog, preparing the next release.
-  create-release-pr:
-    name: Release pull request
-    runs-on: ubuntu-latest
-    if: ${{ github.repository_owner == 'BrickUIApp' }}
-    permissions:
-      contents: write
-      pull-requests: write
-    concurrency:
-      group: release-plz-${{ github.ref }}
-      cancel-in-progress: false
-    steps:
-      - *checkout
-      - *install-rust
-
-      - name: Close old release PR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Force Sync Tags
         run: |
-          # List all opened PRs which head branch starts with "release-plz-"
-          release_pr=$(gh pr list --state='open' --json number,headRefName --jq '.[] | select(.headRefName | startswith("release-plz-")) | .number')
-          # Close the release PR if there is one
-          if [[ -n "$release_pr" ]]; then
-            echo "Closing old release PR $release_pr"
-            gh pr close $release_pr
-          else
-            echo "No open release PR"
-          fi
+          git tag -l | xargs git tag -d
+          git fetch --tags --force
+
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
-          command: release-pr
           manifest_path: ./src-tauri/Cargo.toml
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

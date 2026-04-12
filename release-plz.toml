@@ -1,13 +1,13 @@
 [workspace]
-dependencies_update = true # update dependencies with `cargo update`
-pr_branch_prefix = "release-plz-" # PR branch prefix
-pr_name = "chore(release): {{ package }} v{{ version }}"
-pr_labels = ["release"] # add the `release` label to the release Pull Request
 publish = false
-release_commits = "^(feat|fix|refactor):"
-changelog_config = "./cliff.toml"
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
+
+changelog_config = "cliff.toml"
 changelog_path = "../CHANGELOG.md"
+changelog_update = true
+
+pr_branch_prefix = "release-plz-"
+pr_name = "chore(release): {{ package }} v{{ version }}"
+pr_labels = ["release"]
 
 git_release_type = "auto"
-git_release_enable = true

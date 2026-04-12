@@ -1,17 +1,20 @@
 use futures::stream::{FuturesUnordered, StreamExt};
+use tokio::sync::RwLock;
 use std::{
-    collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf, sync::Arc,
+    collections::HashMap, ffi::OsString, os::windows::ffi::OsStringExt, path::PathBuf, sync::Arc
 };
-use tokio::sync::Mutex;
 use windows::{
     Win32::{Foundation::*, System::Threading::*, UI::WindowsAndMessaging::*},
     core::{BOOL, PWSTR},
 };
 
-use crate::winapi::{
-    icons::{IconsMap, get_icon, get_icon_async},
-    resolve_lnk,
+use crate::{
+    state::iconcache::BrickUIconCacheState, winapi::icons::{
+        cache::get_icon_from_file, 
+        resolver::parse_icon_location
+    }
 };
+use crate::winapi::resolve_lnk;
 
 #[derive(serde::Serialize, Debug)]
 pub struct App {
@@ -79,12 +82,7 @@ fn get_exe_path(pid: u32) -> Option<PathBuf> {
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-async fn collect_active_taskbar_apps(
-    icon_cache_dir: &PathBuf,
-    max_files: usize,
-    pinned: Option<HashMap<String, App>>,
-    icons_map: &mut IconsMap,
-) -> HashMap<String, App> {
+async fn collect_active_taskbar_apps(icon_cache: Arc<RwLock<BrickUIconCacheState>>, pinned: Option<HashMap<String, App>>) -> HashMap<String, App> {
     let mut results = pinned.unwrap_or_default();
     let mut exe_list: Vec<(String, String)> = vec![];
 
@@ -113,25 +111,18 @@ async fn collect_active_taskbar_apps(
         );
     }
 
-    let icon_cache_dir = icon_cache_dir.clone();
     let mut tasks = FuturesUnordered::new();
 
     for (exe, title) in exe_list.into_iter() {
-        let icon_cache_dir = icon_cache_dir.clone();
-        let mut icons_map_clone = icons_map.clone();
+        let mut icon_cache_clone = icon_cache.clone();
 
         tasks.push(tokio::spawn(async move {
             // Calcola icona senza lock
-            let icon = crate::winapi::icons::get_icon_async(
-                &PathBuf::from(&exe),
-                None,
-                &icon_cache_dir,
-                &mut icons_map_clone,
-                max_files,
-            )
-            .await
-            .ok()
-            .flatten();
+            // TODO: Non viene piu' fatto senza il lock, sistemare
+            let icon = get_icon_from_file(icon_cache_clone, &PathBuf::from(&exe), None)
+                .await
+                .ok()
+                .flatten();
 
             (exe, title, icon)
         }));
@@ -155,18 +146,15 @@ async fn collect_active_taskbar_apps(
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-async fn collect_pinned_taskbar_apps(
-    icon_cache_dir: &PathBuf,
-    config_dir: &PathBuf,
-    max_files: usize,
-    icons_map: &mut IconsMap,
-) -> HashMap<String, App> {
+async fn collect_pinned_taskbar_apps(config_dir: &PathBuf, icon_cache: Arc<RwLock<BrickUIconCacheState>>) -> HashMap<String, App> {
     let mut results: HashMap<String, App> = HashMap::new();
 
-    let pinned_dir =
-        config_dir.join("Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar");
+    let pinned_dir = config_dir
+        .join("Microsoft/Internet Explorer/Quick Launch/User Pinned/TaskBar");
 
     for entry in std::fs::read_dir(pinned_dir).unwrap() {
+        let icon_cache_clone = icon_cache.clone();
+
         let path = entry.unwrap().path();
         if path.extension().map(|e| e == "lnk").unwrap_or(false) {
             match resolve_lnk(&path) {
@@ -187,19 +175,12 @@ async fn collect_pinned_taskbar_apps(
                         None => &exe,
                     };
 
-                    let (icon_pathbuf, icon_index) =
-                        crate::winapi::icons::parse_icon_location(icon_location);
+                    let (icon_pathbuf, icon_index) = parse_icon_location(icon_location);
 
-                    let icon = crate::winapi::icons::get_icon_async(
-                        &icon_pathbuf,
-                        icon_index,
-                        icon_cache_dir,
-                        icons_map,
-                        max_files,
-                    )
-                    .await
-                    .ok()
-                    .flatten();
+                    let icon = get_icon_from_file(icon_cache_clone, &icon_pathbuf, icon_index)
+                        .await
+                        .ok()
+                        .flatten();
 
                     results.entry(exe.clone()).or_insert(App {
                         exe,
@@ -221,26 +202,19 @@ async fn collect_pinned_taskbar_apps(
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_taskbar_apps(
-    icon_cache_dir: &PathBuf,
+    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
     config_dir: &PathBuf,
-    max_files: usize,
-    icons_map: &mut IconsMap,
 ) -> Vec<App> {
-    let results: HashMap<String, App> =
-        collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map).await;
-    collect_active_taskbar_apps(icon_cache_dir, max_files, Some(results), icons_map)
+    let results: HashMap<String, App> = collect_pinned_taskbar_apps(config_dir, icon_cache.clone()).await;
+    collect_active_taskbar_apps(icon_cache, Some(results))
         .await
         .into_values()
         .collect()
 }
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
-pub async fn get_active_taskbar_apps(
-    icon_cache_dir: &PathBuf,
-    max_files: usize,
-    icons_map: &mut IconsMap,
-) -> Vec<App> {
-    collect_active_taskbar_apps(icon_cache_dir, max_files, None, icons_map)
+pub async fn get_active_taskbar_apps(icon_cache: Arc<RwLock<BrickUIconCacheState>>) -> Vec<App> {
+    collect_active_taskbar_apps(icon_cache, None)
         .await
         .into_values()
         .collect()
@@ -248,12 +222,10 @@ pub async fn get_active_taskbar_apps(
 
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_pinned_taskbar_apps(
-    icon_cache_dir: &PathBuf,
+    icon_cache: Arc<RwLock<BrickUIconCacheState>>,
     config_dir: &PathBuf,
-    max_files: usize,
-    icons_map: &mut IconsMap,
 ) -> Vec<App> {
-    collect_pinned_taskbar_apps(icon_cache_dir, config_dir, max_files, icons_map)
+    collect_pinned_taskbar_apps(config_dir, icon_cache)
         .await
         .into_values()
         .collect()

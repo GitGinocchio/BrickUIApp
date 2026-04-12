@@ -57,16 +57,16 @@
 <script setup lang="ts">
 import { NModal, NForm, NFormItem, NDynamicTags, NInput } from 'naive-ui';
 import { invoke } from '@tauri-apps/api/core';
-import { Brick } from '../../interfaces/brick';
-import { deepEqual } from '../../utils/misc';
-import { inject, onMounted, onUnmounted, Ref, ref } from 'vue';
+import type { Brick } from '#interfaces/brick';
+import { deepEqual } from '#utils/misc';
+
+const { bricks } = useAppState();
 
 const show = defineModel<boolean>("show");
 const brick = defineModel<Brick>("brick");
 const editMode = defineModel<Boolean>("editMode");
 const initialBrick = defineModel<Brick>("initialBrick");
 const feedback = defineModel<string|null>("feedback", { default: null });
-const bricks = inject("bricks") as Ref<Brick[]>;
 
 function onNameInput(value: string) {
   const componentNameRegex = /^[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*$/;

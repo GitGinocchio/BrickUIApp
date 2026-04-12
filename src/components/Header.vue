@@ -40,7 +40,6 @@
 <script setup lang="ts">
 import { NBreadcrumb, NBreadcrumbItem, NImage } from 'naive-ui';
 import { Cuboid } from 'lucide-vue-next';
-import { PropType, ref } from 'vue';
 
 const loadedMap = ref<Record<number, boolean>>({});
 const readyMap = ref<Record<number, boolean>>({});
@@ -112,9 +111,29 @@ defineProps({
   flex-direction: row;
 }
 
+@media (max-width: 600px) {
+  /* Nascondi il separatore (la freccetta/slash) per tutti gli item */
+  :deep(.n-breadcrumb-item:not(:last-child) .n-breadcrumb-item__separator) {
+    display: none;
+  }
+
+  /* Nascondi tutti i breadcrumb item tranne l'ultimo */
+  :deep(.n-breadcrumb-item:not(:last-child)) {
+    display: none;
+  }
+  
+  /* Opzionale: Rimuovi il margine a sinistra dell'ultimo item se necessario */
+  :deep(.n-breadcrumb-item:last-child) {
+    margin-left: 0;
+  }
+}
+
+/* Modifica al CSS esistente per assicurare l'allineamento */
 :deep(.n-breadcrumb-item__link) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* Evita che il testo vada a capo se lo spazio si restringe */
+  white-space: nowrap; 
 }
 </style>

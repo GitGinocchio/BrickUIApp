@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Brick UI",
+  "productName": "BrickUI",
   "version": "0.1.0",
   "identifier": "BrickUI",
   "build": {
@@ -14,7 +14,8 @@
       {
         "label": "main",
         "title": "Brick UI",
-        "url" : "index.html",
+        "url" : "/",
+        "windowClassname": "BrickUIMainWindow",
         "width": 1000,
         "height": 800,
         "center" : true,
@@ -28,7 +29,8 @@
       {
         "label": "overlay",
         "title": "Brick UI [Overlay]",
-        "url" : "/overlay/index.html",
+        "url" : "/#overlay",
+        "windowClassname": "BrickUIOverlayWindow",
         "transparent": true,
         "decorations": false,
         "shadow": false,
@@ -43,7 +45,7 @@
         "skipTaskbar": true,
         "alwaysOnTop": true,
         "resizable": true,
-        "visible": true,
+        "visible": false,
         "focus" : true
       }
     ],
