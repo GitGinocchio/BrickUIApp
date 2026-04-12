@@ -47,6 +47,15 @@ jobs:
       - name: Run release-plz
         uses: release-plz/action@v0.5.128
         with:
+          command: version
+          manifest_path: ./src-tauri/Cargo.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Run release-plz
+        uses: release-plz/action@v0.5.128
+        with:
           manifest_path: ./src-tauri/Cargo.toml
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
