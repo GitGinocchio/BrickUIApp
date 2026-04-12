@@ -14,6 +14,5 @@ pr_branch_prefix = "release-plz-"
 pr_name = "chore(release): {{ package }} v{{ version }}"
 pr_labels = ["release"]
 
-git_only = true
 git_release_type = "auto"
 git_release_enable = true
