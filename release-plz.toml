@@ -7,7 +7,7 @@ allow_dirty = true
 semver_check = false
 
 changelog_config = "cliff.toml"
-changelog_path = "../CHANGELOG.md"
+changelog_path = "CHANGELOG.md"
 changelog_update = true
 
 pr_branch_prefix = "release-plz-"
