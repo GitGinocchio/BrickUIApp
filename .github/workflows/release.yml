@@ -40,13 +40,6 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Force Clean Tags
-        run: |
-          git tag -l | xargs git tag -d
-          git fetch --tags --force
-          echo "Tags dopo la pulizia:"
-          git tag --list
       - name: Debug Git History
         run: |
           git log --oneline --graph -n 10
@@ -95,14 +88,6 @@ jobs:
           git log --oneline --graph -n 10
           git tag --list
           cat src-tauri/Cargo.toml | grep version
-      - name: Hard Reset Lockfile
-        run: |
-          # Impedisce a Cargo di aggiornare il lockfile se non necessario
-          export CARGO_NET_OFFLINE=true 
-          # Forza git a dimenticare le modifiche locali ai lockfile
-          git checkout src-tauri/Cargo.lock || true
-          # Aggiungi il lockfile all'ignore temporaneo se necessario
-          git update-index --assume-unchanged src-tauri/Cargo.lock
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
