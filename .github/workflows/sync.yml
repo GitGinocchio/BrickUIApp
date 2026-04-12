@@ -5,26 +5,33 @@ on:
     types: [closed]
     branches:
       - main
+  # Questo abilita il tasto "Run workflow" nella tab Actions di GitHub
+  workflow_dispatch: 
 
 jobs:
   sync-dev:
-    # Esegui il job solo se la PR è stata mergiata 
-    # e se il branch sorgente era quello di release-plz
-    if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release-plz-')
+    # Il job parte se:
+    # 1. È un workflow_dispatch (manuale)
+    # OPPURE 
+    # 2. La PR è stata mergiata AND il branch era di release-plz
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.pull_request.merged == true && startsWith(github.head_ref, 'release-plz-'))
+    
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }} # Necessario per pushare su dev
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Sync dev branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Passa a dev, resetta su main e pusha forzatamente
+          git fetch origin main
           git checkout dev
           git reset --hard origin/main
           git push origin dev --force
