@@ -587,6 +587,7 @@ dependencies = [
  "dunce",
  "fs_extra",
  "futures",
+ "hex",
  "image",
  "inferno",
  "keyring",
