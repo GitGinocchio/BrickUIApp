@@ -363,7 +363,7 @@ impl WinRTDevice {
         response
     }
 
-    pub async fn unpair(&mut self) -> Result<(), std::string::String> {
+    pub fn unpair(&mut self) -> Result<(), std::string::String> {
         if !self.is_paired {
             return Ok(());
         }
@@ -372,7 +372,7 @@ impl WinRTDevice {
             .pairing
             .UnpairAsync()
             .map_err(|e| format!("UnpairAsync error: {e}"))?
-            .await
+            .get()
             .map_err(|e| format!("UnpairAsync await error: {e}"))?;
 
         match result
