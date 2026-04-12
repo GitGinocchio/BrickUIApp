@@ -3,7 +3,8 @@
 import { resolve } from "path";
 
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/i18n'],
+  modules: ['@nuxtjs/i18n', '@nuxt/ui'],
+  css: ['~/assets/css/main.css'],
 
   compatibilityDate: '2025-05-15',
   // (optional) Enable the Nuxt devtools
