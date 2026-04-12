@@ -27,7 +27,7 @@ jobs:
           sudo apt update
           sudo apt install gh -y
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
