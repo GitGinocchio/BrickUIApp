@@ -15,6 +15,7 @@ mod bricks;
 mod utils;
 mod api;
 
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
