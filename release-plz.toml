@@ -19,4 +19,4 @@ pr_draft = true
 features_always_increment_minor = true
 
 [[package]]
-name = "src-tauri"
+name = "brickui"
