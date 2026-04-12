@@ -1,6 +1,7 @@
 [workspace]
 publish = false
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
+release_always = false
 
 changelog_config = "cliff.toml"
 changelog_path = "../CHANGELOG.md"

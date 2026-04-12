@@ -13,7 +13,7 @@ mod state;
 mod keyring;
 mod bricks;
 mod utils;
-mod api; 
+mod api;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
