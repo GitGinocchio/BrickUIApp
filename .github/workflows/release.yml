@@ -35,7 +35,6 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ secrets.RELEASE_TOKEN }}
           persist-credentials: true
 
       - &install-rust
