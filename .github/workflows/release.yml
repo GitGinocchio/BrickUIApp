@@ -40,6 +40,13 @@ jobs:
       - &install-rust
         name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Force Clean Tags
+        run: |
+          git tag -l | xargs git tag -d
+          git fetch --tags --force
+          echo "Tags dopo la pulizia:"
+          git tag --list
       - name: Debug Git History
         run: |
           git log --oneline --graph -n 10
