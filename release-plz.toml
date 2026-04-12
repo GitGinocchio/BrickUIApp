@@ -3,6 +3,7 @@ publish = false
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
 release_commits = "^feat:"
 release_always = false
+semver_check = true
 
 changelog_config = "cliff.toml"
 changelog_path = "../CHANGELOG.md"
