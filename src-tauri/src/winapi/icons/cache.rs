@@ -24,6 +24,14 @@ fn normalize_icon_key(path: &PathBuf, index: Option<i32>) -> String {
     }
 }
 
+#[cfg_attr(feature = "profiling", tracing::instrument)]
+fn calculate_hash(bytes: &Vec<u8>) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(&bytes);
+    let hash: [u8; 32] = hasher.finalize().into();
+    hex::encode(hash)
+}
+
 pub fn get_or_insert_sync(
     icon_cache: Arc<RwLock<BrickUIconCacheState>>,
     key: String,
@@ -56,10 +64,8 @@ pub fn get_or_insert_sync(
     }
 
     // Calcola hash dei nuovi bytes
-    let mut hasher = Sha256::new();
-    hasher.update(&png_bytes);
-    let hash = format!("{:x}", hasher.finalize());
-    let icon_path = dir.join(format!("{hash}.png"));
+    let hash = calculate_hash(&png_bytes);
+    let icon_path = dir.join(format!("{}.png", hash));
 
     // Scrive file
     std::fs::create_dir_all(&dir)
@@ -119,9 +125,7 @@ pub async fn get_or_insert(
         println!("icon cache miss: {}", cached_path.to_string_lossy().to_string());
     }
 
-    let mut hasher = Sha256::new();
-    hasher.update(&png_bytes);
-    let hash = format!("{:x}", hasher.finalize());
+    let hash = calculate_hash(&png_bytes);
     let icon_path = dir.join(format!("{hash}.png"));
 
     tokio::fs::write(&icon_path, &png_bytes)
