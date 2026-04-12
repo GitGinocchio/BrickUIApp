@@ -3,8 +3,6 @@ publish = false
 repo_url = "https://github.com/BrickUIApp/BrickUIApp"
 release_commits = "^(feat|fix|refactor|chore|ci)(\\(.*\\))?:.*"
 dependencies_update = true
-allow_dirty = true
-semver_check = false
 
 changelog_config = "cliff.toml"
 changelog_path = "CHANGELOG.md"
