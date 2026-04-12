@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Build your Windows UI brick by brick!"
 authors = ["GitGinocchio"]
 edition = "2024"
-publish = false
 
 exclude = [
     "src-tauri/target/**",
