@@ -7,6 +7,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RELEASE_PLZ_LOG: DEBUG release-plz
 jobs:
   release:
     name: Release-plz
@@ -45,15 +46,7 @@ jobs:
       - name: Run release-plz
         uses: release-plz/action@v0.5.128
         with:
-          command: update
-          verbose: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - name: Run release-plz
-        uses: release-plz/action@v0.5.128
-        with:
+          manifest_path: ./src-tauri/Cargo.toml
           verbose: true
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

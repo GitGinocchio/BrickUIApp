@@ -1,7 +1,0 @@
-[package]
-name = "brickui"
-version = "0.1.0"
-
-[lib]
-name = "brickui_lib"
-path = "src-tauri/lib.rs"
