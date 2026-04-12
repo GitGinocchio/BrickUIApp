@@ -43,19 +43,9 @@ jobs:
           git tag -l | xargs git tag -d
           git fetch --tags --force
 
-      - name: Run release
+      - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
-          command: release
-          manifest_path: ./src-tauri/Cargo.toml
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - name: Run release-pr
-        uses: release-plz/action@v0.5
-        with:
-          command: release-pr
           manifest_path: ./src-tauri/Cargo.toml
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
