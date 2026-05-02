@@ -1,381 +1,205 @@
 <template>
-  <div class="container" v-if="brick" @scroll="handleScroll">
-    <n-image
-      class="banner"
-      :class="{ loaded: isBannerLoaded }"
-      object-fit="cover"
-      width="100%"
-      :show-toolbar="false"
-      :preview-disabled="true"
-      :src="bannerUrl"
-      @load="onBannerLoad"
-      lazy
+  <div v-if="brick" class="relative flex-1 overflow-y-auto" @scroll="handleScroll">
+    <Header 
+      :sections="sections" 
+      :style="{ 
+        // Mescoliamo il colore di sfondo del tema (--ui-bg) con la trasparenza
+        // Quando headerOpacity è 0, è 100% --ui-bg. Quando è 1, è l'80% del colore.
+        backgroundColor: `color-mix(in srgb, var(--ui-bg), transparent ${headerOpacity * 20}%)`,
+        
+        // Il blur aumenta man mano che scendi
+        backdropFilter: `blur(${headerOpacity * 12}px)`,
+        
+        // Il bordo usa il colore del bordo del tema (--ui-border) con opacità dinamica
+        borderColor: `color-mix(in srgb, var(--ui-border), transparent ${(1 - headerOpacity) * 100}%)`
+      }"
+      class="sticky top-0 z-50 w-full transition-all duration-150 border-b px-6 py-4"
     >
-      <template #placeholder>
-        <img class="banner" loading="lazy" @load="onBannerLoad" :src="defaultBannerUrl" />
-      </template>
-    </n-image>
-
-    <Header :sections="sections" class="header" :style="{ '--scroll-opacity': headerOpacity }">
       <template #actions>
-        <div class="actions">
-          <n-switch
-            style="margin: 0"
-            size="large"
-            v-model:value="brick.enabled"
-            @update:value="toggleBrick(brick)"
-          />
-          <n-dropdown :options="options" trigger="click" placement="bottom-end" @select="onBrickActionSelected">
-            <n-button circle secondary size="small">
-              <template #icon>
-                <EllipsisVertical />
-              </template>
-            </n-button>
-          </n-dropdown>
+        <div class="flex items-center gap-2">
+          <USwitch v-model="brick.enabled" @update:model-value="toggleBrick(brick)" />
+          <UDropdown :items="dropdownItems">
+            <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis-vertical" />
+          </UDropdown>
         </div>
       </template>
     </Header>
-    <div class="content">
-      <n-tabs type="line" v-model:value="activeTab" animated>
-        <n-tab-pane name="info">
-          <template #tab>
-            <div class="tab-header">
-              <Info :size="16" />
-              <span>Info</span>
+
+    <div class="relative w-full h-[35vh] overflow-hidden bg-neutral-900">
+      <img
+        :src="bannerUrl || defaultBannerUrl"
+        class="w-full h-full object-cover transition-all duration-500"
+        :class="[isBannerLoaded ? 'blur-0 opacity-100' : 'blur-xl opacity-50']"
+        @load="onBannerLoad"
+      />
+      <div class="hidden absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-transparent" />
+    </div>
+
+    <div class="px-6 py-4 -mt-12 relative z-10">
+      <UTabs size="md" :items="tabItems" v-model="activeTabIndex" class="w-full">
+        <template #info>
+          <div class="relative p-4 bg-neutral-900/50 rounded-lg border border-neutral-800 min-h-200px">
+            <div class="absolute top-2 right-2">
+              <UButton
+                :icon="descriptionEditMode ? 'i-lucide-pencil-off' : 'i-lucide-pencil'"
+                variant="ghost"
+                color="neutral"
+                size="xs"
+                @click="onEditDescription"
+              />
             </div>
-          </template>
-          <div class="tab-content">
-            <div class="tab-actions">
-              <n-button @click="onEditDescription" text circle size="medium">
-                <Pencil v-if="!descriptionEditMode" :size="16" />
-                <PencilOff v-else :size="16" />
-              </n-button>
-            </div>
-            <n-input
+
+            <UTextarea
               v-if="descriptionEditMode"
-              v-model:value="brick.description"
-              type="textarea"
-              placeholder="Type your brick's description"
+              v-model="brick.description"
+              autoresize
+              placeholder="Type your brick's description..."
+              class="w-full"
             />
-            <p
-              v-else-if="renderedDescription.length > 0"
-              v-html="renderedDescription"
-              class="description"
-            ></p>
-            <p v-else>This brick has no description</p>
+            <div 
+              v-else-if="brick.description" 
+              v-html="renderedDescription" 
+              class="prose prose-invert prose-sm max-w-none description-content"
+            />
+            <p v-else class="text-neutral-500 italic">This brick has no description.</p>
           </div>
-        </n-tab-pane>
+        </template>
 
-        <n-tab-pane name="props">
-          <template #tab>
-            <div class="tab-header">
-              <Cog :size="16" />
-              <span>Props</span>
-            </div>
-          </template>
-          <template #suffix>
-          </template>
-          <PropsPanel v-model:brick="brick" />
-        </n-tab-pane>
+        <template #props>
+          <div class="p-4 bg-neutral-900/50 rounded-lg border border-neutral-800">
+            <PropsPanel v-model:brick="brick" />
+          </div>
+        </template>
 
-        <n-tab-pane name="emits">
-          <template #tab>
-            <div class="tab-header">
-              <Wifi :size="16" />
-              <span>Emits</span>
-            </div>
-          </template>
-          <div class="tab-content">
+        <template #emits>
+          <div class="p-8 text-center text-neutral-500 border-2 border-dashed border-neutral-800 rounded-lg">
+            <UIcon name="i-lucide-wifi" class="size-8 mx-auto mb-2 opacity-20" />
             <p>Work in progress :P</p>
           </div>
-        </n-tab-pane>
+        </template>
 
-        <n-tab-pane name="permissions">
-          <template #tab>
-            <div class="tab-header">
-              <Shield :size="16" />
-              <span>Permissions</span>
-            </div>
-          </template>
-          <div class="tab-content">
+        <template #permissions>
+          <div class="p-8 text-center text-neutral-500 border-2 border-dashed border-neutral-800 rounded-lg">
+            <UIcon name="i-lucide-shield" class="size-8 mx-auto mb-2 opacity-20" />
             <p>Work in progress :P</p>
           </div>
-        </n-tab-pane>
-      </n-tabs>
+        </template>
+
+      </UTabs>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { NTabs, NTabPane, NButton, NSwitch, NInput, NImage, NDropdown, type DropdownOption } from "naive-ui";
-import { invoke } from "@tauri-apps/api/core";
-import {
-  Blocks,
-  Cuboid,
-  BadgeCheck,
-  EllipsisVertical,
-  Pencil,
-  PencilOff,
-  Cog,
-  Wifi,
-  Shield,
-  Info,
-  Trash2,
-  Copy,
-} from "lucide-vue-next";
-import { emitTo } from "@tauri-apps/api/event";
-import MarkdownIt from "markdown-it";
+import PropsPanel from "~/components/panels/PropsPanel.vue";
 
+import MarkdownIt from "markdown-it";
 import { appDataDir, sanitizePath } from "#utils/path";
 import type { Brick } from "#interfaces/brick";
-import PropsPanel from "#components/panels/PropsPanel.vue";
-import { useBrickActions } from "~/composables/useBrickActions";
+import { invoke } from "@tauri-apps/api/core";
+import { emitTo } from "@tauri-apps/api/event";
 
 const { t } = useI18n();
-const { bricks, theme } = useAppState();
-const { renameBrick, deleteBrick, duplicateBrick,  toggleBrick } = useBrickActions(bricks, theme);
+const { duplicateBrick, toggleBrick, openDeleteBrickModal, openRenameBrickModal } = useBrickActions();
 const route = useRoute();
 const router = useRouter();
-const activeTab = ref<string>("info");
+
+const brick = ref<Brick | null>(null);
+const activeTabIndex = ref(0);
+const isBannerLoaded = ref(false);
+const descriptionEditMode = ref(false);
+const headerOpacity = ref(0);
+const bannerUrl = ref<string | null>(null);
+const iconUrl = ref<string | null>(null);
 
 const brickName = computed(() => route.params.name as string);
+const defaultBannerUrl = new URL("../../assets/images/banner-brick-iso.svg", import.meta.url).href;
+const md = new MarkdownIt();
 
-const brick = ref<Brick>(null);
-const sections = computed(() => {
-  return [
-    { icon: Blocks, label: t("bricks"), onclick: () => router.push("/bricks") },
-    { icon: iconUrl.value, defaultIcon: Cuboid, label: brickName.value },
-  ];
-});
+// Configurazione Tabs per NuxtUI
+const tabItems = [
+  { label: 'Info', icon: 'i-lucide-info', slot: 'info' },
+  { label: 'Props', icon: 'i-lucide-cog', slot: 'props' },
+  { label: 'Emits', icon: 'i-lucide-wifi', slot: 'emits' },
+  { label: 'Permissions', icon: 'i-lucide-shield', slot: 'permissions' }
+];
 
-const options = computed<DropdownOption[]>(() => [
-  {
-    label: 'Rename',
-    key: 'rename',
-    icon: () => h(Pencil)
-  },
-  {
-    label: 'Duplicate',
-    key: 'duplicate',
-    icon: () => h(Copy)
-  },
-  {
-    label: () => h('div', { style: { 'color' : 'red'} }, { default: () => 'Delete' }),
-    icon: () => h(Trash2, { color: 'red' }), 
-    key: 'delete'
-  },
-  {
-    type: 'divider',
-    key: 'd1'
-  },
-  {
-    key: 'version-info',
-    icon: () => h(BadgeCheck, { style: { color: '#2080f0', opacity: 1 } }),
-    label: () => h(
-      'span', 
-      { 
-        style: { 
-          color: '#2080f0', 
-          opacity: 1,
-          fontWeight: '500'
-        } 
-      }, 
-      `v. ${brick.value?.version.join(".")}`
-    ),
-    disabled: true
-  },
+// Dropdown Menu Items
+const dropdownItems = computed(() => [
+  [
+    {
+      label: 'Rename',
+      icon: 'i-lucide-pencil',
+      click: () => openRenameBrickModal(brick.value!, true)
+    },
+    {
+      label: 'Duplicate',
+      icon: 'i-lucide-copy',
+      click: () => duplicateBrick(brick.value!, () => router.push(`/bricks/${brick.value!.name}Copy`))
+    }
+  ],
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash-2',
+      color: 'red' as const,
+      click: () => openDeleteBrickModal(brick.value!)
+    }
+  ],
+  [
+    {
+      label: `v. ${brick.value?.version.join(".")}`,
+      icon: 'i-lucide-badge-check',
+      disabled: true,
+      slot: 'version'
+    }
+  ]
 ]);
 
-async function onBrickActionSelected(option: string) {
-  switch (option) {
-    case 'rename':
-      await renameBrick(brick.value, (newName: string) => router.push(`/bricks/${newName}`));
-      break;
-    case 'duplicate':
-      duplicateBrick(brick.value, () => router.push(`/bricks/${brick.value.name}Copy`));
-      break;
-    case 'delete':
-      await deleteBrick(brick.value, () => router.push("/bricks"));
-      break;
-    default:
-      console.warn(`azione brick non riconosciuta: ${option}`);
-  }
+const sections = computed(() => [
+  { icon: 'i-lucide-blocks', label: t("bricks"), to: "/bricks" },
+  { icon: iconUrl.value || 'i-lucide-cuboid', label: brickName.value },
+]);
+
+const renderedDescription = computed(() => brick.value ? md.render(brick.value.description) : '');
+
+// Methods
+function handleScroll(e: Event) {
+  const target = e.target as HTMLElement;
+  headerOpacity.value = Math.min(target.scrollTop / 150, 1);
 }
 
-/* Description */
+function onBannerLoad() {
+  isBannerLoaded.value = true;
+}
 
-const md = new MarkdownIt();
-const renderedDescription = computed(() => md.render(brick.value.description));
-const descriptionEditMode = ref<boolean>(false);
-
-async function onEditDescription(_event?: Event) {
+async function onEditDescription() {
   descriptionEditMode.value = !descriptionEditMode.value;
-
-  if (descriptionEditMode.value && activeTab.value !== "description") {
-    activeTab.value = "description";
-  }
-
   if (!descriptionEditMode.value) {
     await invoke("save_brick", { brick: brick.value });
     await emitTo("main", "update_bricks");
   }
 }
 
-const headerOpacity = ref(0);
-function handleScroll(e: Event) {
-  const target = e.target as HTMLElement;
-  const scrollTop = target.scrollTop;
-  
-  const maxScroll = 150; 
-  headerOpacity.value = Math.min(scrollTop / maxScroll, 1);
-}
-
-const isBannerLoaded = ref<boolean>(false);
-const bannerUrl = ref<string | null>(null);
-const defaultBannerUrl = new URL("../../assets/images/banner-brick-iso.svg", import.meta.url).href;
-const iconUrl = ref<string | null>(null);
-
-function onBannerLoad() {
-  setTimeout(() => { isBannerLoaded.value = true; }, 15);
-}
-
+// Data Fetching
 onMounted(async () => {
   brick.value = await invoke("get_brick_by_name", { name: brickName.value });
-
-  await nextTick();
   
-  if (brick.value?.banner) {
-    bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
-  }
-  if (brick.value?.icon) {
-    iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name ?? brickName.value}` });
+  if (brick.value) {
+    if (brick.value.banner) {
+      bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name}` });
+    }
+    if (brick.value.icon) {
+      iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name}` });
+    }
   }
 });
 </script>
 
 <style scoped>
-.container {
-  display: flex;
-  flex-direction: column;
-  overflow-y: hidden;
-  gap: 1rem;
-}
-
-:deep(.n-switch) {
-  margin: 0;
-}
-
-.banner {
-  width: 100%;
-  height: 35vh;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0.5;
-  z-index: 0;
-
-  filter: blur(var(--blur, 20px));
-  transition: filter 0.5s ease;
-}
-
-.banner.loaded {
-  --blur: 0px;
-}
-
-.header {
-  position: fixed;
-  top: 0;
-  width: calc(100% - 7rem);
-  z-index: 1000 !important;
-  margin: 0 !important;
-
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-
-  padding-top: clamp(1rem, 2rem - (var(--layout-scroll-top, 0px) / 10), 2rem);
-  padding-bottom: clamp(1rem, 2rem - (var(--layout-scroll-top, 0px) / 10), 2rem);
-
-  background-color: rgba(24, 24, 28, clamp(0, var(--layout-scroll-top, 0px) / 150, 0.9));
-  backdrop-filter: blur(clamp(0px, var(--layout-scroll-top, 0px) / 15, 12px));
-  -webkit-backdrop-filter: blur(clamp(0px, var(--layout-scroll-top, 0px) / 15, 12px));
-
-  transition: 
-    background-color 0.1s linear, 
-    backdrop-filter 0.1s linear,
-    padding 0.1s ease-out;
-
-  border-bottom: 1px solid rgba(255, 255, 255, clamp(0, var(--layout-scroll-top, 0px) / 300, 0.1));
-}
-
-.header * {
-  margin: 0;
-}
-
-.header .actions {
-  display: flex; 
-  align-items: center; 
-  gap: 0.5rem
-}
-
-.header,
-.content {
-  z-index: 1;
+/* Rimuoviamo gran parte del CSS manuale a favore di Tailwind */
+.description-content :deep(p) {
   margin-bottom: 1rem;
-}
-
-.content {
-  margin-left: 1rem;
-  margin-right: 1rem;
-}
-
-:deep(.n-card-header) {
-  padding-bottom: 0.5rem !important;
-}
-
-:deep(.n-form-item-feedback-wrapper) {
-  min-height: 0;
-}
-
-.tab-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.tab-content {
-  position: relative;
-}
-
-.tab-actions {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
-}
-
-.movable {
-  display: flex;
-  flex-direction: row;
-}
-
-.arrows {
-  cursor: pointer;
-  font-size: 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.add-prop {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  margin-top: 0.5rem;
-  gap: 0.5rem;
-  width: 100%;
+  line-height: 1.6;
 }
 </style>

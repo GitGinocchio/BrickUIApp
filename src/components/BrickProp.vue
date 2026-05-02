@@ -38,7 +38,7 @@ import {
 } from 'naive-ui';
 import type { Prop as BrickPropType } from '#interfaces/brick';
 import { colorStringToRGBA } from '#utils/color';
-import GradientPicker from '#components/GradientPicker.vue';
+import GradientPicker from '#components/props/PropGradientPicker.vue';
 
 const props = defineProps({
   prop: {

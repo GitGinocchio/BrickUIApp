@@ -94,7 +94,7 @@ import {
 
 import { createProp, type Prop, type PropTypeValue, propTypeValues, type SelectablePropType } from '#interfaces/brick';
 import { colorStringToRGBA } from '#utils/color';
-import GradientPicker from '#components/GradientPicker.vue';
+import GradientPicker from '#components/props/PropGradientPicker.vue';
 import type { DatePickerType } from 'naive-ui/es/date-picker/src/config';
 
 const dialog = useDialog();

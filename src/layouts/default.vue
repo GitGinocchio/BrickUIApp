@@ -1,129 +1,188 @@
 <template>
-  <div class="flex h-screen overflow-hidden bg-default">
-    <UDashboardSidebar
-      collapsible
-      :is-collapsed="collapsed"
-      class="transition-all duration-300 border-r border-default flex flex-col justify-between"
-      :class="settings.sidebar.position === 'right' ? 'order-1 border-l border-r-0' : 'order-0'"
-      :style="{ width: collapsed ? '64px' : '220px' }"
+  <div 
+    class="flex flex-1 h-screen overflow-auto bg-default"
+    :class="settings.sidebar.position === 'right' ? 'flex-row-reverse' : 'flex-row'"
+  >
+    <USidebar
+      v-model:open="isSidebarOpen"
+      collapsible="icon"
+      variant="sidebar"
+      :side="settings.sidebar.position"
+      :rail="false"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
       <template #header>
-        <div class="h-12 flex items-center px-4 overflow-hidden">
-          <UIcon name="i-lucide-box" class="w-6 h-6 min-w-6 text-primary" />
-          <span v-if="!collapsed" class="ml-3 font-bold truncate text-lg">BrickUI</span>
+        <div class="flex items-center gap-3 px-1 overflow-hidden h-6">
+          <UIcon name="i-lucide-cuboid" class="size-6 text-primary shrink-0" />
+          <span 
+            v-if="isSidebarOpen" 
+            class="font-bold truncate text-lg transition-opacity duration-200"
+          >
+            BrickUI
+          </span>
         </div>
       </template>
 
-      <div class="flex-1 px-2 py-2">
+      <template #default="{ state }">
         <UNavigationMenu
-          :links="mainNavigation"
+          :key="state"
+          :items="getTopNavigation()"
           orientation="vertical"
-          :collapsed="collapsed"
-          :ui="{ link: 'px-3 py-2.5' }"
+          :ui="{ link: 'p-1.5 overflow-hidden', list: 'flex flex-col gap-1' }"
         />
+      </template>
+
+      <template #footer="{ state }">
+        <UNavigationMenu
+          :key="state"
+          :items="getBottomNavigation()"
+          :collapsed="!isSidebarOpen"
+          orientation="vertical"
+          class="w-full"
+          :ui="{ link: 'p-1.5 overflow-hidden', list: 'flex flex-col w-full gap-1' }"
+        />
+      </template>
+    </USidebar>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <header v-if="false" class="h-12 shrink-0 flex items-center px-4 border-b border-default">
+        <UButton
+          icon="i-lucide-panel-left"
+          color="neutral"
+          variant="ghost"
+          @click="isSidebarOpen = !isSidebarOpen"
+        />
+      </header>
+
+      <div class="flex-1 flex flex-col min-w-0 h-full">
+        <main class="flex-1 overflow-hidden relative flex flex-col">
+          <slot />
+          <ImportBrickModal ref="importBrickModal" />
+          <DeleteBrickModal ref="deleteBrickModal" />
+          <NewBrickModal ref="newBrickModal" />
+          <RenameBrickModal ref="renameBrickModal" />
+        </main>
       </div>
 
-      <template #footer>
-        <div class="px-2 pb-4">
-          <UNavigationMenu
-            :links="bottomNavigation"
-            orientation="vertical"
-            :collapsed="collapsed"
-            :ui="{ link: 'px-3 py-2.5' }"
-          />
-        </div>
-      </template>
-    </UDashboardSidebar>
-
-    <UMain 
-      class="flex-1 overflow-y-auto relative" 
-      @scroll="handleScroll"
-    >
-      <UContainer class="py-6 min-h-full">
-        <slot />
-      </UContainer>
-      
-      <SystemTray v-if="settings?.systemtray" class="fixed bottom-4 right-4 z-50" />
-    </UMain>
+      <SystemTray v-if="settings?.systemtray" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui';
 import { useAppState } from '~/composables/useAppState';
-import { useBrickActions } from "~/composables/useBrickActions";
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Settings } from "~/interfaces/settings";
+import type { Brick } from '~/interfaces/brick';
 
-const { settings, theme, bricks } = useAppState();
-const toast = useToast();
+const ImportBrickModal = defineAsyncComponent(() => import('~/components/modals/ImportBrickModal.vue'));
+const DeleteBrickModal = defineAsyncComponent(() => import('~/components/modals/DeleteBrickModal.vue'));
+const RenameBrickModal = defineAsyncComponent(() => import('~/components/modals/RenameBrickModal.vue'));
+const NewBrickModal = defineAsyncComponent(() => import('~/components/modals/NewBrickModal.vue'));
+
+const importBrickModal = useTemplateRef('importBrickModal');
+const deleteBrickModal = useTemplateRef('deleteBrickModal');
+const renameBrickModal = useTemplateRef('renameBrickModal');
+const newBrickModal = useTemplateRef('newBrickModal');
+
+const { settings, isSidebarOpen, isSidebarHidden } = useAppState();
 const { t, setLocale } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
-// Setup Actions (adattato per Nuxt UI Toast)
-const { openBrick } = useBrickActions(bricks, theme, null, null);
-
-// Gestione Sidebar (Hover logic)
-const collapsed = ref(true);
 let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Logica Hover mantenuta
 function handleMouseEnter() {
-  hoverTimer = setTimeout(() => {
-    collapsed.value = false;
-  }, 250);
+  hoverTimer = setTimeout(() => { isSidebarOpen.value = true; }, 150);
 }
 
 function handleMouseLeave() {
-  if (hoverTimer) clearTimeout(hoverTimer);
-  collapsed.value = true;
+  if (hoverTimer) {
+    clearTimeout(hoverTimer);
+    hoverTimer = null;
+  }
+  isSidebarOpen.value = false;
 }
 
-// Gestione Scroll (per effetti CSS dinamici nei Bricks)
-function handleScroll(e: Event) {
-  const target = e.target as HTMLElement;
-  document.documentElement.style.setProperty('--layout-scroll-top', `${target.scrollTop}px`);
+// Navigazione dinamica per gestire lo stato 'expanded' vs 'collapsed'
+function getTopNavigation() {
+  return [
+    { 
+      label: t('bricks'), 
+      icon: 'i-lucide-blocks', 
+      to: '/bricks', 
+      active: route.path === '/bricks',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('walls'), 
+      icon: 'i-lucide-brick-wall', 
+      to: '/walls', 
+      active: route.path === '/walls',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('marketplace'), 
+      icon: 'i-lucide-shopping-basket', 
+      to: '/marketplace', 
+      active: route.path === '/marketplace',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    }
+  ] as NavigationMenuItem[];
 }
 
-// Configurazione Link (Nuxt UI v3 usa Iconify i-lucide-*)
-const mainNavigation = computed(() => [
-  { label: t('bricks'), icon: 'i-lucide-cuboid', to: '/bricks' },
-  { label: t('walls'), icon: 'i-lucide-layout-dashboard', to: '/walls' },
-  { label: t('marketplace'), icon: 'i-lucide-store', to: '/marketplace' }
-]);
+function getBottomNavigation() {
+  return [
+    { 
+      label: t('user'), 
+      icon: 'i-lucide-circle-user', 
+      to: '/get-started', 
+      active: route.path === '/get-started', 
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('settings'), 
+      icon: 'i-lucide-settings', 
+      to: '/settings', 
+      active: route.path === '/settings',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+  ] as NavigationMenuItem[];
+}
 
-const bottomNavigation = computed(() => [
-  { 
-    label: t('user'), 
-    icon: 'i-lucide-circle-user', 
-    to: '/get-started',
-    active: route.path.startsWith('/user') || route.path === '/get-started'
-  },
-  { label: t('settings'), icon: 'i-lucide-settings', to: '/settings' }
-]);
-
-// Tauri Events & Lifecycle
+// Lifecycle e Tauri Listeners (Logica originale intatta)
 onMounted(() => {
   setLocale(settings.value.language);
   
-  // Ascolta comandi dal Backend Rust
   listen<{ view: string }>("goto", (event) => router.push(event.payload.view));
-  listen<[string, string]>("open_brick", (event) => openBrick(event.payload));
+  
+  listen<[string, string]>("import_brick", (event) => importBrickModal.value?.open(event.payload));
+  listen<Brick>("delete_brick", (event) => deleteBrickModal.value?.open(event.payload));
+  listen<{ brick: Brick, redirect: boolean }>("rename_brick", (event) => { renameBrickModal.value?.open(event.payload.brick, event.payload.redirect) });
+  listen("new_brick", () => newBrickModal.value?.open());
 });
 
-// Watcher per la sincronizzazione con Rust (BrickUIState)
+// Watcher Settings (Logica originale intatta)
 watch(
   () => JSON.parse(JSON.stringify(settings.value)) as Settings, 
   async (newSettings, oldSettings) => {
     if (!newSettings) return;
-    
-    // Salva nel file di config tramite Rust
     await invoke("save_settings", { settings: newSettings });
     setLocale(newSettings.language);
-
-    // Gestione Taskbar Windows via API
     if (oldSettings && oldSettings.taskbar.behavior !== newSettings.taskbar.behavior) {
       await invoke(newSettings.taskbar.behavior === 'hide' ? "hide_taskbar" : "show_taskbar");
     }
@@ -131,12 +190,3 @@ watch(
   { deep: true }
 );
 </script>
-
-<style scoped>
-/* Transizione fluida per il ridimensionamento della sidebar */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-</style>
