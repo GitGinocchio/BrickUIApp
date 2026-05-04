@@ -272,7 +272,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 
 watch(() => brick.value, (newVal) => {
   saveBrick(newVal);
-}, { deep: true })
+}, { deep: true });
 </script>
 
 <style scoped>
