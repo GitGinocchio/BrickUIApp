@@ -118,7 +118,7 @@ export const useBrickActions = () => {
 
   const openRenameBrickModal = async (brick: Brick, redirect: boolean) => {
     await emitTo<{ brick: Brick, redirect: boolean }>("main", "rename_brick", { brick, redirect });
-  }
+  };
 
   const openImportBrickModal = async (brick_path: string, brick_name: string) => {
     await emitTo<[string, string]>("main", "import_brick", [brick_path, brick_name]);
