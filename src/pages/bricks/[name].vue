@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import PropsPanel from "~/components/panels/PropsPanel.vue";
+import PropsPanel from "~/components/props/PropsPanel.vue";
 
 import MarkdownIt from "markdown-it";
 import { appDataDir, sanitizePath } from "#utils/path";

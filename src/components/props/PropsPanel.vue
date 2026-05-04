@@ -3,7 +3,7 @@
     <!-- Header: Layout e Toggle Edit -->
     <div class="props-header flex items-center justify-between mb-4 px-1">
       <div class="display-modes">
-        <UButtonGroup size="sm">
+        <UFormField size="sm" class="flex flex-col gap-2">
           <UButton
             :variant="layout === 'adaptive' ? 'solid' : 'ghost'"
             color="primary"
@@ -22,7 +22,7 @@
             icon="i-lucide-layout-grid"
             @click="layout = 'grid'"
           />
-        </UButtonGroup>
+        </UFormField>
       </div>
 
       <div class="props-actions flex items-center gap-2">
@@ -47,7 +47,7 @@
     </div>
 
     <!-- New Prop Template (Floating) -->
-    <div v-if="newProp" class="prop-item p-4 border border-dashed border-primary-500/50 rounded-lg mb-4 bg-primary-500/5">
+    <div v-if="newProp" class="prop-item p-4 border border-primary-500/50 rounded-lg mb-4 bg-primary-500/5">
       <div class="flex items-center gap-2 mb-4">
         <UInput
           v-model="newProp.prop_name"
@@ -58,7 +58,7 @@
         <UButton icon="i-lucide-save" color="primary" @click="onSavePropName(newProp)" />
         <UButton icon="i-lucide-trash-2" color="error" variant="ghost" @click="onRemoveProp(newProp)" />
       </div>
-      <BrickPropOptions :prop="newProp" :all-props="brick.props" />
+      <PropEditWrapper :prop="newProp" :all-props="brick.props" />
     </div>
 
     <!-- Props List with Sortable -->
@@ -68,73 +68,70 @@
       :list="brick.props"
       item-key="prop_name"
       tag="div"
-      :class="['container', layout === 'adaptive' ? 'adaptive-grid' : layout]"
+      :class="['props-container', layout === 'adaptive' ? 'adaptive-grid' : layout]"
       @update="onPropsOrderUpdate"
     >
+      <!-- @vue-ignore -->
       <template #item="{ element, index }">
         <div 
-          class="prop-row group relative border-b border-gray-200 dark:border-gray-800 py-2"
+          class="prop-row group relative py-2"
           :class="{ 'cursor-grab active:cursor-grabbing': editMode }"
         >
           <UAccordion
-            :items="[{ slot: 'content', label: element.prop_name }]"
-            :unmount="false"
+            :items="[{ slot: 'content', label: element.prop_name, disabled: editMode ? false : element.description == null  }]"
+            :unmount-on-hide="false"
+            :ui="{ trailingIcon: 'hidden', label: 'hidden', trigger: 'py-0 cursor-auto' }"
             multiple
           >
-            <!-- Header personalizzato -->
-            <template #default="{ item, open }">
-              <div class="flex items-center justify-between w-full py-2 px-2">
+            <!-- @vue-ignore -->
+            <template #leading="{ item, open }">
+              <div class="flex items-center w-full py-2 px-2 gap-1">
+                <UIcon :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" v-if="editMode" />
+                <UIcon :name="open ? 'i-lucide-circle-x' : 'i-lucide-circle-question-mark'" v-else-if="!editMode && element.description" />
                 <div class="flex items-center gap-2">
-                  <!-- Name Editing -->
                   <div v-if="editingPropNames.has(element.prop_name)" @click.stop>
                     <UInput
                       :model-value="editingPropNames.get(element.prop_name)"
                       @update:model-value="(val) => editingPropNames.set(element.prop_name, val)"
-                      size="xs"
                       @keydown.enter="onSavePropName(element)"
+                      size="xs"
                     />
                   </div>
                   <span v-else class="font-semibold text-sm">{{ element.prop_name }}</span>
                 </div>
+              </div>
+            </template>
 
-                <div class="flex items-center gap-1">
-                  <!-- Actions (Visible on Hover) -->
-                  <div class="hidden group-hover:flex items-center gap-1 mr-2" v-if="editMode">
-                    <UButton
-                      v-if="editingPropNames.has(element.prop_name)"
-                      icon="i-lucide-circle-x"
-                      color="neutral"
-                      variant="ghost"
-                      size="xs"
-                      @click.stop="togglePropNameEditMode(element)"
-                    />
-                    <UButton
-                      :icon="editingPropNames.has(element.prop_name) ? 'i-lucide-save' : 'i-lucide-pencil'"
-                      color="neutral"
-                      variant="ghost"
-                      size="xs"
-                      @click.stop="editingPropNames.has(element.prop_name) ? onSavePropName(element) : togglePropNameEditMode(element)"
-                    />
-                    <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="onDuplicateProp(element)" />
-                    <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click.stop="onRemoveProp(element)" />
-                  </div>
-
-                  <!-- Indicatori Modalità Visualizzazione -->
-                  <div v-if="!editMode && element.description" class="text-gray-400">
-                    <UIcon :name="open ? 'i-lucide-circle-x' : 'i-lucide-circle-help'" class="h-4 w-4" />
-                  </div>
+            <template #trailing>
+              <div class="flex items-center gap-1">
+                <div class="hidden group-hover:flex items-center gap-1 mr-2" v-if="editMode">
+                  <UButton
+                    v-if="editingPropNames.has(element.prop_name)"
+                    icon="i-lucide-circle-x"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    @click.stop="togglePropNameEditMode(element)"
+                  />
+                  <UButton
+                    :icon="editingPropNames.has(element.prop_name) ? 'i-lucide-save' : 'i-lucide-pencil'"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    @click.stop="editingPropNames.has(element.prop_name) ? onSavePropName(element) : togglePropNameEditMode(element)"
+                  />
+                  <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="onDuplicateProp(element)" />
+                  <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click.stop="onRemoveProp(element)" />
                 </div>
               </div>
             </template>
 
-            <!-- Contenuto (Options o Description) -->
             <template #content>
-              <div class="pl-4 border-l border-dashed border-gray-300 dark:border-gray-700 ml-2 mb-4">
-                <BrickPropOptions
+              <div class="pl-4 border-dashed ml-3.5 mb-4">
+                <PropEditWrapper
                   v-if="editMode"
-                  :prop="element"
+                  v-model:prop="brick.props[index]"
                   :all-props="brick.props"
-                  @update:prop="onUpdateProp"
                 />
                 <p v-else-if="element.description" class="text-xs text-gray-500 italic">
                   {{ element.description }}
@@ -143,9 +140,8 @@
             </template>
           </UAccordion>
 
-          <!-- Valore della Prop (Sempre visibile) -->
           <div class="prop-value-wrapper mt-1 px-2">
-            <BrickProp :prop="element" @update:prop="onUpdateProp" />
+            <PropViewWrapper v-model:prop="brick.props[index]" :brick_name="brick.name" />
           </div>
         </div>
       </template>
@@ -159,9 +155,11 @@
 
 <script setup lang="ts">
 import type { Brick, Prop } from '~/interfaces/brick';
-import { Sortable } from 'sortablejs-vue3';
-import { invoke } from '@tauri-apps/api/core';
-import { emitTo } from '@tauri-apps/api/event';
+import { Sortable } from 'sortablejs-vue3'
+import PropViewWrapper from '../props/PropViewWrapper.vue';
+import PropEditWrapper from '../props/PropEditWrapper.vue';
+
+const { saveBrick } = useBrickActions();
 
 // Props & Model
 const brick = defineModel<Brick>("brick", { required: true });
@@ -187,16 +185,6 @@ const sortableOptions = computed(() => ({
   preventOnFilter: false
 }));
 
-// API Logic
-// TODO: sostituire con un metodo di useBrickActions.ts
-const debouncedSaveBrick = debounce(async () => {
-  await invoke("save_brick", { brick: brick.value });
-}, 3000);
-
-const debouncedOverlayUpdate = debounce(async (prop: Prop) => {
-  await emitTo("overlay", "update-brick", { name: brick.value.name, prop });
-}, 50);
-
 // Handlers
 function onPropsOrderUpdate(event: any) {
   const { oldIndex, newIndex } = event;
@@ -205,7 +193,7 @@ function onPropsOrderUpdate(event: any) {
     const [movedItem] = newList.splice(oldIndex, 1);
     newList.splice(newIndex, 0, movedItem);
     brick.value.props = newList;
-    debouncedSaveBrick();
+    saveBrick(brick.value);
   }
 }
 
@@ -245,16 +233,11 @@ function onSavePropName(prop: Prop) {
     prop.prop_name = newName;
     editingPropNames.value.delete(newName);
   }
-  debouncedSaveBrick();
+  saveBrick(brick.value);
 }
 
 const onNewProp = () => {
-  newProp.value = { prop_type: 'String', prop_name: '' };
-};
-
-const onUpdateProp = (prop: Prop) => {
-  debouncedOverlayUpdate(prop);
-  debouncedSaveBrick();
+  newProp.value = { prop_type: 'Null', prop_name: '' };
 };
 
 function onDuplicateProp(prop: Prop) {
@@ -265,37 +248,42 @@ function onDuplicateProp(prop: Prop) {
   }
   const index = brick.value.props.findIndex(p => p.prop_name === prop.prop_name);
   brick.value.props.splice(index + 1, 0, { ...prop, prop_name: copyName });
-  debouncedSaveBrick();
+  saveBrick(brick.value);
 }
 
 function onRemoveProp(prop: Prop) {
-  // Nota: Implementare conferma tramite UModal per sicurezza
+  // TODO: Implementare conferma tramite UModal per sicurezza
   if (prop === newProp.value) {
     newProp.value = null;
     return;
   }
   brick.value.props = brick.value.props.filter(p => p !== prop);
-  debouncedSaveBrick();
+  saveBrick(brick.value);
 }
 
 // Route Guard
-onBeforeRouteLeave((to, from, next) => {
+onBeforeRouteLeave((_to, _from, next) => {
   if (newProp.value) {
+    // TODO: Sostituire con una Modal
     const confirm = window.confirm("Unsaved changes. Discard?");
     confirm ? next() : next(false);
   } else next();
 });
+
+watch(() => brick.value, (newVal) => {
+  saveBrick(newVal);
+}, { deep: true })
 </script>
 
 <style scoped>
-.container.grid, .container.adaptive-grid {
+.props-container.grid, .props-container.adaptive-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   gap: 1rem;
 }
 
 @media (max-width: 1024px) {
-  .container.adaptive-grid {
+  .props-container.adaptive-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -304,9 +292,8 @@ onBeforeRouteLeave((to, from, next) => {
   transition: all 0.2s ease;
 }
 
-/* Effetto tratteggiato Nuxt UI Style */
 .border-dashed {
-  background-image: linear-gradient(to bottom, currentColor 50%, transparent 50%);
+  background-image: linear-gradient(to bottom, var(--color-secondary-700) 50%, transparent 50%);
   background-size: 1px 8px;
   background-repeat: repeat-y;
   border-left: none;

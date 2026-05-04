@@ -2,7 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import { save as openSaveDialog } from "@tauri-apps/plugin-dialog";
 import { BRICK_FILE_FILTERS } from "~/constants/brick";
-import type { Brick } from "~/interfaces/brick";
+import type { Brick, Prop } from "~/interfaces/brick";
+
+let lastInvoicedState;
 
 export const useBrickActions = () => {
   const { t } = useI18n();
@@ -81,16 +83,37 @@ export const useBrickActions = () => {
     bricks.value = await invoke("unpack_brick", { brickPath: brickPath, brickName: brickName });
   }, 150);
 
-  const newBrick = debounce(async (brick: Brick) => {
+  const newBrick = async (brick: Brick) => {
     await invoke("new_brick", { brick: brick });
     const { bricks } = useAppState();
     bricks.value.push(brick);
-  }, 150);
+  };
+
+  const saveBrick = debounce(async (brick: Brick) => {
+    const currentState = JSON.stringify(brick);
+
+    if (currentState === lastInvoicedState) {
+      console.log("No real changes, skipping invoke.");
+      return;
+    }
+
+    try {
+      await invoke("save_brick", { brick: brick });
+      lastInvoicedState = currentState;
+      console.log("Brick saved to disk via Rust!");
+    } catch (err) {
+      console.error("Failed to save brick:", err);
+    }
+  }, 3000);
 
   const deleteBrick = debounce(async (brick: Brick) => {
     await emitTo("overlay", "delete-brick", { brick: brick });
     const { bricks } = useAppState();
     bricks.value = await invoke("delete_brick", { brick: brick });
+  }, 150);
+
+  const updateBrickProp = debounce(async (brick_name: string, prop: Prop) => {
+    await emitTo("overlay", "update-brick", { name: brick_name, prop });
   }, 150);
 
   const openRenameBrickModal = async (brick: Brick, redirect: boolean) => {
@@ -116,7 +139,10 @@ export const useBrickActions = () => {
     renameBrick,
     importBrick,
     newBrick,
+    saveBrick,
     deleteBrick,
+
+    updateBrickProp,
     
     openRenameBrickModal,
     openImportBrickModal, 

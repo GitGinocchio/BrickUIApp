@@ -2,7 +2,8 @@
   <UModal v-model:open="isOpen" title="Edit Brick">
     <template #body>
       <UFormField label="Name" :error="feedback">
-        <UInput 
+        <UInput
+          class="w-full"
           v-model="newName" 
           placeholder="Type your brick's name"
           @update:model-value="validate"

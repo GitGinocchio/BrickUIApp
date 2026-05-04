@@ -246,3 +246,10 @@ pub fn unpack_brick(input_path: &PathBuf, output_dir: &PathBuf) -> Result<(), St
 
     Ok(())
 }
+
+pub fn is_empty_opt_string(opt: &Option<String>) -> bool {
+    match opt {
+        Some(s) => s.is_empty(),
+        None => true,
+    }
+}

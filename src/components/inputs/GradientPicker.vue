@@ -85,21 +85,25 @@
 </template>
 
 <script setup lang="ts">
-import { GradientType } from '#interfaces/brick';
+import { GradientType, type GradientStop } from '#interfaces/brick';
+import type { PropType } from 'vue';
 
-interface Stop {
-  color: string
-  position: number
-}
+const steps = defineModel<GradientStop[]>("value", { default: () => [] });
 
-const props = defineProps<{
-  color?: string // Colore per il pattern trasparenza
-  default?: Stop[]
-  skipAlpha?: boolean
-}>();
-
-const steps = defineModel<Stop[]>("value", { default: () => [] });
-const gradientType = defineModel<GradientType>("type", { default: GradientType.LINEAR });
+const props = defineProps({
+  type: {
+    type: Object as PropType<GradientType>,
+    default: GradientType.LINEAR
+  },
+  default: {
+    type: Object as PropType<GradientStop[]>,
+    default: []
+  },
+  skip_alpha: {
+    type: Boolean,
+    default: false
+  }
+});
 
 const previewRef = ref<HTMLElement | null>(null);
 const draggingStop = ref<number | null>(null);
@@ -110,17 +114,15 @@ const canReset = computed(() => {
   return JSON.stringify(steps.value) !== JSON.stringify(props.default);
 });
 
-// Stringa gradiente CSS
 const gradientString = computed(() => {
   const sorted = [...steps.value].sort((a, b) => a.position - b.position);
   if (sorted.length === 0) return 'transparent';
   const stops = sorted.map(s => `${s.color} ${s.position}%`).join(', ');
-  return `${gradientType.value.toLowerCase()}-gradient(90deg, ${stops})`;
+  return `${props.type.toLowerCase()}-gradient(90deg, ${stops})`;
 });
 
-// Style per lo sfondo "scacchiera"
 const checkerboardStyle = computed(() => ({
-  backgroundImage: `conic-gradient(${props.color || '#333'} 90deg, transparent 90deg 180deg, ${props.color || '#333'} 180deg 270deg, transparent 270deg)`,
+  backgroundImage: `conic-gradient(#333 90deg, transparent 90deg 180deg, #333 180deg 270deg, transparent 270deg)`,
   backgroundSize: '12px 12px'
 }));
 

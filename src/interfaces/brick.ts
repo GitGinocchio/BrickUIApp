@@ -199,7 +199,7 @@ export interface ArrayPropType<T> extends PropType<Array<T>> {
   max?: number;
 
   /** Options type */
-  value_type?: any,
+  value_type?: CollectionValueType,
 
   /** Minimum value allowed in the array. */
   min_value?: number;
@@ -214,7 +214,7 @@ export interface SelectablePropType<T> extends PropType<Array<T>> {
   options: T[];
 
   /** Selectable options type */
-  value_type?: any,
+  value_type?: CollectionValueType,
 
   /** Minimum number of selections allowed. */
   min?: number;
@@ -284,18 +284,18 @@ export function createProp(type: PropTypeValue, name: string, description: strin
       switch (value_type) {
         case 'Float':
         case 'Integer':
-          return { prop_type: "Select", value_type: value_type,...createSelectableProp<number>(name, [], description) }
+          return { prop_type: "Select", value_type: value_type as any,...createSelectableProp<number>(name, [], description) }
         default:
-          return { prop_type: "Select", value_type: value_type, ...createSelectableProp<string>(name, [], description) }
+          return { prop_type: "Select", value_type: value_type as any, ...createSelectableProp<string>(name, [], description) }
       }
     
     case "Array":
       switch (value_type) {
         case 'Float':
         case 'Integer':
-          return { prop_type: "Array", value_type: value_type, ...createArrayProp<number>(name, description) }
+          return { prop_type: "Array", value_type: value_type as any, ...createArrayProp<number>(name, description) }
         default:
-          return { prop_type: "Array", value_type: value_type, ...createArrayProp<string>(name, description) }
+          return { prop_type: "Array", value_type: value_type as any, ...createArrayProp<string>(name, description) }
       }
 
     case "Color":

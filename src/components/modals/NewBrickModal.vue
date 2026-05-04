@@ -2,7 +2,8 @@
   <UModal v-model:open="isOpen" title="New Brick" class="sm:max-w-md">
     <template #body>
       <UFormField label="Name" :error="feedback">
-        <UInput 
+        <UInput
+          class="w-full"
           v-model="brickName" 
           placeholder="Type your brick's name"
           @update:model-value="validate"
@@ -74,7 +75,7 @@ async function handleCreate() {
     enabled: true,
   };
 
-  newBrick(brick);
+  await newBrick(brick);
   navigateTo(`/bricks/${brick.name}`);
   isOpen.value = false;
 }
