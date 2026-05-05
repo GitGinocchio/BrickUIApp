@@ -15,7 +15,7 @@
     "flamegraph": "inferno-flamegraph ./src-tauri/trace.folded > ./src-tauri/flamegraph.svg"
   },
   "dependencies": {
-    "@babel/standalone": "^7.29.2",
+    "@babel/standalone": "^7.29.3",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-autostart": "^2.5.0",
     "@tauri-apps/plugin-deep-link": "^2.4.8",
