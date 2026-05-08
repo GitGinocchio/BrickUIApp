@@ -1,25 +1,28 @@
 <template>
-  <div class="flex flex-row gap-3 items-center">
-    <USwitch
-      v-model="targetValue"
-      :default-value="prop.default"
-    />
-    <UButton
-      v-if="!editMode && prop.value != prop.default"
-      class="invisible group-hover:visible transition-all h-5"
-      label="Default"
-      variant="ghost"
-      size="xs"
-      icon="i-lucide-rotate-ccw"
-      @click="prop.value = prop.default"
-    />
-  </div>
+  <UInput 
+    v-model="targetValue"
+    :default-value="prop.default"
+    type="text"
+  >
+    <template v-if="targetValue?.length" #trailing>
+      <UButton
+        color="neutral"
+        variant="link"
+        size="sm"
+        class="hidden hover:flex"
+        icon="i-lucide-circle-x"
+        aria-label="Clear input"
+        @click="targetValue = (editMode ? '' : prop.default)"
+      />
+    </template>
+  </UInput>
 </template>
 
 <script lang="ts" setup>
 import type { Prop } from '~/interfaces/brick';
 
 const prop = defineModel<Prop>("prop");
+
 const props = defineProps({
   editMode: {
     type: Boolean,
@@ -38,7 +41,3 @@ const targetValue = computed<string>({
   }
 });
 </script>
-
-<style>
-
-</style>

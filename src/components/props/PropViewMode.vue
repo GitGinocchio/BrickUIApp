@@ -9,11 +9,11 @@
 </template>
 
 <script setup lang="ts">
-import type { Prop as BrickPropType } from '~/interfaces/brick';
+import type { Prop } from '~/interfaces/brick';
 
 const { updateBrickProp } = useBrickActions();
 
-const prop = defineModel<BrickPropType>("prop", { required: true });
+const prop = defineModel<Prop>("prop", { required: true });
 
 const props = defineProps({
   brick_name: {
@@ -29,7 +29,9 @@ const renderComponent = computed(() => {
     case 'Array': return defineAsyncComponent(() => import('./inputs/PropArray.vue'));
     case 'Select': return defineAsyncComponent(() => import('./inputs/PropSelect.vue'));
     case 'Bool': return defineAsyncComponent(() => import('./inputs/PropSwitch.vue'));
-    default: return defineAsyncComponent(() => import('./inputs/PropInput.vue'));
+    case 'Int': return defineAsyncComponent(() => import('./inputs/PropInt.vue'));
+    case 'Float': return defineAsyncComponent(() => import('./inputs/PropFloat.vue'));
+    default: return defineAsyncComponent(() => import('./inputs/PropString.vue'));
   }
 });
 
@@ -39,6 +41,7 @@ const dynamicProps = computed(() => {
 
 watch(() => prop.value.value, (newVal, oldVal) => {
   if (JSON.stringify(newVal) === JSON.stringify(oldVal)) return;
+  console.log(prop.value.value);
   updateBrickProp(props.brick_name, prop.value);
 }, { deep: true })
 </script>

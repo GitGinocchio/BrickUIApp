@@ -58,7 +58,7 @@
         <UButton icon="i-lucide-save" color="primary" @click="onSavePropName(newProp)" />
         <UButton icon="i-lucide-trash-2" color="error" variant="ghost" @click="onRemoveProp(newProp)" />
       </div>
-      <PropEditWrapper :prop="newProp" :all-props="brick.props" />
+      <PropEditWrapper v-model:prop="newProp" :all-props="brick.props" />
     </div>
 
     <!-- Props List with Sortable -->
@@ -127,7 +127,7 @@
             </template>
 
             <template #content>
-              <div class="pl-4 border-dashed ml-3.5 mb-4">
+              <div class="pl-4 border-dashed ml-3.5 mr-3.5 mb-4">
                 <PropEditWrapper
                   v-if="editMode"
                   v-model:prop="brick.props[index]"
@@ -154,10 +154,10 @@
 </template>
 
 <script setup lang="ts">
-import type { Brick, Prop } from '~/interfaces/brick';
+import { type Brick, type Prop } from '~/interfaces/brick';
 import { Sortable } from 'sortablejs-vue3'
-import PropViewWrapper from '../props/PropViewWrapper.vue';
-import PropEditWrapper from '../props/PropEditWrapper.vue';
+import PropViewWrapper from './PropViewMode.vue';
+import PropEditWrapper from './PropEditMode.vue';
 
 const { saveBrick } = useBrickActions();
 

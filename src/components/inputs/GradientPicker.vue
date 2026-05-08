@@ -92,7 +92,7 @@ const steps = defineModel<GradientStop[]>("value", { default: () => [] });
 
 const props = defineProps({
   type: {
-    type: Object as PropType<GradientType>,
+    type: String as PropType<GradientType>,
     default: GradientType.LINEAR
   },
   default: {

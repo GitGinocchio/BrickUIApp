@@ -21,100 +21,56 @@
       />
     </UFormField>
 
-    <UFormField 
-      v-if="['Select', 'Array'].includes(prop.prop_type)" 
+    <UFormField
+      v-if="prop.prop_type == 'Select' || prop.prop_type == 'Array'"
       label="Value type"
     >
       <USelectMenu
-        v-model="(prop as any).value_type"
+        v-model="prop.value_type"
         :options="valueTypeOptions"
         @update:model-value="onValueTypeChanged"
       >
         <template #item="{ item }">
-          <UIcon :name="item.icon" class="w-4 h-4" />
-          <span>{{ item.label }}</span>
+          <UIcon :name="(item as any).icon" class="w-4 h-4" />
+          <span>{{ (item as any).label }}</span>
         </template>
       </USelectMenu>
     </UFormField>
 
     <UFormField v-if="prop.prop_type === 'Select'" label="Options:">
-      <div class="flex flex-wrap gap-2 p-2 border border-neutral-800 rounded-md">
-        <UBadge
-          v-for="(opt, index) in prop.options"
-          :key="index"
-          variant="soft"
-          size="sm"
-          closable
-          @close="removeOption(index)"
-        >
-          {{ opt }}
-        </UBadge>
-        <UInput
-          v-model="newOptionInput"
-          placeholder="Add option..."
-          variant="none"
-          size="xs"
-          class="flex-1 min-w-100px"
-          @keydown.enter.prevent="addOption"
-        />
-      </div>
+      <Array v-model:value="prop.options" />
     </UFormField>
 
     <div class="grid grid-cols-3 gap-4">
       <UFormField v-if="shouldShowDefaultInput" label="Default value:">
-        <UInput class="w-full" v-if="prop.prop_type === 'String'" v-model="prop.default" />
-        <UTextarea class="w-full" v-else-if="prop.prop_type === 'Text'" v-model="prop.default" autoresize />
-        <UInput
-          v-else-if="['Int', 'Float'].includes(prop.prop_type)"
-          v-model.number="prop.default"
-          class="w-full"
-          type="number"
-          :step="prop.prop_type === 'Float' ? 0.1 : 1"
-        />
-        <USwitch v-else-if="prop.prop_type === 'Bool'" class="w-full" v-model="prop.default" />
-        <div v-else-if="prop.prop_type === 'Color'" class="flex flex-1 w-full gap-2 items-center">
-          <UPopover>
-            <UButton label="Choose color" color="neutral" variant="outline">
-              <template #leading>
-                <span :style="{ backgroundColor: prop.default || '#000000' }" class="size-3 rounded-full" />
-              </template>
-            </UButton>
-
-            <template #content>
-              <UColorPicker v-model="prop.default" class="p-2" />
-            </template>
-          </UPopover>
-        </div>
-        <UInput 
-          v-else-if="['Date', 'Datetime'].includes(prop.prop_type)" 
-          v-model="prop.default" 
-          class="w-full"
-          :type="prop.prop_type === 'Date' ? 'date' : 'datetime-local'" 
-        />
+        <component :is="renderDefaultComponent" class="w-full" :prop="prop" :editMode="true" />
       </UFormField>
   
-      <UFormField :label="minLabel" v-if="['Int', 'Float', 'Array', 'Select'].includes(prop.prop_type)">
-        <UInput class="w-full" v-model.number="(prop as any).min" type="number" />
-      </UFormField>
-      <UFormField :label="maxLabel" v-if="['Int', 'Float', 'Array', 'Select'].includes(prop.prop_type)">
-        <UInput class="w-full" v-model.number="(prop as any).max" type="number" />
-      </UFormField>
+      <PropMinMaxInput 
+        v-if="prop.prop_type == 'Array' 
+           || prop.prop_type == 'Select'
+           || prop.prop_type == 'Int'
+           || prop.prop_type == 'Float'"
+        v-model:prop="prop"
+      />
     </div>
 
     <div v-if="['Date', 'Datetime'].includes(prop.prop_type)" class="flex gap-4">
       <UFormField label="Allow past:">
-        <USwitch :model-value="(prop as any).allow_past" @update:model-value="v => toggleDateConstraint('past', v)" />
+        <USwitch v-model="(prop as DatePropType<any>).allow_past" @update:model-value="v => toggleDateConstraint('past', v)" />
       </UFormField>
       <UFormField label="Allow future:">
-        <USwitch :model-value="(prop as any).allow_future" @update:model-value="v => toggleDateConstraint('future', v)" />
+        <USwitch v-model="(prop as DatePropType<any>).allow_future" @update:model-value="v => toggleDateConstraint('future', v)" />
       </UFormField>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { type Prop, createProp, type PropTypeValue, propTypeValues } from '#interfaces/brick';
+import { type Prop, createProp, type PropTypeValue, propTypeValues, type DatePropType } from '#interfaces/brick';
 import type { SelectMenuItem } from '@nuxt/ui';
+import Array from '../inputs/Array.vue';
+import PropMinMaxInput from './PropMinMaxInput.vue';
 
 // --- Props & Emits ---
 const prop = defineModel<Prop>("prop", { required: true });
@@ -123,7 +79,18 @@ const props = defineProps<{
   showAlertOnTypeChange?: boolean
 }>();
 
-const newOptionInput = ref('');
+const renderDefaultComponent = computed(() => {
+  switch (prop.value.prop_type) {
+    case 'Color': return defineAsyncComponent(() => import('./inputs/PropColorPicker.vue'));
+    case 'Gradient': return defineAsyncComponent(() => import('./inputs/PropGradientPicker.vue'));
+    case 'Array': return defineAsyncComponent(() => import('./inputs/PropArray.vue'));
+    case 'Select': return defineAsyncComponent(() => import('./inputs/PropSelect.vue'));
+    case 'Bool': return defineAsyncComponent(() => import('./inputs/PropSwitch.vue'));
+    case 'Int': return defineAsyncComponent(() => import('./inputs/PropInt.vue'));
+    case 'Float': return defineAsyncComponent(() => import('./inputs/PropFloat.vue'));
+    default: return defineAsyncComponent(() => import('./inputs/PropString.vue'));
+  }
+});
 
 // --- Mapping Icone ---
 const iconsMap: Record<PropTypeValue, string> = {
@@ -164,18 +131,9 @@ const valueTypeOptions = [
   { label: 'Integer', value: 'Integer', icon: 'i-lucide-arrow-up-1-0' },
 ];
 
-const minLabel = computed(() => 
-  ['Int', 'Float'].includes(prop.value.prop_type) ? 'Min value:' : 'Min items:'
-);
-
-const maxLabel = computed(() => 
-  ['Int', 'Float'].includes(prop.value.prop_type) ? 'Max value:' : 'Max items:'
-);
-
 const shouldShowDefaultInput = computed(() => prop.value.prop_type !== 'Null');
 
 // --- Methods ---
-
 function onNewPropTypeSelected(newPropType: { label: string, value: PropTypeValue, icon: string }) {
   if (prop.value.prop_type === newPropType.value) return;
 
@@ -199,43 +157,6 @@ function onNewPropTypeSelected(newPropType: { label: string, value: PropTypeValu
 function onValueTypeChanged() {
   if (prop.value.prop_type === 'Select') prop.value.options = [];
   else if (prop.value.prop_type === 'Array') prop.value.default = [];
-}
-
-// Gestione Opzioni (per Select)
-function addOption() {
-  const val = newOptionInput.value.trim();
-  // Aggiunto il controllo: se non è Select, non fare nulla
-  if (!val || prop.value.prop_type !== 'Select') return;
-
-  if (!prop.value.options) prop.value.options = [];
-  
-if (prop.value.value_type === 'String') {
-    // @ts-ignore
-    if (!prop.value.options.includes(val)) {
-      // @ts-ignore
-      prop.value.options.push(val);
-    }
-  } 
-  else {
-    const parsed = prop.value.value_type === 'Integer' 
-      ? parseInt(val, 10) 
-      : parseFloat(val.replace(',', '.'));
-
-    if (!isNaN(parsed)) {
-      // @ts-ignore
-      if (!prop.value.options.includes(parsed)) {
-        // @ts-ignore
-        prop.value.options.push(parsed);
-      }
-    }
-  }
-
-  newOptionInput.value = '';
-}
-
-function removeOption(index: number) {
-  if (prop.value.prop_type != 'Select') return;
-  prop.value.options.splice(index, 1);
 }
 
 // Vincoli Date
