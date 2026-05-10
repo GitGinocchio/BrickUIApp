@@ -41,19 +41,18 @@
       <Array v-model:value="prop.options" />
     </UFormField>
 
-    <div class="grid grid-cols-3 gap-4">
-      <UFormField v-if="shouldShowDefaultInput" label="Default value:">
-        <component :is="renderDefaultComponent" class="w-full" :prop="prop" :editMode="true" />
-      </UFormField>
-  
-      <PropMinMaxInput 
-        v-if="prop.prop_type == 'Array' 
-           || prop.prop_type == 'Select'
-           || prop.prop_type == 'Int'
-           || prop.prop_type == 'Float'"
-        v-model:prop="prop"
-      />
-    </div>
+    <MinMaxStepInput
+      class="flex flex-row w-full gap-4" 
+      v-if="prop.prop_type == 'Array' 
+        || prop.prop_type == 'Select'
+        || prop.prop_type == 'Int'
+        || prop.prop_type == 'Float'"
+      v-model:prop="prop"
+    />
+
+    <UFormField v-if="shouldShowDefaultInput" label="Default value:">
+      <component :is="renderDefaultComponent" class="w-full" :prop="prop" :editMode="true" />
+    </UFormField>
 
     <div v-if="['Date', 'Datetime'].includes(prop.prop_type)" class="flex gap-4">
       <UFormField label="Allow past:">
@@ -70,7 +69,7 @@
 import { type Prop, createProp, type PropTypeValue, propTypeValues, type DatePropType } from '#interfaces/brick';
 import type { SelectMenuItem } from '@nuxt/ui';
 import Array from '../inputs/Array.vue';
-import PropMinMaxInput from './PropMinMaxInput.vue';
+import MinMaxStepInput from './MinMaxStepInput.vue';
 
 // --- Props & Emits ---
 const prop = defineModel<Prop>("prop", { required: true });

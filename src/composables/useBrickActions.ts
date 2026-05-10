@@ -5,6 +5,7 @@ import { BRICK_FILE_FILTERS } from "~/constants/brick";
 import type { Brick, Prop } from "~/interfaces/brick";
 
 let lastInvoicedState;
+let saveToast;
 
 export const useBrickActions = () => {
   const { t } = useI18n();
@@ -89,22 +90,45 @@ export const useBrickActions = () => {
     bricks.value.push(brick);
   };
 
-  const saveBrick = debounce(async (brick: Brick) => {
+  const saveBrick = (brick: Brick) => {
     const currentState = JSON.stringify(brick);
 
     if (currentState === lastInvoicedState) {
       console.log("No real changes, skipping invoke.");
+      toast.remove(saveToast.id);
+      saveToast = null;
       return;
     }
-
-    try {
-      await invoke("save_brick", { brick: brick });
-      lastInvoicedState = currentState;
-      console.log("Brick saved to disk via Rust!");
-    } catch (err) {
-      console.error("Failed to save brick:", err);
+    
+    if (!saveToast) {
+      saveToast = toast.add({
+        title: 'Saving brick!',
+        icon: 'i-lucide-loader',
+        close: true,
+        color: 'info',
+        duration: 0
+      });
     }
-  }, 3000);
+
+    debounce(async (brick: Brick) => {
+      try {
+        await invoke("save_brick", { brick: brick });
+        lastInvoicedState = currentState;
+        console.log("Brick saved to disk via Rust!");
+        toast.update(saveToast.id, {
+          title: 'Brick saved!',
+          icon: 'i-lucide-save',
+          duration: 1000,
+          color: 'success'
+        });
+      } catch (err) {
+        console.error("Failed to save brick:", err);
+      }
+
+      toast.remove(saveToast.id);
+      saveToast = null;
+    }, 2500)(brick);
+  };
 
   const deleteBrick = debounce(async (brick: Brick) => {
     await emitTo("overlay", "delete-brick", { brick: brick });

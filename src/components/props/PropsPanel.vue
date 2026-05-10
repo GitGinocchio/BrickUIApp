@@ -30,19 +30,19 @@
           v-if="editMode"
           icon="i-lucide-plus"
           size="sm"
-          color="neutral"
-          variant="ghost"
+          color="primary"
+          variant="solid"
           @click="onNewProp"
         />
         <USwitch
           v-model="editMode"
+          checked-icon="i-lucide-eye"
+          unchecked-icon="i-lucide-pencil"
+          :ui="{ icon: 'w-3 h-3'}"
+          color="primary"
           size="lg"
           @update:model-value="onToggleEditMode"
-        >
-          <template>
-            <UIcon :name="editMode ? 'i-lucide-pencil' : 'i-lucide-eye'" class="h-4 w-4" />
-          </template>
-        </USwitch>
+        />
       </div>
     </div>
 
@@ -58,7 +58,7 @@
         <UButton icon="i-lucide-save" color="primary" @click="onSavePropName(newProp)" />
         <UButton icon="i-lucide-trash-2" color="error" variant="ghost" @click="onRemoveProp(newProp)" />
       </div>
-      <PropEditWrapper v-model:prop="newProp" :all-props="brick.props" />
+      <PropEditMode v-model:prop="newProp" :all-props="brick.props" />
     </div>
 
     <!-- Props List with Sortable -->
@@ -73,12 +73,9 @@
     >
       <!-- @vue-ignore -->
       <template #item="{ element, index }">
-        <div 
-          class="prop-row group relative py-2"
-          :class="{ 'cursor-grab active:cursor-grabbing': editMode }"
-        >
+        <div class="prop-row draggable group relative py-2">
           <UAccordion
-            :items="[{ slot: 'content', label: element.prop_name, disabled: editMode ? false : element.description == null  }]"
+            :items="[{ slot: 'content', label: element.prop_name, disabled: editMode ? false : element.description == null || element.description == '' }]"
             :unmount-on-hide="false"
             :ui="{ trailingIcon: 'hidden', label: 'hidden', trigger: 'py-0 cursor-auto' }"
             multiple
@@ -102,9 +99,10 @@
               </div>
             </template>
 
-            <template #trailing>
-              <div class="flex items-center gap-1">
-                <div class="hidden group-hover:flex items-center gap-1 mr-2" v-if="editMode">
+            <!-- @vue-ignore -->
+            <template #trailing="{ item, open }">
+              <div class="flex items-center justify-center gap-0.5">
+                <div class="hidden group-hover:flex items-center justify-center gap-1" v-if="editMode">
                   <UButton
                     v-if="editingPropNames.has(element.prop_name)"
                     icon="i-lucide-circle-x"
@@ -123,6 +121,12 @@
                   <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="onDuplicateProp(element)" />
                   <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click.stop="onRemoveProp(element)" />
                 </div>
+                <UIcon 
+                  v-if="editMode && !open"
+                  class="hidden group-hover:flex drag-handle cursor-grab active:cursor-grabbing mr-2" 
+                  name="i-lucide-grip-vertical" 
+                  @click.stop
+                />
               </div>
             </template>
 
@@ -133,7 +137,7 @@
                   v-model:prop="brick.props[index]"
                   :all-props="brick.props"
                 />
-                <p v-else-if="element.description" class="text-xs text-gray-500 italic">
+                <p v-else class="text-xs text-gray-500 italic">
                   {{ element.description }}
                 </p>
               </div>
@@ -158,6 +162,8 @@ import { type Brick, type Prop } from '~/interfaces/brick';
 import { Sortable } from 'sortablejs-vue3'
 import PropViewWrapper from './PropViewMode.vue';
 import PropEditWrapper from './PropEditMode.vue';
+import PropEditMode from './PropEditMode.vue';
+import { type SortableOptions } from 'sortablejs';
 
 const { saveBrick } = useBrickActions();
 
@@ -175,15 +181,23 @@ const toast = useToast();
 // Per il dialog di conferma, Nuxt UI usa un pattern diverso (UModal o componente dedicato)
 // Qui assumiamo di usare un'interfaccia di conferma custom o UModal
 
-// Sortable Config
-const sortableOptions = computed(() => ({
-  animation: 150,
-  handle: editMode.value ? '.prop-row' : undefined,
-  ghostClass: 'opacity-50',
-  dragClass: 'bg-primary-50/10',
-  filter: 'input, button, .prop-value-wrapper', // Evita drag su controlli
-  preventOnFilter: false
-}));
+const sortableOptions = computed<SortableOptions>(() => {
+  return {
+    draggable: ".draggable",
+    handle: ".drag-handle",
+    dragClass: "drag",
+    ghostClass: "ghost",
+    fallbackClass: "clone",
+    animation: 150,
+    group: "props",
+    scroll: true,
+    preventOnFilter: true,
+    dragoverBubble: true,
+    forceFallback: true,
+    fallbackOnBody: true,
+    bubbleScroll: true,
+  };
+});
 
 // Handlers
 function onPropsOrderUpdate(event: any) {
@@ -278,8 +292,7 @@ watch(() => brick.value, (newVal) => {
 <style scoped>
 .props-container.grid, .props-container.adaptive-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
 }
 
 @media (max-width: 1024px) {
@@ -288,14 +301,29 @@ watch(() => brick.value, (newVal) => {
   }
 }
 
-.prop-row {
-  transition: all 0.2s ease;
-}
-
 .border-dashed {
   background-image: linear-gradient(to bottom, var(--color-secondary-700) 50%, transparent 50%);
   background-size: 1px 8px;
   background-repeat: repeat-y;
   border-left: none;
+}
+
+.ghost {
+  opacity: 0.5;
+  border: 1px dashed #cccccccc;
+  cursor: grabbing !important;
+}
+
+.clone {
+  opacity: 0.1;
+  cursor: grabbing !important;
+  color: white;
+  z-index: 100;
+}
+
+.drag {
+  cursor: grabbing !important;
+  opacity: 0.1;
+  z-index: 100;
 }
 </style>

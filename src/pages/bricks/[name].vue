@@ -18,9 +18,9 @@
       <template #actions>
         <div class="flex items-center gap-2">
           <USwitch v-model="brick.enabled" @update:model-value="toggleBrick(brick)" />
-          <UDropdown :items="dropdownItems">
+          <UDropdownMenu :items="dropdownItems">
             <UButton color="neutral" variant="ghost" icon="i-lucide-ellipsis-vertical" />
-          </UDropdown>
+          </UDropdownMenu>
         </div>
       </template>
     </Header>
@@ -98,6 +98,7 @@ import { appDataDir, sanitizePath } from "#utils/path";
 import type { Brick } from "#interfaces/brick";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
+import type { DropdownMenuItem } from "@nuxt/ui";
 
 const { t } = useI18n();
 const { duplicateBrick, toggleBrick, openDeleteBrickModal, openRenameBrickModal } = useBrickActions();
@@ -125,35 +126,32 @@ const tabItems = [
 ];
 
 // Dropdown Menu Items
-const dropdownItems = computed(() => [
-  [
-    {
-      label: 'Rename',
-      icon: 'i-lucide-pencil',
-      click: () => openRenameBrickModal(brick.value!, true)
-    },
-    {
-      label: 'Duplicate',
-      icon: 'i-lucide-copy',
-      click: () => duplicateBrick(brick.value!, () => router.push(`/bricks/${brick.value!.name}Copy`))
-    }
-  ],
-  [
-    {
-      label: 'Delete',
-      icon: 'i-lucide-trash-2',
-      color: 'red' as const,
-      click: () => openDeleteBrickModal(brick.value!)
-    }
-  ],
-  [
-    {
-      label: `v. ${brick.value?.version.join(".")}`,
-      icon: 'i-lucide-badge-check',
-      disabled: true,
-      slot: 'version'
-    }
-  ]
+const dropdownItems = computed<DropdownMenuItem[]>(() => [
+  {
+    label: 'Rename',
+    icon: 'i-lucide-pencil',
+    onSelect: () => openRenameBrickModal(brick.value, true)
+  },
+  {
+    label: 'Duplicate',
+    icon: 'i-lucide-copy',
+    onSelect: () => duplicateBrick(brick.value, () => router.push(`/bricks/${brick.value!.name}Copy`))
+  },
+  {
+    label: 'Delete',
+    icon: 'i-lucide-trash-2',
+    color: 'primary',
+    onSelect: () => openDeleteBrickModal(brick.value)
+  },
+  {
+    type: 'separator'
+  },
+  {
+    label: `v. ${brick.value?.version.join(".")}`,
+    icon: 'i-lucide-badge-check',
+    disabled: true,
+    slot: 'version'
+  }
 ]);
 
 const sections = computed(() => [
