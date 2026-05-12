@@ -41,7 +41,7 @@
           :ui="{ icon: 'w-3 h-3'}"
           color="primary"
           size="lg"
-          @update:model-value="onToggleEditMode"
+          @change="onToggleEditMode"
         />
       </div>
     </div>
@@ -145,7 +145,7 @@
           </UAccordion>
 
           <div class="prop-value-wrapper mt-1 px-2">
-            <PropViewWrapper v-model:prop="brick.props[index]" :brick_name="brick.name" />
+            <PropViewWrapper v-model:prop="brick.props[index]" @save="() => saveBrick(brick)" :brick_name="brick.name" />
           </div>
         </div>
       </template>
@@ -212,6 +212,10 @@ function onPropsOrderUpdate(event: any) {
 }
 
 function onToggleEditMode() {
+  if (!editMode.value) {
+    saveBrick(brick.value);
+  }
+
   editingPropNames.value.clear();
   newProp.value = null;
 }
@@ -281,12 +285,12 @@ onBeforeRouteLeave((_to, _from, next) => {
     // TODO: Sostituire con una Modal
     const confirm = window.confirm("Unsaved changes. Discard?");
     confirm ? next() : next(false);
-  } else next();
-});
+  }
 
-watch(() => brick.value, (newVal) => {
-  saveBrick(newVal);
-}, { deep: true });
+  saveBrick(brick.value);
+
+  next();
+});
 </script>
 
 <style scoped>

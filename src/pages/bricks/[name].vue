@@ -101,7 +101,13 @@ import { emitTo } from "@tauri-apps/api/event";
 import type { DropdownMenuItem } from "@nuxt/ui";
 
 const { t } = useI18n();
-const { duplicateBrick, toggleBrick, openDeleteBrickModal, openRenameBrickModal } = useBrickActions();
+const { 
+  duplicateBrick, 
+  toggleBrick,
+  shareBrick,
+  openDeleteBrickModal, 
+  openRenameBrickModal 
+} = useBrickActions();
 const route = useRoute();
 const router = useRouter();
 
@@ -137,14 +143,19 @@ const dropdownItems = computed<DropdownMenuItem[]>(() => [
     icon: 'i-lucide-copy',
     onSelect: () => duplicateBrick(brick.value, () => router.push(`/bricks/${brick.value!.name}Copy`))
   },
+  { 
+    label: 'Share', 
+    icon: 'i-lucide-share-2', 
+    onSelect: () => shareBrick(brick.value)
+  },
+  {
+    type: 'separator'
+  },
   {
     label: 'Delete',
     icon: 'i-lucide-trash-2',
     color: 'primary',
     onSelect: () => openDeleteBrickModal(brick.value)
-  },
-  {
-    type: 'separator'
   },
   {
     label: `v. ${brick.value?.version.join(".")}`,
@@ -183,13 +194,12 @@ async function onEditDescription() {
 onMounted(async () => {
   brick.value = await invoke("get_brick_by_name", { name: brickName.value });
   
-  if (brick.value) {
-    if (brick.value.banner) {
-      bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name}` });
-    }
-    if (brick.value.icon) {
-      iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name}` });
-    }
+  if (brick.value?.banner) {
+    bannerUrl.value = await sanitizePath(brick.value.banner, { root: `${appDataDir}/bricks/${brick.value.name}` });
+  }
+
+  if (brick.value?.icon) {
+    iconUrl.value = await sanitizePath(brick.value.icon, { root: `${appDataDir}/bricks/${brick.value.name}` });
   }
 });
 </script>

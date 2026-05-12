@@ -112,34 +112,36 @@ const isIconLoaded = ref(false);
 const iconUrl = ref<string | null>(null);
 
 // Dropdown Menu items (Configurazione Nuxt UI)
-const dropdownItems = computed<DropdownMenuItem[][]>(() => [
-  [
-    { 
-      label: 'Rename', 
-      icon: 'i-lucide-pencil', 
-      onSelect: () => openRenameBrickModal(props.brick, null)
-    },
-    { 
-      label: 'Duplicate', 
-      icon: 'i-lucide-copy', 
-      onSelect: () => duplicateBrick(props.brick) 
-    },
-    { 
-      label: 'Share', 
-      icon: 'i-lucide-share-2', 
-      onSelect: () => shareBrick(props.brick)
-    }
-  ],
-  [
-    { 
-      label: 'Delete', 
-      icon: 'i-lucide-trash-2', 
-      // In Nuxt UI v4 si usa spesso la proprietà class per lo stile 
-      // o slot specifici se il tipo base non prevede 'color' direttamente
-      class: 'text-red-500 dark:text-red-400', 
-      onSelect: () => openDeleteBrickModal(props.brick)
-    }
-  ]
+const dropdownItems = computed<DropdownMenuItem[]>(() => [
+  { 
+    label: 'Rename', 
+    icon: 'i-lucide-pencil', 
+    onSelect: () => openRenameBrickModal(props.brick, null)
+  },
+  { 
+    label: 'Duplicate', 
+    icon: 'i-lucide-copy', 
+    onSelect: () => duplicateBrick(props.brick) 
+  },
+  { 
+    label: 'Share', 
+    icon: 'i-lucide-share-2', 
+    onSelect: () => shareBrick(props.brick)
+  },
+  { 
+    label: 'Delete', 
+    icon: 'i-lucide-trash-2', 
+    // In Nuxt UI v4 si usa spesso la proprietà class per lo stile 
+    // o slot specifici se il tipo base non prevede 'color' direttamente
+    class: 'text-red-500 dark:text-red-400', 
+    onSelect: () => openDeleteBrickModal(props.brick)
+  },
+  {
+    label: `v. ${props.brick.version.join(".")}`,
+    icon: 'i-lucide-badge-check',
+    disabled: true,
+    slot: 'version'
+  }
 ]);
 
 function onIconLoad() {

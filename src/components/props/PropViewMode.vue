@@ -39,9 +39,12 @@ const dynamicProps = computed(() => {
   return {};
 });
 
-watch(() => prop.value.value, (newVal, oldVal) => {
-  if (JSON.stringify(newVal) === JSON.stringify(oldVal)) return;
-  console.log(prop.value.value);
+const emit = defineEmits<{
+  (e: 'save'): void
+}>()
+
+watch(() => prop.value.value, () => {
   updateBrickProp(props.brick_name, prop.value);
+  emit("save");
 }, { deep: true })
 </script>

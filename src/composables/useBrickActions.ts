@@ -5,7 +5,18 @@ import { BRICK_FILE_FILTERS } from "~/constants/brick";
 import type { Brick, Prop } from "~/interfaces/brick";
 
 let lastInvoicedState;
-let saveToast;
+
+/* 
+TODO: Sostituire cose come:
+  const { bricks } = useAppState();
+  bricks.value = await invoke("save_brick", { brick: brick });
+In qualcosa come:
+  const { bricks } = useAppState();
+  bricks[brick.name] = brick;
+  await invoke("save_brick", { brick: brick });
+In modo che prima avvengano le modifiche in ram e poi le modifiche sul filesystem
+(Per fare questo e' necessario trasformare OVUNQUE Vec<Brick> in HashMap<String, Brick> e Brick[] in HashMap<string, Brick>)
+*/
 
 export const useBrickActions = () => {
   const { t } = useI18n();
@@ -60,8 +71,7 @@ export const useBrickActions = () => {
   
   const toggleBrick = debounce(async (brick: Brick) => {
     await emitTo("overlay", "toggle-brick", { brick });
-    const { bricks } = useAppState();
-    bricks.value = await invoke("save_brick", { brick });
+    saveBrick(brick);
   }, 150);
 
   const duplicateBrick = debounce(async (brick: Brick, afterDuplicate?: () => any) => {
@@ -90,45 +100,23 @@ export const useBrickActions = () => {
     bricks.value.push(brick);
   };
 
-  const saveBrick = (brick: Brick) => {
+  const saveBrick = debounce(async (brick: Brick) => {
     const currentState = JSON.stringify(brick);
 
     if (currentState === lastInvoicedState) {
       console.log("No real changes, skipping invoke.");
-      toast.remove(saveToast.id);
-      saveToast = null;
       return;
     }
-    
-    if (!saveToast) {
-      saveToast = toast.add({
-        title: 'Saving brick!',
-        icon: 'i-lucide-loader',
-        close: true,
-        color: 'info',
-        duration: 0
-      });
+
+    try {
+      const { bricks } = useAppState();
+      bricks.value = await invoke("save_brick", { brick: brick });
+      lastInvoicedState = currentState;
+      console.log("Brick saved to disk via Rust!");
+    } catch (err) {
+      console.error("Failed to save brick:", err);
     }
-
-    debounce(async (brick: Brick) => {
-      try {
-        await invoke("save_brick", { brick: brick });
-        lastInvoicedState = currentState;
-        console.log("Brick saved to disk via Rust!");
-        toast.update(saveToast.id, {
-          title: 'Brick saved!',
-          icon: 'i-lucide-save',
-          duration: 1000,
-          color: 'success'
-        });
-      } catch (err) {
-        console.error("Failed to save brick:", err);
-      }
-
-      toast.remove(saveToast.id);
-      saveToast = null;
-    }, 2500)(brick);
-  };
+  }, 2000);
 
   const deleteBrick = debounce(async (brick: Brick) => {
     await emitTo("overlay", "delete-brick", { brick: brick });
@@ -137,6 +125,7 @@ export const useBrickActions = () => {
   }, 150);
 
   const updateBrickProp = debounce(async (brick_name: string, prop: Prop) => {
+    // TODO: qui sarebbe da chiamare saveBrick(...);
     await emitTo("overlay", "update-brick", { name: brick_name, prop });
   }, 150);
 
