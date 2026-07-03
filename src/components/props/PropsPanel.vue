@@ -69,7 +69,7 @@
       item-key="prop_name"
       tag="div"
       :class="['props-container', layout === 'adaptive' ? 'adaptive-grid' : layout]"
-      @update="onPropsOrderUpdate"
+      @update="({ oldIndex, newIndex }) => changePropOrder(brick, oldIndex, newIndex)"
     >
       <!-- @vue-ignore -->
       <template #item="{ element, index }">
@@ -118,7 +118,7 @@
                     size="xs"
                     @click.stop="editingPropNames.has(element.prop_name) ? onSavePropName(element) : togglePropNameEditMode(element)"
                   />
-                  <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="onDuplicateProp(element)" />
+                  <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="duplicateProp(brick, element)" />
                   <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click.stop="onRemoveProp(element)" />
                 </div>
                 <UIcon 
@@ -154,6 +154,8 @@
     <div v-else class="text-center py-10 opacity-50">
       <p>This brick has no props!</p>
     </div>
+
+    <DeletePropModal ref="deletePropModalRef" />
   </div>
 </template>
 
@@ -164,8 +166,12 @@ import PropViewWrapper from './PropViewMode.vue';
 import PropEditWrapper from './PropEditMode.vue';
 import PropEditMode from './PropEditMode.vue';
 import { type SortableOptions } from 'sortablejs';
+import DeletePropModal from '../modals/DeletePropModal.vue';
+
+const deletePropModalRef = useTemplateRef("deletePropModalRef");
 
 const { saveBrick } = useBrickActions();
+const { duplicateProp, changePropOrder,  openDeletePropModal } = usePropActions();
 
 // Props & Model
 const brick = defineModel<Brick>("brick", { required: true });
@@ -176,10 +182,7 @@ const editMode = ref(false);
 const editingPropNames = ref<Map<string, string>>(new Map());
 const layout = ref<'grid' | 'list' | 'adaptive'>('adaptive');
 
-// Toast e Dialog (Nuxt UI)
 const toast = useToast();
-// Per il dialog di conferma, Nuxt UI usa un pattern diverso (UModal o componente dedicato)
-// Qui assumiamo di usare un'interfaccia di conferma custom o UModal
 
 const sortableOptions = computed<SortableOptions>(() => {
   return {
@@ -198,18 +201,6 @@ const sortableOptions = computed<SortableOptions>(() => {
     bubbleScroll: true,
   };
 });
-
-// Handlers
-function onPropsOrderUpdate(event: any) {
-  const { oldIndex, newIndex } = event;
-  if (oldIndex !== newIndex) {
-    const newList = [...brick.value.props];
-    const [movedItem] = newList.splice(oldIndex, 1);
-    newList.splice(newIndex, 0, movedItem);
-    brick.value.props = newList;
-    saveBrick(brick.value);
-  }
-}
 
 function onToggleEditMode() {
   if (!editMode.value) {
@@ -258,25 +249,14 @@ const onNewProp = () => {
   newProp.value = { prop_type: 'Null', prop_name: '' };
 };
 
-function onDuplicateProp(prop: Prop) {
-  const copyName = `${prop.prop_name}Copy`;
-  if (brick.value.props.some(p => p.prop_name === copyName)) {
-    toast.add({ title: 'Error', description: 'Copy already exists', color: 'error' });
-    return;
-  }
-  const index = brick.value.props.findIndex(p => p.prop_name === prop.prop_name);
-  brick.value.props.splice(index + 1, 0, { ...prop, prop_name: copyName });
-  saveBrick(brick.value);
-}
-
 function onRemoveProp(prop: Prop) {
   // TODO: Implementare conferma tramite UModal per sicurezza
   if (prop === newProp.value) {
     newProp.value = null;
     return;
   }
-  brick.value.props = brick.value.props.filter(p => p !== prop);
-  saveBrick(brick.value);
+
+  deletePropModalRef.value.open(brick.value, prop);
 }
 
 // Route Guard

@@ -15,7 +15,7 @@ In qualcosa come:
   bricks[brick.name] = brick;
   await invoke("save_brick", { brick: brick });
 In modo che prima avvengano le modifiche in ram e poi le modifiche sul filesystem
-(Per fare questo e' necessario trasformare OVUNQUE Vec<Brick> in HashMap<String, Brick> e Brick[] in HashMap<string, Brick>)
+(Per fare questo e' necessario trasformare OVUNQUE Vec<Brick> in HashMap<String, Brick>)
 */
 
 export const useBrickActions = () => {
