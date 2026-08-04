@@ -118,7 +118,7 @@ tauri = { version = "2.10.3", features = [
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-single-instance = "2.4.2"
 tauri-plugin-dialog = "2.7.1"
-tauri-plugin-opener = "2.5.3"
+tauri-plugin-opener = "2.5.4"
 tauri-plugin-fs = { version = "2.4.4", features = ["watch"] }
 tauri-plugin-shell = "2.3.4"
 tauri-plugin-http = "2.5.6"
