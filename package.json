@@ -26,7 +26,7 @@
     "@tauri-apps/plugin-shell": "^2.3.3",
     "@tauri-apps/plugin-store": "^2.4.1",
     "lucide-vue-next": "^1.0.0",
-    "markdown-it": "^14.1.1",
+    "markdown-it": "^14.2.0",
     "@nuxtjs/i18n": "^10.2.4",
     "naive-ui": "^2.42.0",
     "ogl": "^1.0.11",
@@ -37,7 +37,7 @@
     "vue3-sfc-loader": "^0.9.5"
   },
   "devDependencies": {
-    "nuxt": "^4.4.2",
+    "nuxt": "^4.4.7",
     "@tauri-apps/cli": "^2.10.1",
     "@types/babel__standalone": "^7.1.9",
     "@types/markdown-it": "^14.1.2",
