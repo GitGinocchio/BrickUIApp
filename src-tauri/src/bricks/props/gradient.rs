@@ -1,9 +1,11 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use super::PropMeta;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[ts(rename = "GradientStop")]
 #[schemars(description = "Gradient stop color property container.")]
 pub struct Stop {
     #[schemars(description = "The actual color of the stop color.")]
@@ -15,7 +17,8 @@ pub struct Stop {
     pub position: f32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[ts(rename = "GradientPropType")]
 #[schemars(description = "Gradient property container.")]
 pub struct Gradient {
     #[serde(flatten)]
@@ -29,7 +32,19 @@ pub struct Gradient {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<Vec<Stop>>,
 
+    #[schemars(description = "The gradient type to render.")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<GradientType>,
+
     #[schemars(description = "If true, the alpha channel is ignored.")]
     #[serde(default)]
     pub skip_alpha: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(rename_all = "PascalCase")]
+pub enum GradientType {
+    Linear,
+    Radial,
+    Conic,
 }

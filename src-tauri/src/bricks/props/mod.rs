@@ -18,8 +18,9 @@ use super::props::gradient::Gradient;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Metadata property container.")]
 pub struct PropMeta {
     #[schemars(
@@ -35,9 +36,9 @@ pub struct PropMeta {
     description: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Generic property container.")]
-pub struct PropType<T: Default> {
+pub struct PropType<T> {
     #[serde(flatten)]
     meta: PropMeta,
 
@@ -50,7 +51,7 @@ pub struct PropType<T: Default> {
     default: Option<T>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(untagged)] 
 pub enum Prop {
     /// 1. Prova a matchare i tipi conosciuti (Bool, String, ecc.)
@@ -78,7 +79,7 @@ pub enum Prop {
     Unknown(serde_json::Value),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "prop_type")]
 #[schemars(description = "Enumeration of supported property types for a Brick.")]
 pub enum KnownProp {

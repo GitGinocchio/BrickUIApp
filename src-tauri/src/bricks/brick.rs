@@ -1,10 +1,11 @@
 use super::props::Prop;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use super::is_empty_opt_string;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(
     description = "A Brick represents a modular component with metadata, configuration, and properties."
 )]

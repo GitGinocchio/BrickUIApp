@@ -1,9 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use super::PropMeta;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Date property container.")]
 pub struct DatePropType {
     #[serde(flatten)]
@@ -25,7 +26,7 @@ pub struct DatePropType {
     pub allow_future: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Datetime property container.")]
 pub struct DateTimePropType {
     #[serde(flatten)]
@@ -44,7 +45,7 @@ pub struct DateTimePropType {
     pub allow_future: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Time property container.")]
 pub struct TimePropType {
     #[serde(flatten)]

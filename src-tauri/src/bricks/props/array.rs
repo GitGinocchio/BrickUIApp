@@ -1,9 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::bricks::props::PropType;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Array property container with typed values.")]
 #[serde(tag = "value_type")]
 pub enum ArrayPropType {
@@ -12,9 +13,9 @@ pub enum ArrayPropType {
     Float(Array<f32, f32>),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Array property container with typed values.")]
-pub struct Array<T: Default, M: Default + PartialOrd> {
+pub struct Array<T, M: PartialOrd> {
     #[serde(flatten)]
     base: PropType<Vec<T>>,
 
