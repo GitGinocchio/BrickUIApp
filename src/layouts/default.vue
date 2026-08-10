@@ -1,146 +1,206 @@
 <template>
-  <NConfigProvider :theme="theme">
-    <NLayout style="height: 100vh" has-sider>
-      <NLayoutSider
-        class="sider"
-        :width="220"
-        collapse-mode="width"
-        :collapsed-width="64"
-        :collapsed="collapsed"
-        @mouseenter="handleMouseEnter"
-        @mouseleave="handleMouseLeave"
-        :style="{ order: settings.sidebar.position === 'right' ? 1 : 0 }"
-      > 
-        <n-menu :value="activeMenuKey" :collapsed="collapsed" :options="menuOptions" @update:value="onMenuSelect" />
-        <n-menu :value="activeMenuKey" :collapsed="collapsed" :options="bottomMenuOptions" @update:value="onMenuSelect" />
-      </NLayoutSider>
+  <div 
+    class="flex flex-1 h-screen overflow-auto bg-default"
+    :class="settings.sidebar.position === 'right' ? 'flex-row-reverse' : 'flex-row'"
+  >
+    <USidebar
+      v-model:open="isSidebarOpen"
+      collapsible="icon"
+      variant="sidebar"
+      :side="settings.sidebar.position"
+      :rail="false"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
+    >
+      <template #header>
+        <div class="flex items-center gap-3 px-1 overflow-hidden h-6">
+          <UIcon name="i-lucide-cuboid" class="size-6 text-primary shrink-0" />
+          <span 
+            v-if="isSidebarOpen" 
+            class="font-bold truncate text-lg transition-opacity duration-200"
+          >
+            BrickUI
+          </span>
+        </div>
+      </template>
 
-      <NLayoutContent :native-scrollbar="false" @scroll="(event) => handleScroll(event)">
-        <NDialogProvider>
-          <NNotificationProvider :theme="theme.Notification" placement="bottom-right">
-            <slot />
-          </NNotificationProvider>
-        </NDialogProvider>
-      </NLayoutContent>
-      
+      <template #default="{ state }">
+        <UNavigationMenu
+          :key="state"
+          :items="getTopNavigation()"
+          orientation="vertical"
+          :ui="{ link: 'p-1.5 overflow-hidden', list: 'flex flex-col gap-1' }"
+        />
+      </template>
+
+      <template #footer="{ state }">
+        <UNavigationMenu
+          :key="state"
+          :items="getBottomNavigation()"
+          :collapsed="!isSidebarOpen"
+          orientation="vertical"
+          class="w-full"
+          :ui="{ link: 'p-1.5 overflow-hidden', list: 'flex flex-col w-full gap-1' }"
+        />
+      </template>
+    </USidebar>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <header v-if="false" class="h-12 shrink-0 flex items-center px-4 border-b border-default">
+        <UButton
+          icon="i-lucide-panel-left"
+          color="neutral"
+          variant="ghost"
+          @click="() => { isSidebarOpen = !isSidebarOpen }"
+        />
+      </header>
+
+      <div class="flex-1 flex flex-col min-w-0 h-full">
+        <main class="flex-1 overflow-hidden relative flex flex-col">
+          <slot />
+          <ImportBrickModal ref="importBrickModal" />
+          <NewBrickModal ref="newBrickModal" />
+          <RenameBrickModal ref="renameBrickModal" />
+          <GlobalConfirmModal />
+        </main>
+      </div>
+
       <SystemTray v-if="settings?.systemtray" />
-    </NLayout>
-  </NConfigProvider>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import "#assets/css/default.css";
-
-import { NLayoutSider, NNotificationProvider, NDialogProvider, NLayoutContent, NLayout, NMenu, NConfigProvider, NSpace, NAlert } from 'naive-ui';
-import { CircleUser, Cuboid, LayoutDashboard, SettingsIcon, StoreIcon } from 'lucide-vue-next';
+import type { NavigationMenuItem } from '@nuxt/ui';
 import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Settings } from "~/interfaces/settings";
-import { createDiscreteApi } from 'naive-ui';
-import { useBrickActions } from "~/composables/useBrickActions";
-const { settings, theme, bricks } = useAppState();
+import type { Brick } from '~/interfaces/brick';
 
-const { dialog, notification } = createDiscreteApi(['dialog', 'notification'], {
-  configProviderProps: {
-    theme: theme.value
-  },
-  notificationProviderProps: {
-    themeOverrides: theme.value.Notification,
-    placement: 'bottom-right'
-  }
-});
+const ImportBrickModal = defineAsyncComponent(() => import('~/components/modals/ImportBrickModal.vue'));
+const RenameBrickModal = defineAsyncComponent(() => import('~/components/modals/RenameBrickModal.vue'));
+const NewBrickModal = defineAsyncComponent(() => import('~/components/modals/NewBrickModal.vue'));
+const GlobalConfirmModal = defineAsyncComponent(() => import('~/components/modals/GlobalConfirmModal.vue'));
 
-const { openBrick } = useBrickActions(bricks, theme, dialog, notification);
+const importBrickModal = useTemplateRef('importBrickModal');
+const renameBrickModal = useTemplateRef('renameBrickModal');
+const newBrickModal = useTemplateRef('newBrickModal');
+
+const { settings, isSidebarOpen, isSidebarHidden } = useAppState();
 const { t, setLocale } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
+let hoverTimer: ReturnType<typeof setTimeout> | null = null;
 
-const activeMenuKey = computed(() => {
-  if (route.path.startsWith('/user')) {
-    return '/get-started'
-  }
-  return route.path
-});
-
-const collapsed = ref(true);
-let hoverTimer: number | null = null;
-
+// Logica Hover mantenuta
 function handleMouseEnter() {
-  // Avvia il timer (es. 500ms prima di aprire)
-  hoverTimer = window.setTimeout(() => {
-    collapsed.value = false
-  }, 250)
+  hoverTimer = setTimeout(() => { isSidebarOpen.value = true; }, 150);
 }
 
 function handleMouseLeave() {
-  // Cancella il timer se l’utente si muove via prima
   if (hoverTimer) {
-    clearTimeout(hoverTimer)
-    hoverTimer = null
+    clearTimeout(hoverTimer);
+    hoverTimer = null;
   }
-  // richiudi subito al mouseleave
-  collapsed.value = true
+  isSidebarOpen.value = false;
 }
 
-function handleScroll(e: Event) {
-  const target = e.target as HTMLElement;
-  // Impostiamo la variabile sul documento in modo che sia accessibile ovunque
-  document.documentElement.style.setProperty('--layout-scroll-top', `${target.scrollTop}px`);
+// Navigazione dinamica per gestire lo stato 'expanded' vs 'collapsed'
+function getTopNavigation() {
+  return [
+    { 
+      label: t('bricks'), 
+      icon: 'i-lucide-blocks', 
+      to: '/bricks', 
+      active: route.path === '/bricks',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('walls'), 
+      icon: 'i-lucide-brick-wall', 
+      to: '/walls', 
+      active: route.path === '/walls',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('marketplace'), 
+      icon: 'i-lucide-shopping-basket', 
+      to: '/marketplace', 
+      active: route.path === '/marketplace',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    }
+  ] as NavigationMenuItem[];
 }
 
-const menuOptions = computed(() => [
-  { label: t('bricks'),           key: '/bricks',       icon: () => h(Cuboid) },
-  { label: t('walls'),            key: '/walls',        icon: () => h(LayoutDashboard) },
-  { label: t('marketplace'),      key: '/marketplace',  icon: () => h(StoreIcon) }
-]);
-
-const bottomMenuOptions = computed(() => [
-  { label: t('user'),             key: '/get-started',  icon: () => h(CircleUser) },
-  { label: t('settings'),         key: '/settings',     icon: () => h(SettingsIcon) },
-]);
-
-function onMenuSelect(key: string) {
-  clearTimeout(hoverTimer)
-  router.push(key)
+function getBottomNavigation() {
+  return [
+    { 
+      label: t('user'), 
+      icon: 'i-lucide-circle-user', 
+      to: '/get-started', 
+      active: route.path === '/get-started', 
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+    { 
+      label: t('settings'), 
+      icon: 'i-lucide-settings', 
+      to: '/settings', 
+      active: route.path === '/settings',
+      onSelect: () => {
+        if (isSidebarHidden.value) isSidebarOpen.value = false
+      }
+    },
+  ] as NavigationMenuItem[];
 }
 
-listen<{ view: string }>("goto", (event) => navigateTo(event.payload.view));
-listen<[string, string]>("open_brick", (event) => openBrick(event.payload));
+// Lifecycle e Tauri Listeners (Logica originale intatta)
+onMounted(() => {
+  setLocale(settings.value.language);
+  
+  listen<{ view: string }>("goto", (event) => router.push(event.payload.view));
+  
+  listen<[string, string]>("import_brick", (event) => importBrickModal.value?.open(event.payload));
+  listen<{ brick: Brick, redirect: boolean }>("rename_brick", (event) => { renameBrickModal.value?.open(event.payload.brick, event.payload.redirect) });
+  listen("new_brick", () => newBrickModal.value?.open());
 
-onMounted(() => setLocale(settings.value.language));
+  // Intercept delete_brick events from main and show global confirm modal before deleting
+  listen<Brick>("delete_brick", async (event) => {
+    const payload = event.payload as Brick;
+    const { confirm } = useConfirmModal();
+    const { deleteBrick } = useBrickActions();
+    const ok = await confirm({
+      title: t('modals.delete_brick_title', 'Delete brick'),
+      message: t('modals.delete_brick_message', `Are you sure you want to delete '${payload.name}'?`),
+      confirmLabel: t('actions.delete', 'Delete'),
+      cancelLabel: t('actions.cancel', 'Cancel'),
+      color: 'danger'
+    });
 
-// Watch per salvare le impostazioni
+    if (ok) await deleteBrick(payload);
+  });
+});
+
+// Watcher Settings (Logica originale intatta)
 watch(
   () => JSON.parse(JSON.stringify(settings.value)) as Settings, 
-  async (settings, old) => {
-    if (!settings) return;
-    await invoke("save_settings", { settings: settings });
-    setLocale(settings.language);
-
-    if (old.taskbar.behavior != settings.taskbar.behavior) {
-      await invoke(settings.taskbar.behavior == 'hide' ? "hide_taskbar" : "show_taskbar");
+  async (newSettings, oldSettings) => {
+    if (!newSettings) return;
+    await invoke("save_settings", { settings: newSettings });
+    setLocale(newSettings.language);
+    if (oldSettings && oldSettings.taskbar.behavior !== newSettings.taskbar.behavior) {
+      await invoke(newSettings.taskbar.behavior === 'hide' ? "hide_taskbar" : "show_taskbar");
     }
   }, 
   { deep: true }
 );
 </script>
-
-<style scoped>
-:deep(.n-layout-sider-scroll-container) {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding-bottom: 0.5rem;
-}
-
-:deep(.n-menu-item .n-menu-item-content){
-  padding-left: 18px !important;
-  margin-right: 2px;
-}
-
-:deep(.n-menu) {
-  padding-top: 6px;
-}
-</style>

@@ -2,6 +2,8 @@ use super::props::Prop;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use super::is_empty_opt_string;
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[schemars(
     description = "A Brick represents a modular component with metadata, configuration, and properties."
@@ -15,7 +17,7 @@ pub struct Brick {
     #[schemars(regex(pattern = "^[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*$"))]
     pub name: String,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_empty_opt_string")]
     #[schemars(description = "A brief textual description of the Brick.")]
     pub description: Option<String>,
 
@@ -23,26 +25,23 @@ pub struct Brick {
     #[schemars(description = "A list of tags for categorizing or labeling the Brick.")]
     pub tags: Vec<String>,
 
-    #[serde(
-        default = "default_dependencies",
-        skip_serializing_if = "Vec::is_empty"
-    )]
+    #[serde(default = "default_dependencies", skip_serializing_if = "Vec::is_empty")]
     #[schemars(description = "List of dependencies required by this Brick.")]
     pub dependencies: Vec<String>,
 
     #[schemars(description = "Optional license information for the Brick.")]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_empty_opt_string")]
     pub license: Option<String>,
 
     #[schemars(description = "Optional icon path or URL representing the Brick.")]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_empty_opt_string")]
     pub icon: Option<String>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_empty_opt_string")]
     #[schemars(description = "Optional banner path or URL representing the Brick.")]
     pub banner: Option<String>,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "is_empty_opt_string")]
     #[schemars(description = "Author or creator of the Brick.")]
     pub author: Option<String>,
 

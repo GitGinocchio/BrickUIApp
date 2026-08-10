@@ -4,45 +4,28 @@
       <template #actions>
         <div class="actions">
           <div class="edit-actions">
-            <NButton v-if="editMode" @click="onEditConfirm" circle tertiary size="medium">
+            <UButton v-if="editMode" @click="onEditConfirm" variant="ghost" class="px-2 py-1">
               <SaveAllIcon :size="20" />
-            </NButton>
-            <NButton v-if="editMode" @click="onEditDiscard" circle tertiary size="medium">
+            </UButton>
+            <UButton v-if="editMode" @click="onEditDiscard" variant="ghost" class="px-2 py-1">
               <Trash2Icon :size="20" />
-            </NButton>
-            <NButton v-if="!editMode" @click="editMode = true" circle tertiary size="medium">
-              <!--<Pencil v-if="!editMode" :size="16" />-->
+            </UButton>
+            <UButton v-if="!editMode" @click="editMode = true" variant="ghost" class="px-2 py-1">
               <Pencil :size="20" />
-            </NButton>
+            </UButton>
           </div>
-          <NButton circle tertiary><Settings2 :size="20" /></NButton>
+          <UButton variant="ghost"><Settings2 :size="20" /></UButton>
         </div>
       </template>
     </Header>
 
-    <NCard>
-      <div class="card-content">
+    <div class="card-content">
         <div class="profile-picture">
-          <NImage
-            src="..."
-            alt="User Photo"
-            width="128"
-            height="128"
-            :show-toolbar="false"
-            :preview-disabled="true"
-          >
-            <template #error>
-              <div class="default-avatar">
-                <NIcon :size="64">
-                  <UserRound :stroke-width="1" />
-                </NIcon>
-              </div>
-            </template>
-          </NImage>
+          <img src="..." alt="User Photo" width="128" height="128" class="rounded-full object-cover" />
           <div v-if="editMode" class="button" text>
-            <NFloatButton>
+            <UButton variant="ghost" size="sm">
               <Upload v-if="editMode" :size="18" />
-            </NFloatButton>
+            </UButton>
           </div>
         </div>
 
@@ -58,10 +41,10 @@
               <h2>{{ displayName }}</h2>
             </template>
             <template #edit>
-              <NInput
-                size="medium"
+              <UInput
+                model-value="editUser.display_name"
                 :default-value="editUser.display_name ?? user.display_name" 
-                @update:value="(value) => editUser.display_name = value.trim()" 
+                @update:model-value="(value) => editUser.display_name = value.trim()" 
               />
             </template>
           </EditableField>
@@ -76,10 +59,10 @@
               <p>@{{ editUser.username ?? user?.username }}</p>
             </template>
             <template #edit>
-              <NInput
-                size="small"
+              <UInput
+                model-value="editUser.username"
                 :default-value="editUser.username ?? user?.username" 
-                @update:value="(value) => editUser.username = value.trim()" 
+                @update:model-value="(value) => editUser.username = value.trim()" 
               />
             </template>
           </EditableField>
@@ -87,59 +70,58 @@
       </div>
     </NCard>
 
-    <NCard>
-      <div class="card-content">
-        <div class="user-info">
-          <h2>Email</h2>
-          <EditableField
-            :loading="loading"
-            :canEdit="editMode"
-            width="30vw"
-            size="medium"
-          >
-            <template #view>
-              <h4>{{ user.email }}</h4>
-            </template>
-          </EditableField>
-        </div>
+    <div class="card-content">
+      <div class="user-info">
+        <h2>Email</h2>
+        <EditableField
+          :loading="loading"
+          :canEdit="editMode"
+          width="30vw"
+          size="medium"
+        >
+          <template #view>
+            <h4>{{ user.email }}</h4>
+          </template>
+        </EditableField>
       </div>
-    </NCard>
+    </div>
 
-    <NCard>
-      <div class="card-content">
-        <div class="user-info">
-          <h2>Bio</h2>
-          <EditableField 
-            :loading="loading" 
-            :canEdit="editMode" 
-            width="50vw"
-            height="10vw"
-            size="medium"
-            @discard="() => delete editUser.bio"
-          >
-            <template #view>
-              <p>{{ displayBio }}</p>
-            </template>
-            <template #edit>
-              <NInput
-                size="medium"
-                type="textarea"
-                :default-value="editUser.bio ?? user?.bio"
-                @update:value="(value) => editUser.bio = value.trim()" 
-              />
-            </template>
-          </EditableField>
-        </div>
+    <div class="card-content">
+      <div class="user-info">
+        <h2>Bio</h2>
+        <EditableField 
+          :loading="loading" 
+          :canEdit="editMode" 
+          width="50vw"
+          height="10vw"
+          size="medium"
+          @discard="() => delete editUser.bio"
+        >
+          <template #view>
+            <p>{{ displayBio }}</p>
+          </template>
+          <template #edit>
+            <UInput
+              model-value="editUser.bio"
+              type="textarea"
+              :default-value="editUser.bio ?? user?.bio"
+              @update:model-value="(value) => editUser.bio = value.trim()" 
+            />
+          </template>
+        </EditableField>
       </div>
-    </NCard>
+    </div>
 
   </div>
 </template>
 
 <script setup lang="ts">
 import { UserRound, Pencil, Settings2, Upload, UserIcon, SaveAllIcon, Trash2Icon } from 'lucide-vue-next';
-import { NCard, NIcon, NInput, NImage, NButton, NFloatButton, useNotification } from 'naive-ui';
 import { invoke } from '@tauri-apps/api/core';
+
+// Use NuxtUI components
+// UInput/UButton are globally available; use toast for notifications
+const toast = useToast();
 
 import type { User } from '#interfaces/user';
 import Header from '#components/Header.vue';

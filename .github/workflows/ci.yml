@@ -28,5 +28,10 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri"
+
       - name: Run tests
         run: cargo test --all

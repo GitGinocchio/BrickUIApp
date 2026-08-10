@@ -78,6 +78,15 @@ export const useAppState = () => {
   const systemIsDark = useState<boolean>('systemIsDark', () => false);
   const isReady = useState<boolean>('appStateReady', () => false);
   const isInitialized = useState<boolean>('appStateInitialized', () => false);
+  const isSidebarOpen = useState('isSidebarOpen', () => false)
+  const isSidebarHidden = useState('isSidebarHidden', () => false)
+
+  const mediaQuery = window.matchMedia('(max-width: 1024px)')
+  isSidebarHidden.value = mediaQuery.matches
+  
+  mediaQuery.addEventListener('change', (e) => {
+    isSidebarHidden.value = e.matches
+  })
 
   const appWindow = getCurrentWindow();
   const isMain = appWindow.label === 'main';
@@ -122,5 +131,5 @@ export const useAppState = () => {
     }
   });
 
-  return { settings, bricks, user, theme, systemIsDark, init, isReady, isMain };
+  return { settings, bricks, user, theme, systemIsDark, init, isReady, isMain, isSidebarOpen, isSidebarHidden };
 };
