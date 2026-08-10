@@ -1,11 +1,12 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::bricks::props::PropType;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Property container for numeric types, including optional bounds.")]
-pub struct NumericPropType<T: Default + PartialOrd> {
+pub struct NumericPropType<T: PartialOrd> {
     #[serde(flatten)]
     base: PropType<T>,
 

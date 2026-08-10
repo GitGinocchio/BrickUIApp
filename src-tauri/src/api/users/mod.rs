@@ -1,13 +1,14 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use ts_rs::TS;
 
 use crate::{api::utils::NonEmptyString, update_struct};
 
 pub mod get;
 pub mod me;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, TS)]
 pub struct User {
     pub avatar_url: Option<String>,
     pub bio: Option<String>,

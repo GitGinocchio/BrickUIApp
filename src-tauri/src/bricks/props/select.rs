@@ -1,9 +1,10 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::bricks::props::PropType;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Selectable property container with typed options.")]
 #[serde(tag = "value_type")]
 pub enum SelectPropType {
@@ -12,9 +13,9 @@ pub enum SelectPropType {
     Float(Select<i32, i32>),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Selectable property container with typed options.")]
-pub struct Select<T: Default, M: Default + PartialOrd> {
+pub struct Select<T, M: PartialOrd> {
     #[serde(flatten)]
     base: PropType<Vec<T>>,
 
