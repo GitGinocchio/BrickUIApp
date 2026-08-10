@@ -59,9 +59,9 @@
         <main class="flex-1 overflow-hidden relative flex flex-col">
           <slot />
           <ImportBrickModal ref="importBrickModal" />
-          <DeleteBrickModal ref="deleteBrickModal" />
           <NewBrickModal ref="newBrickModal" />
           <RenameBrickModal ref="renameBrickModal" />
+          <GlobalConfirmModal />
         </main>
       </div>
 
@@ -79,12 +79,11 @@ import type { Settings } from "~/interfaces/settings";
 import type { Brick } from '~/interfaces/brick';
 
 const ImportBrickModal = defineAsyncComponent(() => import('~/components/modals/ImportBrickModal.vue'));
-const DeleteBrickModal = defineAsyncComponent(() => import('~/components/modals/DeleteBrickModal.vue'));
 const RenameBrickModal = defineAsyncComponent(() => import('~/components/modals/RenameBrickModal.vue'));
 const NewBrickModal = defineAsyncComponent(() => import('~/components/modals/NewBrickModal.vue'));
+const GlobalConfirmModal = defineAsyncComponent(() => import('~/components/modals/GlobalConfirmModal.vue'));
 
 const importBrickModal = useTemplateRef('importBrickModal');
-const deleteBrickModal = useTemplateRef('deleteBrickModal');
 const renameBrickModal = useTemplateRef('renameBrickModal');
 const newBrickModal = useTemplateRef('newBrickModal');
 
@@ -171,9 +170,24 @@ onMounted(() => {
   listen<{ view: string }>("goto", (event) => router.push(event.payload.view));
   
   listen<[string, string]>("import_brick", (event) => importBrickModal.value?.open(event.payload));
-  listen<Brick>("delete_brick", (event) => deleteBrickModal.value?.open(event.payload));
   listen<{ brick: Brick, redirect: boolean }>("rename_brick", (event) => { renameBrickModal.value?.open(event.payload.brick, event.payload.redirect) });
   listen("new_brick", () => newBrickModal.value?.open());
+
+  // Intercept delete_brick events from main and show global confirm modal before deleting
+  listen<Brick>("delete_brick", async (event) => {
+    const payload = event.payload as Brick;
+    const { confirm } = useConfirmModal();
+    const { deleteBrick } = useBrickActions();
+    const ok = await confirm({
+      title: t('modals.delete_brick_title', 'Delete brick'),
+      message: t('modals.delete_brick_message', `Are you sure you want to delete '${payload.name}'?`),
+      confirmLabel: t('actions.delete', 'Delete'),
+      cancelLabel: t('actions.cancel', 'Cancel'),
+      color: 'danger'
+    });
+
+    if (ok) await deleteBrick(payload);
+  });
 });
 
 // Watcher Settings (Logica originale intatta)

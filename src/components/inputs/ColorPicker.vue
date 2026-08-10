@@ -29,9 +29,9 @@
           
           <!-- Azioni che avevi in NaiveUI -->
           <div class="flex border-t border-neutral-200 dark:border-neutral-800 pt-2 gap-2">
-            <UButton v-if="enable_saved" size="xs" variant="ghost" icon="i-lucide-save" @click="saveColor">Save</UButton>
-            <UButton v-if="enable_saved" size="xs" variant="ghost" color="error" icon="i-lucide-trash" @click="removeColor">Remove</UButton>
-            <UButton size="xs" variant="ghost" icon="i-lucide-rotate-ccw" @click="clearColor">Clear</UButton>
+            <UButton v-if="enable_saved" size="xs" variant="ghost" icon="i-lucide-save" :label="t('actions.save')" @click="saveColor" />
+            <UButton v-if="enable_saved" size="xs" variant="ghost" color="error" icon="i-lucide-trash" :label="t('actions.remove')" @click="removeColor" />
+            <UButton size="xs" variant="ghost" icon="i-lucide-rotate-ccw" :label="t('actions.clear')" @click="clearColor" />
           </div>
 
           <!-- Swatches (Preferiti) -->
@@ -61,6 +61,7 @@
 
 <script lang="ts" setup>
 import type { PropType } from 'vue';
+const { t } = useI18n();
 
 const color = defineModel<string>("color", { required: true });
 const saved = defineModel<string[]>("saved", { default: [] });

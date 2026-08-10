@@ -1,156 +1,151 @@
 <template>
   <div class="container">
     <Header :sections="sections" />
-    <n-card class="card-container">
-      <div class="reg-slogan">
+
+    <div class="card-container bg-neutral-900/50 rounded-lg p-6">
+      <div class="reg-slogan mb-4">
         <cite style="font-size: 1.25rem;" class="subtitle">
-          lovely to see you here! 
-          Login or Register and be part of our family
+                  {{ t('get_started.slogan_line1') }}
+                  {{ t('get_started.slogan_line2') }}
         </cite>
       </div>
-      <div class="divider"></div>
 
-      <n-tabs
-        :active-name="activeTab"
-        @update:value="(newTab) => activeTab = newTab"
-        default-value="signup"
-        size="large"
-        animated
-      >
-        <!-- Sign Up Tab -->
-        <n-tab-pane name="signup" tab="Sign Up">
-          <n-form
-            :model="form" 
-            :rules="RegisterRules"
-            ref="signupformRef"
-            @keydown.enter.prevent="throttledRegister"
-          >
-            <n-form-item-row label="Email" path="email">
-              <n-input v-model:value="form.email" placeholder="Email"/>
-            </n-form-item-row>
+      <div class="divider mb-6" />
 
-            <n-form-item-row label="Password" path="password">
-              <n-input
-                v-model:value="form.password"
-                :type="showSignupPassword ? 'text' : 'password'"
-                placeholder="Password"
-              >
-                <template #suffix>
-                  <button type="button" class="toggle-btn" @click.left.stop="showSignupPassword = !showSignupPassword">
-                    <EyesOpened v-if="showSignupPassword" />
-                    <EyesClosed v-else />
-                  </button>
-                </template>
-              </n-input>
-            </n-form-item-row>
+      <UTabs :items="tabItems" v-model:active="activeTab" class="w-full">
+        <template #signup>
+          <div @keydown.enter.prevent="throttledRegister">
+          <UFormField :label="t('labels.email')">
+            <UInput v-model="form.email" :placeholder="t('placeholders.email')" />
+            </UFormField>
 
-            <n-form-item-row label="Confirm Password" path="confirmPassword">
-              <n-input
-                v-model:value="form.confirmPassword"
-                :type="showSignupConfirmPassword ? 'text' : 'password'"
-                placeholder="Confirm Password"
-              >
-                <template #suffix>
-                  <button type="button" class="toggle-btn" @click.left.stop="showSignupConfirmPassword = !showSignupConfirmPassword">
-                    <EyesOpened v-if="showSignupConfirmPassword" />
-                    <EyesClosed v-else />
-                  </button>
-                </template>
-              </n-input>
-            </n-form-item-row>
+            <UFormField :label="t('labels.password')">
+              <UInput v-model="form.password" :type="showSignupPassword ? 'text' : 'password'" />
+            </UFormField>
 
-            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="throttledRegister">
-              Register
-            </NButton>
-          </n-form>
-        </n-tab-pane>
+            <UFormField :label="t('labels.confirm_password')">
+              <UInput v-model="form.confirmPassword" :type="showSignupConfirmPassword ? 'text' : 'password'" />
+            </UFormField>
 
-        <!-- Sign In Tab -->
-        <n-tab-pane name="signin" tab="Sign In">
-          <n-form
-            :model="form"
-            :rules="LoginRules"
-            ref="signinFormRef"
-            @keydown.enter.prevent="throttledLogin"
-          >
-            <n-form-item-row label="Email" path="email">
-              <n-input v-model:value="form.email" placeholder="Email"/>
-            </n-form-item-row>
+            <div class="mt-4">
+              <UButton color="primary" variant="solid" :disabled="loading" @click="throttledRegister">{{ t('actions.register') }}</UButton>
+            </div>
+          </div>
+        </template>
 
-            <n-form-item-row label="Password" path="password">
-              <n-input
-                v-model:value="form.password"
-                :type="showSigninPassword ? 'text' : 'password'"
-                placeholder="Password"
-              >
-                <template #suffix>
-                  <button class="toggle-btn" type="button" @click.left.stop="showSigninPassword = !showSigninPassword">
-                    <EyesOpened v-if="showSigninPassword" />
-                    <EyesClosed v-else />
-                  </button>
-                </template>
-              </n-input>
-            </n-form-item-row>
+        <template #signin>
+          <div @keydown.enter.prevent="throttledLogin">
+          <UFormField :label="t('labels.email')">
+            <UInput v-model="form.email" :placeholder="t('placeholders.email')" />
+            </UFormField>
 
-            <NButton class="form-button" type="primary" :loading="loading" block strong size="large" @click="throttledLogin">
-              Login
-            </NButton>
-          </n-form>
-        </n-tab-pane>
-      </n-tabs>
-    </n-card>
+            <UFormField :label="t('labels.password')">
+              <UInput v-model="form.password" :type="showSigninPassword ? 'text' : 'password'" />
+            </UFormField>
+
+            <div class="mt-4">
+              <UButton color="primary" variant="solid" :disabled="loading" @click="throttledLogin">{{ t('actions.login') }}</UButton>
+            </div>
+          </div>
+        </template>
+      </UTabs>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { NForm, NInput, NButton, type FormInst, type FormRules, type FormItemRule, NCard, NTabs, NTabPane, NFormItemRow, useNotification } from 'naive-ui';
-import { UserIcon } from 'lucide-vue-next';
-import { invoke } from '@tauri-apps/api/core';
-
 import Header from '#components/Header.vue';
-import EyesClosed from '#components/icons/EyesClosed.vue';
-import EyesOpened from '#components/icons/EyesOpened.vue';
 import { debounce, throttle } from '#utils/misc';
+import { invoke } from '@tauri-apps/api/core';
 
 const { t } = useI18n();
 const router = useRouter();
-const notify = useNotification();
+const toast = useToast();
 
-const form = ref({ email: '', password: '', confirmPassword: '' })
-const signupformRef = ref<FormInst | null>(null);
-const signinFormRef = ref<FormInst | null>(null);
-
+const form = ref({ email: '', password: '', confirmPassword: '' });
 const showSigninPassword = ref(false);
 const showSignupPassword = ref(false);
 const showSignupConfirmPassword = ref(false);
-
 const activeTab = ref('signup');
 const loading = ref(false);
 const cooldown = ref(0);
 const cooldownInterval = ref<number | null>(null);
 
-const sections = computed(() => [{ icon: UserIcon, label: t('User') }]);
+const sections = computed(() => [{ icon: null, label: t('User') }]);
 
-const LoginRules: FormRules = {
-  email: [
-    { required: true, message: 'Email is required', trigger: ['blur', 'input'] },
-    { type: 'email', message: 'Invalid email format', trigger: ['blur', 'input'] }
-  ],
-  password: [
-    { required: true, message: 'Password is required', trigger: ['blur', 'input'] },
-    { min: 8, message: 'Password must be at least 8 characters', trigger: 'input' },
-    { max: 128, message: 'Password too long', trigger: 'input' }
-  ]
+const tabItems = [
+  { label: t('auth.signup'), slot: 'signup' },
+  { label: t('auth.signin'), slot: 'signin' }
+];
+
+function isEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
-const RegisterRules: FormRules = {
+function validateWithRules(rules: Record<string, any[]>, model: Record<string, any>) {
+  const errors: string[] = [];
+  for (const key in rules) {
+    const fieldRules = rules[key];
+    const value = model[key];
+    for (const r of fieldRules) {
+      if (r.required && (value === undefined || value === null || value === '')) {
+        errors.push(r.message || `${key} is required`);
+        break;
+      }
+      if (r.type === 'email' && value && !isEmail(value)) {
+        errors.push(r.message || `${key} is not a valid email`);
+        break;
+      }
+      if (r.min !== undefined && typeof value === 'string' && value.length < r.min) {
+        errors.push(r.message || `${key} is too short`);
+        break;
+      }
+      if (r.max !== undefined && typeof value === 'string' && value.length > r.max) {
+        errors.push(r.message || `${key} is too long`);
+        break;
+      }
+      if (r.validator && typeof r.validator === 'function') {
+        const res = r.validator(r, value);
+        if (res instanceof Error) {
+          errors.push(res.message || 'Validation error');
+          break;
+        }
+        if (res === false) {
+          errors.push(r.message || 'Validation failed');
+          break;
+        }
+      }
+    }
+  }
+  if (errors.length) return Promise.reject(errors);
+  return Promise.resolve();
+}
+
+const LoginRules = {
+  email: [
+    { required: true, message: t('validation.email_required') },
+        { type: 'email', message: t('validation.invalid_email') }
+  ],
+  password: [
+    { required: true, message: t('validation.password_required') },
+        { min: 8, message: t('validation.password_min') },
+        { max: 128, message: t('validation.password_max') }
+  ]
+};
+
+function validatePasswordMatch(_rule: any, value: string) {
+  if (value !== form.value.password) return new Error(t('validation.passwords_do_not_match'));
+  return true;
+}
+
+const RegisterRules = {
   email: LoginRules.email,
   password: LoginRules.password,
   confirmPassword: [
-    { required: true, message: 'Please confirm your password', trigger: ['blur', 'input'] },
-    { validator: validatePasswordMatch, trigger: ['blur', 'input'] }
+    { required: true, message: t('validation.confirm_password') },
+    { validator: validatePasswordMatch }
   ]
-}
+};
 
 const debouncedResendEmail = debounce(() => handleResendEmail(), 500);
 const throttledLogin = throttle(() => handleLogin(), 5000);
@@ -160,36 +155,18 @@ const titles = ["Let’s Begin", "Welcome UIBricker!", "Join Us", "Register", "S
 const randomTitle = ref("");
 onMounted(() => { randomTitle.value = titles[Math.floor(Math.random() * titles.length)]; });
 
-function showNotification(
-  type: 'success'|'error'|'warning'|'info'|'default',
-  title: string,
-  message: string,
-  showResendBtn = false
-) {
-  notify[type]({
+function showNotification(type: 'success'|'error'|'warning'|'info'|'default', title: string, message: string, showResendBtn = false) {
+  toast.add({
     title,
-    description: () => {
-      const children = [
-        h('p', { style: { fontSize: '1rem', margin: '0 0 0.5rem 0' } }, message)
-      ];
-
-      if (!showResendBtn) {
-        return h('div', children);
-      }
-
-      children.push(
-        h(NButton, 
-          {
-            size: 'small', 
-            onClick: debouncedResendEmail
-          },
-          () => cooldown.value > 0 ? `(${cooldown.value}s) Resend email` : 'Resend email'
-        )
-      );
-
-      return h('div', children);
-    },
-    duration: 0
+    description: message,
+    color: type === 'success' ? 'success' : type === 'error' ? 'error' : 'info',
+    duration: showResendBtn ? 0 : 5000,
+    actions: showResendBtn ? [{ 
+      label: cooldown.value > 0 ? `(${cooldown.value}s) ${t('actions.resend_email')}` : t('actions.resend_email'), 
+      variant: 'solid', 
+      color: 'primary', 
+      onClick: debouncedResendEmail 
+    }] : undefined
   });
 }
 
@@ -197,30 +174,18 @@ async function handleRegister() {
   if (loading.value) return;
   loading.value = true;
   try {
-    await signupformRef.value?.validate().catch((warnings) => {
-      throw { code: -1, msg: warnings[0][0].message };
-    });
+    await validateWithRules(RegisterRules, form.value).catch((errs: string[]) => { throw { code: -1, msg: errs[0] }; });
 
-    const registerResponse: { status: string } = await invoke("auth_register", { 
-      email: form.value.email, 
-      password: form.value.password 
-    });
-
+    const registerResponse: { status: string } = await invoke('auth_register', { email: form.value.email, password: form.value.password });
     if (registerResponse.status === 'success') {
-      showNotification(
-        'success',
-        'Successfully registered!',
-        `We've sent a confirmation email to ${form.value.email}.\nClick the link to activate your account.`,
-        true
-      );
+      showNotification('success', t('notifications.registered_title'), t('notifications.registered_message', { email: form.value.email }), true);
       startCooldown(60);
       activeTab.value = 'signin';
       return;
     }
-
     throw registerResponse;
   } catch (err: any) {
-    showNotification('error', err.code != -1 ? `Error ${err.code}` : 'Invalid Input', err.msg || 'An unexpected error occurred');
+    showNotification('error', err.code != -1 ? t('notifications.error_with_code', { code: err.code }) : t('errors.invalid_input'), err.msg || t('errors.unexpected'), );
     console.error(err);
   } finally {
     loading.value = false;
@@ -231,28 +196,16 @@ async function handleLogin() {
   if (loading.value) return;
   loading.value = true;
   try {
-    await signinFormRef.value?.validate().catch((warnings) => {
-      throw { code: -1, msg: warnings[0][0].message };
-    });
+    await validateWithRules(LoginRules, form.value).catch((errs: string[]) => { throw { code: -1, msg: errs[0] }; });
 
-    const loginResponse: { status: string } = await invoke("auth_login", { 
-      email: form.value.email, 
-      password: form.value.password 
-    });
-
+    const loginResponse: { status: string } = await invoke('auth_login', { email: form.value.email, password: form.value.password });
     if (loginResponse.status === 'success') {
       router.push('/user');
       return;
     }
-
     throw loginResponse;
   } catch (err: any) {
-    showNotification(
-      'error', 
-      err.code ? `Login Error: ${err.code}` : 'Invalid Input', 
-      err.msg || 'An unexpected error occurred',
-      err.error_code == 'email_not_confirmed'
-    );
+    showNotification('error', err.code ? t('notifications.login_error_with_code', { code: err.code }) : t('errors.invalid_input'), err.msg || t('errors.unexpected'), err.error_code == 'email_not_confirmed');
     console.error(err);
   } finally {
     loading.value = false;
@@ -273,34 +226,24 @@ function startCooldown(seconds: number) {
 
 async function handleResendEmail() {
   if (cooldown.value > 0) return;
-
   try {
-    const resendResponse: { status: string, code: number, cooldown?: number } = await invoke("auth_resend_email", { email: form.value.email });
-
+    const resendResponse: { status: string, code: number, cooldown?: number } = await invoke('auth_resend_email', { email: form.value.email });
     if (resendResponse.status === 'success') {
-      showNotification('success', 'Email Sent!', `We've sent a confirmation email to ${form.value.email}.`, true);
+      showNotification('success', t('notifications.email_sent_title'), t('notifications.registered_message', { email: form.value.email }), true);
       startCooldown(60);
       return;
     }
-
     if (resendResponse.status === 'error' && resendResponse.code === 429) {
       startCooldown(resendResponse.cooldown ?? 120);
       return;
     }
-
     throw resendResponse;
   } catch (err: any) {
     showNotification('error', err.code ? `Error ${err.code}` : 'Unexpected Error', err.msg || 'An unexpected error occurred');
     console.error(err);
   }
 }
-
-function validatePasswordMatch(_rule: FormItemRule, value: string): boolean | Error {
-  if (value !== form.value.password) return new Error('Passwords do not match')
-  return true
-}
 </script>
-
 <style scoped>
 .container {
   display: flex;

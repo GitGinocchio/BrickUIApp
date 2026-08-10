@@ -51,7 +51,7 @@
       <div class="flex items-center gap-2 mb-4">
         <UInput
           v-model="newProp.prop_name"
-          placeholder="Prop name..."
+          :placeholder="t('placeholders.prop_name')"
           class="flex-1"
           @keydown.enter="onSavePropName(newProp)"
         />
@@ -152,10 +152,9 @@
     </sortable>
 
     <div v-else class="text-center py-10 opacity-50">
-      <p>This brick has no props!</p>
+      <p>{{ t('messages.no_props') }}</p>
     </div>
 
-    <DeletePropModal ref="deletePropModalRef" />
   </div>
 </template>
 
@@ -166,12 +165,11 @@ import PropViewWrapper from './PropViewMode.vue';
 import PropEditWrapper from './PropEditMode.vue';
 import PropEditMode from './PropEditMode.vue';
 import { type SortableOptions } from 'sortablejs';
-import DeletePropModal from '../modals/DeletePropModal.vue';
-
-const deletePropModalRef = useTemplateRef("deletePropModalRef");
-
 const { saveBrick } = useBrickActions();
 const { duplicateProp, changePropOrder,  openDeletePropModal } = usePropActions();
+const { confirm: showConfirm } = useConfirmModal();
+
+
 
 // Props & Model
 const brick = defineModel<Brick>("brick", { required: true });
@@ -183,6 +181,7 @@ const editingPropNames = ref<Map<string, string>>(new Map());
 const layout = ref<'grid' | 'list' | 'adaptive'>('adaptive');
 
 const toast = useToast();
+const { t } = useI18n();
 
 const sortableOptions = computed<SortableOptions>(() => {
   return {
@@ -202,7 +201,7 @@ const sortableOptions = computed<SortableOptions>(() => {
   };
 });
 
-function onToggleEditMode() {
+async function onToggleEditMode() {
   if (!editMode.value) {
     saveBrick(brick.value);
   }
@@ -221,17 +220,18 @@ function togglePropNameEditMode(prop: Prop) {
 
 function onSavePropName(prop: Prop) {
   const isCreating = prop === newProp.value;
+  const oldName = prop.prop_name;
   const newName = isCreating 
     ? newProp.value?.prop_name.trim() 
-    : editingPropNames.value.get(prop.prop_name)?.trim();
+    : editingPropNames.value.get(oldName)?.trim();
 
   if (!newName || !/^[a-zA-Z]+$/.test(newName)) {
-    toast.add({ title: 'Error', description: 'Invalid name (letters only)', color: 'error' });
+    toast.add({ title: t('errors.invalid_name'), description: '', color: 'error' });
     return;
   }
 
   if (brick.value.props.some(p => p.prop_name === newName && p !== prop)) {
-    toast.add({ title: 'Error', description: 'Name already taken', color: 'error' });
+    toast.add({ title: t('errors.name_taken'), description: '', color: 'error' });
     return;
   }
 
@@ -240,7 +240,8 @@ function onSavePropName(prop: Prop) {
     newProp.value = null;
   } else {
     prop.prop_name = newName;
-    editingPropNames.value.delete(newName);
+    // remove the old editing entry (keyed by the previous prop name)
+    editingPropNames.value.delete(oldName);
   }
   saveBrick(brick.value);
 }
@@ -249,22 +250,31 @@ const onNewProp = () => {
   newProp.value = { prop_type: 'Null', prop_name: '' };
 };
 
-function onRemoveProp(prop: Prop) {
-  // TODO: Implementare conferma tramite UModal per sicurezza
+async function onRemoveProp(prop: Prop) {
   if (prop === newProp.value) {
     newProp.value = null;
     return;
   }
 
-  deletePropModalRef.value.open(brick.value, prop);
+  // Use composable-backed confirm modal
+  await openDeletePropModal(brick.value, prop);
 }
 
 // Route Guard
-onBeforeRouteLeave((_to, _from, next) => {
+onBeforeRouteLeave(async (_to, _from, next) => {
   if (newProp.value) {
-    // TODO: Sostituire con una Modal
-    const confirm = window.confirm("Unsaved changes. Discard?");
-    confirm ? next() : next(false);
+    const ok = await showConfirm({
+      title: 'Unsaved changes',
+      message: 'You have an unsaved new prop. Discard changes?',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep editing',
+      color: 'neutral'
+    });
+
+    if (!ok) {
+      next(false);
+      return;
+    }
   }
 
   saveBrick(brick.value);

@@ -5,10 +5,10 @@
 
     <UCard class="flex flex-col overflow-visible w-full">
       <template #header>
-        <h3 class="text-base font-semibold leading-6">General Settings</h3>
+        <h3 class="text-base font-semibold leading-6">{{ t('settings.general.title') }}</h3>
       </template>
 
-      <UFormField label="Language" help="Select your preferred language" class="mb-4">
+      <UFormField :label="t('settings.language')" :help="t('settings.language_help')" class="mb-4">
         <USelect color="primary" 
           v-model="settings.language" 
           :items="languages" 
@@ -16,7 +16,7 @@
         />
       </UFormField>
 
-      <UFormField label="Theme">
+      <UFormField :label="t('settings.theme')">
         <USelect color="primary" 
           v-model="settings.theme" 
           :items="themesOptions" 
@@ -28,18 +28,18 @@
     <div class="h-full grid grid-cols-1 md:grid-cols-2 gap-6">
       <UCard class="flex flex-col overflow-visible">
         <template #header>
-          <h3 class="text-base font-semibold">Sidebar</h3>
+          <h3 class="text-base font-semibold">{{ t('settings.sidebar.title') }}</h3>
         </template>
-        <UFormField label="Position">
+        <UFormField :label="t('settings.position')">
           <USelect color="primary" v-model="settings.sidebar.position" :items="sidebarPositionOptions" class="w-full" />
         </UFormField>
       </UCard>
 
       <UCard class="flex flex-col overflow-visible">
         <template #header>
-          <h3 class="text-base font-semibold">Notifications</h3>
+          <h3 class="text-base font-semibold">{{ t('settings.notifications.title') }}</h3>
         </template>
-        <UFormField label="Position">
+        <UFormField :label="t('settings.position')">
           <USelect color="primary" v-model="settings.notifications.position" :items="notificationPositionOptions" class="w-full" />
         </UFormField>
       </UCard>
@@ -47,19 +47,19 @@
 
     <UCard class="flex flex-col overflow-visible" :ui="{ body: 'flex flex-col gap-6' }">
       <template #header>
-        <h3 class="text-base font-semibold">Windows Integration</h3>
+        <h3 class="text-base font-semibold">{{ t('settings.windows_integration') }}</h3>
       </template>
 
       <div class="space-y-4">
-        <h4 class="text-sm font-medium text-neutral-400">Taskbar Behavior</h4>
+        <h4 class="text-sm font-medium text-neutral-400">{{ t('settings.taskbar.title') }}</h4>
         <UAlert 
           icon="i-lucide-triangle-alert" 
           color="warning" 
           variant="subtle" 
-          title="Attention"
-          description="Changing taskbar behavior may make navigation harder." 
+          :title="t('settings.taskbar.attention')"
+          :description="t('settings.taskbar.change_warning')" 
         />
-        <UFormField label="Behavior">
+        <UFormField :label="t('settings.behavior')">
           <USelect color="primary" v-model="settings.taskbar.behavior" :items="taskBarBehaviorOptions" class="w-full max-w-xs" />
         </UFormField>
       </div>
@@ -67,9 +67,9 @@
       <USeparator />
 
       <div class="space-y-4">
-        <h4 class="text-sm font-medium text-neutral-400">Start Menu</h4>
-        <UAlert icon="i-lucide-info" color="info" variant="subtle" description="Restart app to apply start menu changes." />
-        <UFormField label="Behavior">
+        <h4 class="text-sm font-medium text-neutral-400">{{ t('settings.start_menu.title') }}</h4>
+        <UAlert icon="i-lucide-info" color="info" variant="subtle" :description="t('settings.start_menu.restart_hint')" />
+        <UFormField :label="t('settings.behavior')">
           <USelect color="primary" v-model="settings.startmenu.behavior" :items="startMenuBehaviorOptions" class="w-full max-w-xs" />
         </UFormField>
       </div>
@@ -80,22 +80,22 @@
         <h3 class="text-base font-semibold">System & Boot</h3>
       </template>
 
-      <UFormField label="System Tray Icon" description="Show BrickUI in the system tray">
+      <UFormField :label="t('settings.system_tray.icon')" :description="t('settings.system_tray.description')">
         <USwitch v-model="settings.systemtray.enabled" />
       </UFormField>
 
       <UFormField 
-        label="Hide on Close" 
-        description="Minimize to tray instead of closing"
+              :label="t('settings.system_tray.hide_on_close')" 
+              :description="t('settings.system_tray.hide_description')"
         :disabled="!settings.systemtray.enabled"
       >
         <template #help>
-          <span class="text-xs">You can reopen it by double-clicking the tray icon.</span>
+                <span class="text-xs">{{ t('settings.system_tray.reopen_hint') }}</span>
         </template>
         <USwitch v-model="settings.systemtray.hidetaskbaricon" :disabled="!settings.systemtray.enabled" />
       </UFormField>
 
-      <UFormField label="Autostart" description="Launch BrickUI when Windows starts">
+      <UFormField :label="t('settings.autostart.title')" :description="t('settings.autostart.description')">
         <USwitch v-model="settings.autostart" @update:model-value="onAutoStartChanged" />
       </UFormField>
     </UCard>
