@@ -51,7 +51,7 @@
           icon="i-lucide-panel-left"
           color="neutral"
           variant="ghost"
-          @click="isSidebarOpen = !isSidebarOpen"
+          @click="() => { isSidebarOpen = !isSidebarOpen }"
         />
       </header>
 
