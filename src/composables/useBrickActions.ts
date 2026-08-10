@@ -125,8 +125,16 @@ export const useBrickActions = () => {
   }, 150);
 
   const updateBrickProp = debounce(async (brick_name: string, prop: Prop) => {
-    // TODO: qui sarebbe da chiamare saveBrick(...);
     await emitTo("overlay", "update-brick", { name: brick_name, prop });
+    try {
+      const { bricks } = useAppState();
+      const target = bricks.value.find(b => b.name === brick_name);
+      if (target) {
+        saveBrick(target);
+      }
+    } catch (err) {
+      console.error('Failed to persist updated prop for', brick_name, err);
+    }
   }, 150);
 
   const openRenameBrickModal = async (brick: Brick, redirect: boolean) => {
@@ -142,7 +150,21 @@ export const useBrickActions = () => {
   };
 
   const openDeleteBrickModal = async (brick: Brick) => {
-    await emitTo<Brick>("main","delete_brick", brick);
+    // Use the global confirm modal for in-app flows; fall back to emitting to main if needed
+    const { confirm } = useConfirmModal();
+    const ok = await confirm({
+      title: t('modals.delete_brick_title', 'Delete brick'),
+      message: t('modals.delete_brick_message', `Are you sure you want to delete '${brick.name}'? This action cannot be undone.`),
+      confirmLabel: t('actions.delete', 'Delete'),
+      cancelLabel: t('actions.cancel', 'Cancel'),
+      color: 'danger'
+    });
+
+    if (ok) {
+      await deleteBrick(brick);
+    } else {
+      // No-op on cancel. The existing Tauri flow still listens for main events and opens the old modal if triggered from main.
+    }
   };
 
   return { 

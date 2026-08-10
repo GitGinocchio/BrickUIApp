@@ -1,20 +1,20 @@
 <template>
-  <UModal v-model:open="isOpen" title="Edit Brick">
+  <UModal v-model:open="isOpen" :title="t('modals.rename_brick_title')">
     <template #body>
-      <UFormField label="Name" :error="feedback">
+      <UFormField :label="t('labels.name')" :error="feedback">
         <UInput
           class="w-full"
           v-model="newName" 
-          placeholder="Type your brick's name"
+          :placeholder="t('placeholders.brick_name')"
           @update:model-value="validate"
         />
       </UFormField>
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="soft" label="Cancel" @click="isOpen = false" />
+        <UButton color="neutral" variant="soft" :label="t('actions.cancel')" @click="isOpen = false" />
         <UButton 
-          label="Save" 
+                  :label="t('actions.save')" 
           :disabled="!newName || !!feedback" 
           @click="onSave" 
         />
@@ -29,6 +29,7 @@ import type { Brick } from "~/interfaces/brick";
 
 const { bricks } = useAppState();
 const { renameBrick } = useBrickActions();
+const { t } = useI18n();
 
 const isOpen = ref(false);
 const brick = ref<Brick | null>(null);
@@ -46,8 +47,8 @@ const open = (b: Brick, redirect: boolean) => {
 
 const validate = (v: string) => {
   if (!v) feedback.value = null;
-  else if (!BRICK_NAME_REGEX.test(v)) feedback.value = "Invalid name format";
-  else if (brick.value && v !== brick.value.name && bricks.value.some(b => b.name === v)) feedback.value = "Duplicate name";
+  else if (!BRICK_NAME_REGEX.test(v)) feedback.value = t('errors.invalid_name_format');
+  else if (brick.value && v !== brick.value.name && bricks.value.some(b => b.name === v)) feedback.value = t('errors.duplicate_name');
   else feedback.value = null;
 };
 

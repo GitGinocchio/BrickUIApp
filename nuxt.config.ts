@@ -81,11 +81,6 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    // Se Naive UI ti dà problemi di rendering, aggiungila qui invece che sopra
-    ssr: {
-      noExternal: ['naive-ui', 'vueuc', 'date-fns-tz']
-    },
-
     build: {
       target: 'esnext'
     },

@@ -1,11 +1,11 @@
 <template>
-  <UModal v-model:open="isOpen" title="New Brick" class="sm:max-w-md">
+  <UModal v-model:open="isOpen" :title="t('modals.new_brick_title')" class="sm:max-w-md">
     <template #body>
-      <UFormField label="Name" :error="feedback">
+      <UFormField :label="t('labels.name')" :error="feedback">
         <UInput
           class="w-full"
           v-model="brickName" 
-          placeholder="Type your brick's name"
+          :placeholder="t('placeholders.brick_name')"
           @update:model-value="validate"
         />
       </UFormField>
@@ -14,13 +14,13 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton 
-          label="Cancel" 
+                  :label="t('actions.cancel')" 
           color="neutral" 
           variant="soft" 
           @click="isOpen = false" 
         />
         <UButton 
-          label="Create" 
+                  :label="t('actions.create')" 
           :disabled="!brickName || !!feedback" 
           @click="handleCreate" 
         />
@@ -36,6 +36,7 @@ import type { Brick } from "~/interfaces/brick";
 
 const { bricks } = useAppState(); 
 const { newBrick } = useBrickActions();
+const { t } = useI18n();
 
 const isOpen = ref(false);
 const brickName = ref("");
@@ -53,9 +54,9 @@ const validate = (v: string) => {
   if (!v) {
     feedback.value = null;
   } else if (!BRICK_NAME_REGEX.test(v)) {
-    feedback.value = "Invalid name format";
+    feedback.value = t('errors.invalid_name_format');
   } else if (bricks.value.some(b => b.name.toLowerCase() === v.toLowerCase())) {
-    feedback.value = "A brick with this name already exists";
+    feedback.value = t('errors.name_exists');
   } else {
     feedback.value = null;
   }

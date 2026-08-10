@@ -1,17 +1,17 @@
 <template>
   <div class="flex flex-col w-full space-y-6">
-    <UFormField label="Description:">
+    <UFormField :label="t('placeholders.prop_description')">
       <UTextarea
         v-model="prop.description"
-        placeholder="Type the prop's description (Markdown supported)"
+        :placeholder="t('placeholders.prop_description')"
         class="w-full"
         autoresize
         :maxlength="512"
-        help="Markdown supported"
+        :help="t('hints.markdown_supported')"
       />
     </UFormField>
 
-    <UFormField label="Type:">
+    <UFormField :label="t('placeholders.prop_type', 'Type')">
       <USelectMenu
         v-model="propTypeOption"
         class="w-full"
@@ -23,7 +23,7 @@
 
     <UFormField
       v-if="prop.prop_type == 'Select' || prop.prop_type == 'Array'"
-      label="Value type"
+      :label="t('props.value_type')"
     >
       <USelectMenu
         v-model="prop.value_type"
@@ -37,7 +37,7 @@
       </USelectMenu>
     </UFormField>
 
-    <UFormField v-if="prop.prop_type === 'Select'" label="Options:">
+    <UFormField v-if="prop.prop_type === 'Select'" :label="t('props.options')">
       <Array v-model:value="prop.options" />
     </UFormField>
 
@@ -50,12 +50,12 @@
       v-model:prop="prop"
     />
 
-    <UFormField v-if="shouldShowDefaultInput" label="Default value:">
+    <UFormField v-if="shouldShowDefaultInput" :label="t('props.default_value')">
       <component :is="renderDefaultComponent" class="w-full" :prop="prop" :editMode="true" />
     </UFormField>
 
     <div v-if="['Date', 'Datetime'].includes(prop.prop_type)" class="flex gap-4">
-      <UFormField label="Allow past:">
+      :label="t('props.allow_past')">
         <USwitch v-model="(prop as DatePropType<any>).allow_past" @update:model-value="v => toggleDateConstraint('past', v)" />
       </UFormField>
       <UFormField label="Allow future:">
@@ -119,6 +119,7 @@ function asOption(v: PropTypeValue): SelectMenuItem {
     icon: iconsMap[v] || 'i-lucide-circle'
   }
 }
+const { t } = useI18n();
 const propTypeOption = computed(() => asOption(prop.value.prop_type));
 const propTypeOptions: SelectMenuItem[] = propTypeValues
   .filter((v) => !['Deprecated', 'Unknown'].includes(v))
@@ -147,10 +148,21 @@ function onNewPropTypeSelected(newPropType: { label: string, value: PropTypeValu
     return;
   }
 
-  // TODO: Sostituire con UModal se preferisci una UI coerente
-  if (confirm(`Are you sure you want to change "${prop.value.prop_name}" to ${newPropType.value}? All settings for this prop will be lost.`)) {
-    update();
-  }
+  // Confirmation is required before changing a prop's type because settings are lost.
+    // Use the global confirm modal when available.
+    const { confirm: showConfirm } = useConfirmModal();
+    const { t } = useI18n();
+    const ok = await showConfirm({
+      title: t('modals.change_prop_type_title', 'Change prop type'),
+      message: t('modals.change_prop_type_message', { prop: prop.value.prop_name, type: newPropType.value }),
+      confirmLabel: t('actions.save', 'Yes, change'),
+      cancelLabel: t('actions.cancel', 'Cancel'),
+      color: 'primary'
+    });
+
+    if (ok) {
+      update();
+    }
 }
 
 function onValueTypeChanged() {

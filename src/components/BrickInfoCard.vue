@@ -67,7 +67,7 @@
 
     <!-- Description -->
     <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 flex-1">
-      {{ brick.description || 'Nessuna descrizione' }}
+      {{ brick.description || t('bricks.no_description') }}
     </p>
 
     <!-- Footer -->
@@ -106,6 +106,7 @@ const props = defineProps<{
 
 // State & Composables
 const router = useRouter();
+const { t } = useI18n();
 const { toggleBrick, duplicateBrick, shareBrick, openRenameBrickModal, openDeleteBrickModal } = useBrickActions();
 
 const isIconLoaded = ref(false);
@@ -114,22 +115,22 @@ const iconUrl = ref<string | null>(null);
 // Dropdown Menu items (Configurazione Nuxt UI)
 const dropdownItems = computed<DropdownMenuItem[]>(() => [
   { 
-    label: 'Rename', 
+    label: t('actions.rename'), 
     icon: 'i-lucide-pencil', 
     onSelect: () => openRenameBrickModal(props.brick, null)
   },
   { 
-    label: 'Duplicate', 
+    label: t('actions.duplicate'), 
     icon: 'i-lucide-copy', 
     onSelect: () => duplicateBrick(props.brick) 
   },
   { 
-    label: 'Share', 
+    label: t('actions.share'), 
     icon: 'i-lucide-share-2', 
     onSelect: () => shareBrick(props.brick)
   },
   { 
-    label: 'Delete', 
+    label: t('actions.delete'), 
     icon: 'i-lucide-trash-2', 
     // In Nuxt UI v4 si usa spesso la proprietà class per lo stile 
     // o slot specifici se il tipo base non prevede 'color' direttamente

@@ -7,7 +7,7 @@
           variant="link"
           padding="none"
           size="xs"
-          label="Reset"
+          :label="t('actions.reset')"
           icon="i-heroicons-arrow-path"
           @click="resetToDefault"
         />
@@ -29,6 +29,7 @@ import { ref, watch } from 'vue';
 import type { CollectionValueType } from '~/interfaces/brick';
 
 const toast = useToast();
+const { t } = useI18n();
 
 const tags = defineModel<any[]>("value", { 
   default: [], 
@@ -42,17 +43,18 @@ const tags = defineModel<any[]>("value", {
     }
 
     const validTags = processed.filter(val => {
-      const [isValid, reason] = validateValue(val);
+      const [isValid, reasonObj] = validateValue(val);
 
       if (!isValid) {
+        const reasonText = reasonObj ? t(reasonObj.key, reasonObj.params || {}) : '';
         toast.add({
-          title: 'Valore non valido',
-          description: `Il valore "${val}" è stato rimosso perché è ${reason}.`,
+          title: t('array.invalid_value_title'),
+          description: t('array.invalid_value_description', { val, reason: reasonText }),
           color: 'error',
           icon: 'i-heroicons-exclamation-triangle'
         });
       }
-      
+        
       return isValid;
     });
 
@@ -97,30 +99,30 @@ const resetToDefault = () => {
   tags.value = [...props.default];
 };
 
-function validateValue(value: string | number): [boolean, string] {
+function validateValue(value: string | number): [boolean, { key: string, params?: Record<string, any> } | null] {
   let isValid = true;
-  let reason = null;
+  let reasonObj: { key: string, params?: Record<string, any> } | null = null;
 
   if (props.value_type === 'Integer' || props.value_type === 'Float') {
-    if (props.min_value !== undefined && value as number < props.min_value) {
+    if (props.min_value !== undefined && (value as number) < props.min_value) {
       isValid = false;
-      reason = `inferiore a ${props.min_value}`;
-    } else if (props.max_value !== undefined && value as number > props.max_value) {
+      reasonObj = { key: 'array.reason.less_than', params: { n: props.min_value } };
+    } else if (props.max_value !== undefined && (value as number) > props.max_value) {
       isValid = false;
-      reason = `superiore a ${props.max_value}`;
+      reasonObj = { key: 'array.reason.greater_than', params: { n: props.max_value } };
     }
   } else {
     const len = String(value).length;
     if (props.min_value !== undefined && len < props.min_value) {
       isValid = false;
-      reason = `troppo corto (min ${props.min_value})`;
+      reasonObj = { key: 'array.reason.too_short', params: { n: props.min_value } };
     } else if (props.max_value !== undefined && len > props.max_value) {
       isValid = false;
-      reason = `troppo lungo (max ${props.max_value})`;
+      reasonObj = { key: 'array.reason.too_long', params: { n: props.max_value } };
     }
   }
 
-  return [isValid, reason];
+  return [isValid, reasonObj];
 }
 
 const isDirty = computed(() => {
@@ -129,7 +131,7 @@ const isDirty = computed(() => {
 
 watch(() => tags.value, (newVal) => {
   if (props.min && newVal.length < props.min) {
-    errorMsg.value = `Devi inserire almeno ${props.min} elementi.`;
+      errorMsg.value = t('array.min_items', { min: props.min });
   } else {
     errorMsg.value = false;
   }

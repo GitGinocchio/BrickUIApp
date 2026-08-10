@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="isOpen" title="Import Brick">
+  <UModal v-model:open="isOpen" :title="t('modals.import_brick_title')">
     <template #body>
       <div class="space-y-4">
         <UAlert 
@@ -10,21 +10,21 @@
           description="Careful when importing bricks from untrusted sources" 
         />
         <UAlert 
-          title="Info" 
+                  :title="t('modals.info')" 
           color="info"
           variant="soft" 
           icon="i-lucide-info" 
         >
           <template #description>
-            You can verify the brick by yourself by changing the file extension from <code>.brick</code> to <code>.zip</code> and look to the code inside.
+                    <span v-html="t('modals.import_verify_instructions_html')"></span>
           </template>
         </UAlert>
       </div>
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="soft" label="Cancel" @click="isOpen = false" />
-        <UButton color="warning" label="Confirm" @click="onConfirm" />
+        <UButton color="neutral" variant="soft" :label="t('actions.cancel')" @click="isOpen = false" />
+                <UButton color="warning" :label="t('actions.confirm')" @click="onConfirm" />
       </div>
     </template>
   </UModal>
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 const isOpen = ref(false);
+const { t } = useI18n();
 const brickPath = ref<string|null>(null);
 const brickName = ref<string|null>(null);
 

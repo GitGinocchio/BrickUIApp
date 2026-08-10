@@ -53,7 +53,7 @@
               v-if="descriptionEditMode"
               v-model="brick.description"
               autoresize
-              placeholder="Type your brick's description..."
+              :placeholder="t('placeholders.brick_description')"
               class="w-full"
             />
             <div 
@@ -61,7 +61,7 @@
               v-html="renderedDescription" 
               class="prose prose-invert prose-sm max-w-none description-content"
             />
-            <p v-else class="text-neutral-500 italic">This brick has no description.</p>
+            <p v-else class="text-neutral-500 italic">{{ t('bricks.no_description') }}</p>
           </div>
         </template>
 
@@ -74,14 +74,14 @@
         <template #emits>
           <div class="p-8 text-center text-neutral-500 border-2 border-dashed border-neutral-800 rounded-lg">
             <UIcon name="i-lucide-wifi" class="size-8 mx-auto mb-2 opacity-20" />
-            <p>Work in progress :P</p>
+            <p>{{ t('messages.work_in_progress') }}</p>
           </div>
         </template>
 
         <template #permissions>
           <div class="p-8 text-center text-neutral-500 border-2 border-dashed border-neutral-800 rounded-lg">
             <UIcon name="i-lucide-shield" class="size-8 mx-auto mb-2 opacity-20" />
-            <p>Work in progress :P</p>
+            <p>{{ t('messages.work_in_progress') }}</p>
           </div>
         </template>
 
@@ -125,26 +125,26 @@ const md = new MarkdownIt();
 
 // Configurazione Tabs per NuxtUI
 const tabItems = [
-  { label: 'Info', icon: 'i-lucide-info', slot: 'info' },
-  { label: 'Props', icon: 'i-lucide-cog', slot: 'props' },
-  { label: 'Emits', icon: 'i-lucide-wifi', slot: 'emits' },
-  { label: 'Permissions', icon: 'i-lucide-shield', slot: 'permissions' }
+  { label: t('tabs.info'), icon: 'i-lucide-info', slot: 'info' },
+    { label: t('tabs.props'), icon: 'i-lucide-cog', slot: 'props' },
+    { label: t('tabs.emits'), icon: 'i-lucide-wifi', slot: 'emits' },
+    { label: t('tabs.permissions'), icon: 'i-lucide-shield', slot: 'permissions' }
 ];
 
 // Dropdown Menu Items
 const dropdownItems = computed<DropdownMenuItem[]>(() => [
   {
-    label: 'Rename',
+    label: t('actions.rename'),
     icon: 'i-lucide-pencil',
     onSelect: () => openRenameBrickModal(brick.value, true)
   },
   {
-    label: 'Duplicate',
+    label: t('actions.duplicate'),
     icon: 'i-lucide-copy',
     onSelect: () => duplicateBrick(brick.value, () => router.push(`/bricks/${brick.value!.name}Copy`))
   },
   { 
-    label: 'Share', 
+    label: t('actions.share'), 
     icon: 'i-lucide-share-2', 
     onSelect: () => shareBrick(brick.value)
   },
@@ -152,7 +152,7 @@ const dropdownItems = computed<DropdownMenuItem[]>(() => [
     type: 'separator'
   },
   {
-    label: 'Delete',
+    label: t('actions.delete'),
     icon: 'i-lucide-trash-2',
     color: 'primary',
     onSelect: () => openDeleteBrickModal(brick.value)
