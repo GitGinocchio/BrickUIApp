@@ -58,7 +58,7 @@
             />
             <div 
               v-else-if="brick.description" 
-              v-html="renderedDescription" 
+              v-html="brick.description" 
               class="prose prose-invert prose-sm max-w-none description-content"
             />
             <p v-else class="text-neutral-500 italic">{{ t('bricks.no_description') }}</p>
@@ -93,7 +93,6 @@
 <script setup lang="ts">
 import PropsPanel from "~/components/props/PropsPanel.vue";
 
-import MarkdownIt from "markdown-it";
 import { appDataDir, sanitizePath } from "#utils/path";
 import type { Brick } from "#interfaces";
 import { invoke } from "@tauri-apps/api/core";
@@ -121,7 +120,6 @@ const iconUrl = ref<string | null>(null);
 
 const brickName = computed(() => route.params.name as string);
 const defaultBannerUrl = new URL("../../assets/images/banner-brick-iso.svg", import.meta.url).href;
-const md = new MarkdownIt();
 
 // Configurazione Tabs per NuxtUI
 const tabItems = [
@@ -169,8 +167,6 @@ const sections = computed(() => [
   { icon: 'i-lucide-blocks', label: t("bricks"), to: "/bricks" },
   { icon: iconUrl.value || 'i-lucide-cuboid', label: brickName.value },
 ]);
-
-const renderedDescription = computed(() => brick.value ? md.render(brick.value.description) : '');
 
 // Methods
 function handleScroll(e: Event) {

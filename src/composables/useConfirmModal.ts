@@ -32,10 +32,10 @@ export function useConfirmModalState() {
 }
 
 export function useConfirmModal() {
+  const { t } = useI18n();
+
   async function confirm(opts: ConfirmInputOptions | string): Promise<boolean> {
     const o: ConfirmInputOptions = typeof opts === 'string' ? { message: opts } : opts || {};
-
-    const { t } = useI18n();
 
     return new Promise<boolean>((resolve) => {
       state.title = o.title ?? '';

@@ -162,7 +162,7 @@ export async function loadVueModuleToCJS(
       ['es2015', { modules: false }], // lascia export/import come sono già stati riscritti
       'typescript'
     ],
-    plugins: ['proposal-class-properties', 'transform-typescript'],
+    plugins: ['transform-typescript'],
     filename: 'file.js',
     sourceMaps: true
   });

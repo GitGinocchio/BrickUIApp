@@ -56,13 +56,13 @@
       </header>
 
       <div class="flex-1 flex flex-col min-w-0 h-full">
-        <main class="flex-1 overflow-hidden relative flex flex-col">
+        <UMain class="flex-1 overflow-hidden relative flex flex-col">
           <slot />
           <ImportBrickModal ref="importBrickModal" />
           <NewBrickModal ref="newBrickModal" />
           <RenameBrickModal ref="renameBrickModal" />
           <GlobalConfirmModal />
-        </main>
+        </UMain>
       </div>
 
       <SystemTray v-if="settings?.systemtray" />
@@ -163,7 +163,8 @@ function getBottomNavigation() {
 }
 
 // Lifecycle e Tauri Listeners (Logica originale intatta)
-onMounted(() => {
+onMounted(async () => {
+  console.log(settings.value);
   setLocale(settings.value.language);
   
   listen<{ view: string }>("goto", (event) => router.push(event.payload.view));
@@ -185,7 +186,7 @@ onMounted(() => {
       color: 'error'
     });
 
-    if (ok) await deleteBrick(payload);
+    if (ok) deleteBrick(payload);
   });
 });
 

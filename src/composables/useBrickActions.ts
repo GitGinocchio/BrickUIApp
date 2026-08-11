@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import { save as openSaveDialog } from "@tauri-apps/plugin-dialog";
 import { BRICK_FILE_FILTERS } from "~/constants/brick";
-import type { Brick, Prop } from "~/interfaces/brick";
+import type { Brick, Prop } from "~/interfaces";
 
 let lastInvoicedState;
 
@@ -157,11 +157,11 @@ export const useBrickActions = () => {
       message: t('modals.delete_brick_message', `Are you sure you want to delete '${brick.name}'? This action cannot be undone.`),
       confirmLabel: t('actions.delete', 'Delete'),
       cancelLabel: t('actions.cancel', 'Cancel'),
-      color: 'danger'
+      color: 'error'
     });
 
     if (ok) {
-      await deleteBrick(brick);
+      deleteBrick(brick);
     } else {
       // No-op on cancel. The existing Tauri flow still listens for main events and opens the old modal if triggered from main.
     }

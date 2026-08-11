@@ -1,0 +1,150 @@
+{
+  "modals": {
+    "confirm": "Conferma",
+    "delete_brick_title": "Elimina brick",
+    "delete_brick_message": "Sei sicuro di voler eliminare '{name}'? Questa azione non può essere annullata.",
+    "delete_prop_title": "Elimina prop",
+    "delete_prop_message": "Sei sicuro di voler eliminare '{name}'?",
+    "change_prop_type_title": "Modifica tipo di prop",
+    "change_prop_type_message": "Sei sicuro di voler cambiare '{prop}' in {type}? Tutte le impostazioni per questa prop andranno perse.",
+    "unsaved_changes_title": "Modifiche non salvate",
+    "unsaved_changes_message": "Hai una nuova prop non salvata. Scartare le modifiche?",
+    "import_brick_title": "Importa Brick",
+    "new_brick_title": "Crea nuovo brick",
+    "rename_brick_title": "Modifica Brick",
+    "info": "Info",
+    "warning": "Avviso",
+    "import_verify_instructions_html": "Puoi verificare il brick cambiando l'estensione del file da .brick a .zip ed ispezionando i file all'interno."
+  },
+  "actions": {
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "discard": "Scarta",
+    "keep_editing": "Continua a modificare",
+    "save": "Salva",
+    "ok": "OK",
+    "rename": "Rinomina",
+    "duplicate": "Duplica",
+    "share": "Condividi",
+    "create": "Crea",
+    "login": "Accedi",
+    "register": "Registrati",
+    "remove": "Rimuovi",
+    "clear": "Cancella",
+    "confirm": "Conferma",
+    "reset": "Ripristina",
+    "resend_email": "Reinvia email"
+  },
+  "errors": {
+    "invalid_name": "Nome non valido (solo lettere)",
+    "name_taken": "Nome già in uso",
+    "copy_exists": "La copia esiste già",
+    "invalid_name_format": "Formato del nome non valido",
+    "duplicate_name": "Nome duplicato",
+    "name_exists": "Un brick con questo nome esiste già",
+    "invalid_input": "Input non valido",
+    "unexpected": "Si è verificato un errore imprevisto"
+  },
+  "placeholders": {
+    "prop_name": "Nome prop...",
+    "prop_description": "Inserisci la descrizione della prop (Markdown supportato)",
+    "brick_description": "Inserisci la descrizione del tuo brick...",
+    "email": "Email",
+    "brick_name": "Inserisci il nome del tuo brick"
+  },
+  "messages": {
+    "no_props": "Questo brick non ha prop!",
+    "work_in_progress": "Lavori in corso :P"
+  },
+  "tabs": {
+    "info": "Info",
+    "props": "Prop",
+    "emits": "Emit",
+    "permissions": "Permessi"
+  },
+  "auth": {
+    "signup": "Registrati",
+    "signin": "Accedi"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Conferma Password",
+    "name": "Nome"
+  },
+  "get_started": {
+    "slogan_line1": "che bello vederti qui!",
+    "slogan_line2": "Accedi o Registrati per fare parte della nostra famiglia"
+  },
+  "validation": {
+    "email_required": "L'email è richiesta",
+    "invalid_email": "Formato email non valido",
+    "password_required": "La password è richiesta",
+    "password_min": "La password deve contenere almeno 8 caratteri",
+    "password_max": "La password è troppo lunga",
+    "confirm_password": "Conferma la tua password",
+    "passwords_do_not_match": "Le password non corrispondono"
+  },
+  "notifications": {
+    "registered_title": "Registrazione completata con successo!",
+    "registered_message": "Abbiamo inviato un'email di conferma a {email}. Clicca sul link per attivare il tuo account.",
+    "email_sent_title": "Email inviata!",
+    "error_with_code": "Errore {code}",
+    "login_error_with_code": "Errore di accesso: {code}",
+    "bricks_loaded_title": "Brick caricati con successo!",
+    "bricks_loaded_message": "Tutti i brick sono stati caricati con successo",
+    "bricks_load_error_title": "Si è verificato un errore durante il caricamento dei brick",
+    "test_notification": "Notifica di test"
+  },
+  "bricks": {
+    "no_description": "Questo brick non ha alcuna descrizione."
+  },
+  "settings": {
+    "general": {
+      "title": "Impostazioni Generali"
+    },
+    "language": "Lingua",
+    "language_help": "Seleziona la tua lingua preferita",
+    "theme": "Tema",
+    "sidebar": {
+      "title": "Barra laterale"
+    },
+    "notifications": {
+      "title": "Notifiche"
+    },
+    "position": "Posizione",
+    "behavior": "Comportamento",
+    "taskbar": {
+      "title": "Comportamento Barra delle applicazioni",
+      "attention": "Attenzione",
+      "change_warning": "La modifica del comportamento della barra delle applicazioni potrebbe rendere la navigazione più difficile."
+    },
+    "start_menu": {
+      "title": "Menu Start",
+      "restart_hint": "Riavvia l'applicazione per applicare le modifiche al menu Start."
+    },
+    "windows_integration": "Integrazione con Windows",
+    "system_tray": {
+      "icon": "Icona System Tray",
+      "description": "Mostra BrickUI nell'area di notifica",
+      "hide_on_close": "Nascondi alla chiusura",
+      "hide_description": "Riduci ad icona nell'area di notifica invece di chiudere",
+      "reopen_hint": "Puoi riaprirlo facendo doppio clic sull'icona nell'area di notifica."
+    },
+    "autostart": {
+      "title": "Avvio automatico",
+      "description": "Avvia BrickUI all'avvio di Windows"
+    }
+  },
+  "array": {
+    "invalid_value_title": "Valore non valido",
+    "invalid_value_description": "Il valore \"{val}\" è stato rimosso perché è {reason}.",
+    "reason": {
+      "less_than": "minore di {n}",
+      "greater_than": "maggiore di {n}",
+      "too_short": "troppo corto (min {n})",
+      "too_long": "troppo lungo (max {n})"
+    },
+    "min_items": "Devi inserire almeno {min} elementi."
+  }
+}

@@ -106,13 +106,7 @@
 import { enable as enableAutoStart, isEnabled as isAutoStartEnabled, disable as disableAutoStart } from '@tauri-apps/plugin-autostart';
 import { SettingsIcon } from 'lucide-vue-next';
 import Header from '#components/Header.vue';
-import { 
-  notificationPositions,
-  sidebarPositions, 
-  startMenuBehaviors, 
-  taskBarBehaviors, 
-  themes 
-} from '#interfaces/settings';
+import { NOTIFICATION_POSITIONS, SIDEBAR_POSITIONS, STARTMENU_BEHAVIORS, TASKBAR_BEHAVIORS, THEMES } from '~/constants/settings';
 
 const { settings } = useAppState();
 const colorMode = useColorMode();
@@ -129,11 +123,11 @@ const languages = [
   { label: 'Italiano', value: 'it' }
 ];
 
-const themesOptions = themes.map((value) => formatOption(value));
-const sidebarPositionOptions = sidebarPositions.map((value) => formatOption(value));
-const notificationPositionOptions = notificationPositions.map((value) => formatOption(value));
-const taskBarBehaviorOptions = taskBarBehaviors.map((value) => formatOption(value));
-const startMenuBehaviorOptions = startMenuBehaviors.map((value) => formatOption(value));
+const themesOptions = THEMES.map((value) => formatOption(value));
+const sidebarPositionOptions = SIDEBAR_POSITIONS.map((value) => formatOption(value));
+const notificationPositionOptions = NOTIFICATION_POSITIONS.map((value) => formatOption(value));
+const taskBarBehaviorOptions = TASKBAR_BEHAVIORS.map((value) => formatOption(value));
+const startMenuBehaviorOptions = STARTMENU_BEHAVIORS.map((value) => formatOption(value));
 
 const headerSections = [
   { icon: SettingsIcon, label: t("settings") }

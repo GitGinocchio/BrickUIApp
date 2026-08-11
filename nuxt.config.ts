@@ -58,7 +58,8 @@ export default defineNuxtConfig({
     restructureDir: './src',
     langDir: 'locales',
     locales: [
-      { code: 'en', file: 'en.json' }
+      { code: 'en', file: 'en.json' },
+      { code: 'it', file: 'it.json' }
     ],
   },
 
