@@ -58,8 +58,7 @@ export default defineNuxtConfig({
     restructureDir: './src',
     langDir: 'locales',
     locales: [
-      { code: 'en', file: 'en.json' },
-      { code: 'it', file: 'it.json' }
+      { code: 'en', file: 'en.json' }
     ],
   },
 
@@ -70,7 +69,7 @@ export default defineNuxtConfig({
     tsConfig: {
       compilerOptions: {
         target: "ES2024",
-        lib: ["ES2024", "ES2024.Collection", "DOM", "DOM.Iterable"],
+        lib: ["ES2024", "ES2015", "ES2024.Collection", "DOM", "DOM.Iterable"],
         useDefineForClassFields: true,
         noUnusedLocals: true,
         noUnusedParameters: true,

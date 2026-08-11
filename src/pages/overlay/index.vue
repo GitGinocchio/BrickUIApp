@@ -10,21 +10,16 @@ import {
   handleClickThrough,
   simulateFakeMouseMoved,
   simulateFakeMousePressed,
-} from "../../utils/mouseClickThrough";
-import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../../loader";
+} from "#utils/mouseClickThrough";
+import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "~/loader";
 import { onBrickError, onBrickWarn } from "#utils/errors";
-import type { Brick, Prop } from "../../interfaces/brick";
-import type { Settings } from "../../interfaces/settings";
+import type { Brick, Prop } from "#interfaces";
+import type { Settings } from "#interfaces";
 
-const { settings, theme, bricks } = useAppState();
+const { settings, bricks } = useAppState();
 
 definePageMeta({
   layout: 'overlay'
-});
-
-const currentNotificationTheme = ref(theme.value.Notification);
-watchEffect(() => {
-  currentNotificationTheme.value = theme.value.Notification;
 });
 
 const currentWindow = getCurrentWindow();
@@ -79,8 +74,8 @@ onMounted(async () => {
 
     await initLoader(
       bricks.value,
-      async (...args) => await onBrickError(notification, ...args),
-      async (...args) => await onBrickWarn(notification, ...args)
+      async (...args) => await onBrickError(toast, ...args),
+      async (...args) => await onBrickWarn(toast, ...args)
     );
 
     notification.success({

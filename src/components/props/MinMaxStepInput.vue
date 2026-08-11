@@ -1,18 +1,19 @@
 <template>
-  <div>
+  <div class="space-y-4">
+    <!-- Min Value / Items -->
     <UFormField :label="minLabel">
       <div class="max-w-fit">
         <div class="relative flex items-center">
           <UInputNumber 
             class="w-full" 
-            v-model="prop.min"
-            :max="prop.max != undefined ? prop.max-step : undefined"
+            v-model="model.min"
+            :max="maxLimitForMin"
             :step="step"
             orientation="vertical"
-            @update:model-value="(value) => onMinUpdate(value)" 
+            @update:model-value="onMinUpdate" 
           />
           <div 
-            v-if="prop.min != undefined"
+            v-if="model.min != null"
             class="absolute right-8 flex items-center justify-center"
           >
             <UButton 
@@ -20,26 +21,27 @@
               variant="link" 
               color="primary"
               size="xs"
-              @click.stop="prop.min = undefined" 
+              @click.stop="model.min = null" 
             />
           </div>
         </div>
       </div>
-
     </UFormField>
+
+    <!-- Max Value / Items -->
     <UFormField :label="maxLabel">
       <div class="max-w-fit">
         <div class="relative flex items-center">
           <UInputNumber 
             class="w-full"
-            :min="prop.min != undefined ? prop.min+step : undefined"
+            :min="minLimitForMax"
             :step="step"
-            v-model="prop.max"
+            v-model="model.max"
             orientation="vertical"
-            @update:model-value="(value) => onMaxUpdate(value)" 
+            @update:model-value="onMaxUpdate" 
           />
           <div
-            v-if="prop.max != undefined"
+            v-if="model.max != null"
             class="absolute right-8 flex items-center justify-center"
           >
             <UButton 
@@ -47,34 +49,34 @@
               variant="link" 
               color="primary"
               size="xs"
-              @click.stop="prop.max = undefined" 
+              @click.stop="model.max = null" 
             />
           </div>
         </div>
       </div>
     </UFormField>
-    <UFormField label="Step value:" v-if="prop.prop_type == 'Int' || prop.prop_type == 'Float'">
+
+    <UFormField label="Step value:" v-if="model.prop_type === 'Int' || model.prop_type === 'Float'">
       <div class="max-w-fit">
         <div class="relative flex items-center">
           <UInputNumber 
             class="w-full"
-            :min="prop.prop_type == 'Int' ? 1 : 0.01"
-            :step="prop.prop_type == 'Int' ? 1 : 0.01"
-            :max="prop.min || undefined"
+            :min="model.prop_type === 'Int' ? 1 : 0.01"
+            :step="model.prop_type === 'Int' ? 1 : 0.01"
             :default-value="step"
-            v-model="prop.step"
+            v-model="model.step"
             orientation="vertical"
           />
           <div
-            v-if="prop.step != undefined"
+            v-if="model.step != null"
             class="absolute right-8 flex items-center justify-center"
           >
-            <UButton 
+            <UButton
               icon="i-lucide-circle-x" 
               variant="link" 
               color="primary"
               size="xs"
-              @click.stop="prop.step = undefined" 
+              @click.stop="model.step = null" 
             />
           </div>
         </div>
@@ -84,79 +86,88 @@
 </template>
 
 <script lang="ts" setup>
-import type { ArrayPropType, NumericPropType, SelectablePropType } from '~/interfaces/brick';
+import { computed } from 'vue';
+import type { NumericOrCollectionProp } from '~/interfaces';
 
-const prop = defineModel<SelectablePropType<number|string> | ArrayPropType<number|string> | NumericPropType<'Int'|'Float'>>("prop");
+const model = defineModel<NumericOrCollectionProp>('prop', { required: true });
 
+const isNumericProp = computed(() =>
+  model.value.prop_type === 'Int' || model.value.prop_type === 'Float'
+);
+
+// Calcolo dinamico dello Step
 const step = computed(() => {
-  switch (prop.value.prop_type) {
-    case 'Float':
-      return prop.value.step || 0.01
-    case 'Int':
-      return prop.value.step || 1
-    case 'Array':
-    case 'Select':
-      break;
+  const p = model.value;
+
+  if (p.prop_type === 'Float') return p.step ?? 0.01;
+  if (p.prop_type === 'Int') return p.step ?? 1;
+
+  // Caso Array o Select
+  if ('value_type' in p) {
+    switch (p.value_type) {
+      case 'Float': return 0.1;
+      case 'Integer':
+      case 'String': 
+      default: return 1;
+    }
   }
 
-  switch (prop.value.value_type) {
-    case 'Float':
-      return 0.1
-    case 'Integer':
-    case 'String':
-      return 1
+  return 1;
+});
+
+// Etichette dinamiche
+const minLabel = computed(() => isNumericProp.value ? 'Min value:' : 'Min items:');
+const maxLabel = computed(() => isNumericProp.value ? 'Max value:' : 'Max items:');
+
+// Limiti incrociati per gli input numerici
+const maxLimitForMin = computed(() => {
+  if (model.value.max != null) {
+    return Number(model.value.max) - step.value;
   }
-})
+  return undefined;
+});
 
-const minLabel = computed(() => 
-  ['Int', 'Float'].includes(prop.value.prop_type) ? 'Min value:' : 'Min items:'
-);
+const minLimitForMax = computed(() => {
+  if (model.value.min != null) {
+    return Number(model.value.min) + step.value;
+  }
+  return undefined;
+});
 
-const maxLabel = computed(() => 
-  ['Int', 'Float'].includes(prop.value.prop_type) ? 'Max value:' : 'Max items:'
-);
+// Handler aggiornamento Max
+function onMaxUpdate(max: number | null) {
+  if (max == null) return;
+  const p = model.value;
 
-function onMaxUpdate(max: number) {
-  const p = prop.value;
-
-  switch (p.prop_type) {
-    case 'Float':
-    case 'Int':
-      if (p.value > max) {
-        p.value = max;
-      }
-      if (p.default > max) {
-        p.default = max;
-      }
-      break;
-    case 'Array':
-    case 'Select':
-      if (p.value.length > max) {
-        p.value = p.value.slice(0, max);
-      }
-      if (p.default.length > max) {
-        p.default = p.default.slice(0, max);
-      }
-      break;
-
+  if (p.prop_type === 'Float' || p.prop_type === 'Int') {
+    if (typeof p.value === 'number' && p.value > max) {
+      p.value = max;
+    }
+    if (typeof p.default === 'number' && p.default > max) {
+      p.default = max;
+    }
+  } else if (p.prop_type === 'Array' || p.prop_type === 'Select') {
+    if (Array.isArray(p.value) && p.value.length > max) {
+      p.value = p.value.slice(0, max);
+    }
+    if (Array.isArray(p.default) && p.default.length > max) {
+      p.default = p.default.slice(0, max);
+    }
   }
 }
 
-function onMinUpdate(min: number) {
-  const p = prop.value;
+// Handler aggiornamento Min
+function onMinUpdate(min: number | null) {
+  if (min == null) return;
+  const p = model.value;
 
-  switch (p.prop_type) {
-    case 'Float':
-    case 'Int':
-      if (typeof p.value === 'number' && p.value < min) {
-        p.value = min;
-      }
-      
-      if (typeof p.default === 'number' && p.default < min) {
-        p.default = min;
-      }
+  if (p.prop_type === 'Float' || p.prop_type === 'Int') {
+    if (typeof p.value === 'number' && p.value < min) {
+      p.value = min;
+    }
+    if (typeof p.default === 'number' && p.default < min) {
+      p.default = min;
+    }
   }
-
-  // Nel caso di select o array non fa niente perche' andrebbe invalidato il form...
 }
 </script>

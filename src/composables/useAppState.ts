@@ -1,10 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, once } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { darkTheme, lightTheme } from "naive-ui";
-import type { Brick } from "~/interfaces/brick";
-import type { Settings } from "~/interfaces/settings";
-import type { User } from "~/interfaces/user";
+import type { Brick } from "~/interfaces";
+import type { Settings } from "~/interfaces";
+import type { User } from "~/interfaces";
 
 /**
  * Recupera i dati iniziali dal backend Rust (BrickUI Core)
@@ -122,14 +121,5 @@ export const useAppState = () => {
     }
   };
 
-  const theme = computed(() => {
-    switch (settings.value?.theme) {
-      case "light": return lightTheme;
-      case "dark": return darkTheme;
-      case "system": return systemIsDark.value ? darkTheme : lightTheme;
-      default: return darkTheme;
-    }
-  });
-
-  return { settings, bricks, user, theme, systemIsDark, init, isReady, isMain, isSidebarOpen, isSidebarHidden };
+  return { settings, bricks, user, systemIsDark, init, isReady, isMain, isSidebarOpen, isSidebarHidden };
 };

@@ -10,7 +10,7 @@
           description="Careful when importing bricks from untrusted sources" 
         />
         <UAlert 
-                  :title="t('modals.info')" 
+          :title="t('modals.info')" 
           color="info"
           variant="soft" 
           icon="i-lucide-info" 

@@ -2,6 +2,7 @@
   <div class="flex flex-col w-full space-y-6">
     <UFormField :label="t('placeholders.prop_description')">
       <UTextarea
+        v-if="prop.prop_type !== 'Unknown' && prop.prop_type !== 'Deprecated'"
         v-model="prop.description"
         :placeholder="t('placeholders.prop_description')"
         class="w-full"
@@ -43,33 +44,35 @@
 
     <MinMaxStepInput
       class="flex flex-row w-full gap-4" 
-      v-if="prop.prop_type == 'Array' 
-        || prop.prop_type == 'Select'
-        || prop.prop_type == 'Int'
-        || prop.prop_type == 'Float'"
+      v-if="isValidProp(prop) && (isCollectionProp(prop) || isNumericProp(prop))"
       v-model:prop="prop"
     />
 
     <UFormField v-if="shouldShowDefaultInput" :label="t('props.default_value')">
-      <component :is="renderDefaultComponent" class="w-full" :prop="prop" :editMode="true" />
+      <component :is="renderDefaultComponent" class="w-full" :prop="(prop as any)" :editMode="true" />
     </UFormField>
 
     <div v-if="['Date', 'Datetime'].includes(prop.prop_type)" class="flex gap-4">
-      :label="t('props.allow_past')">
-        <USwitch v-model="(prop as DatePropType<any>).allow_past" @update:model-value="v => toggleDateConstraint('past', v)" />
+      <UFormField
+        :label="t('props.allow_past')"
+      >
+        <USwitch v-model="(prop as DatePropType).allow_past" @update:model-value="v => toggleDateConstraint('past', v)" />
       </UFormField>
       <UFormField label="Allow future:">
-        <USwitch v-model="(prop as DatePropType<any>).allow_future" @update:model-value="v => toggleDateConstraint('future', v)" />
+        <USwitch v-model="(prop as DatePropType).allow_future" @update:model-value="v => toggleDateConstraint('future', v)" />
       </UFormField>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { type Prop, createProp, type PropTypeValue, propTypeValues, type DatePropType } from '#interfaces/brick';
+import { type AllPropsType, type DatePropType, type ValidPropType } from '#interfaces'
 import type { SelectMenuItem } from '@nuxt/ui';
 import Array from '../inputs/Array.vue';
 import MinMaxStepInput from './MinMaxStepInput.vue';
+import type { Prop } from '~/interfaces/generated/Prop.ts';
+import { VALID_PROPS_TYPES } from '~/constants/props.ts';
+import { createProp, isCollectionProp, isKnownProp, isNumericProp, isValidProp } from '~/utils/props.ts';
 
 // --- Props & Emits ---
 const prop = defineModel<Prop>("prop", { required: true });
@@ -92,7 +95,7 @@ const renderDefaultComponent = computed(() => {
 });
 
 // --- Mapping Icone ---
-const iconsMap: Record<PropTypeValue, string> = {
+const iconsMap: Record<AllPropsType, string> = {
   Select: 'i-lucide-list-todo',
   Array: 'i-lucide-list',
   String: 'i-lucide-type',
@@ -111,7 +114,7 @@ const iconsMap: Record<PropTypeValue, string> = {
 };
 
 // --- Computed ---
-function asOption(v: PropTypeValue): SelectMenuItem {
+function asOption(v: AllPropsType): SelectMenuItem {
   return {
     label: v.replace(/([A-Z])/g, " $1").trim(),
     type: 'item',
@@ -121,9 +124,7 @@ function asOption(v: PropTypeValue): SelectMenuItem {
 }
 const { t } = useI18n();
 const propTypeOption = computed(() => asOption(prop.value.prop_type));
-const propTypeOptions: SelectMenuItem[] = propTypeValues
-  .filter((v) => !['Deprecated', 'Unknown'].includes(v))
-  .map((v) => asOption(v));
+const propTypeOptions: SelectMenuItem[] = VALID_PROPS_TYPES.map((v) => asOption(v));
 
 const valueTypeOptions = [
   { label: 'String', value: 'String', icon: 'i-lucide-type' },
@@ -134,13 +135,19 @@ const valueTypeOptions = [
 const shouldShowDefaultInput = computed(() => prop.value.prop_type !== 'Null');
 
 // --- Methods ---
-function onNewPropTypeSelected(newPropType: { label: string, value: PropTypeValue, icon: string }) {
+async function onNewPropTypeSelected(newPropType: { label: string, value: ValidPropType, icon: string }) {
   if (prop.value.prop_type === newPropType.value) return;
 
   const update = () => {
     const current = prop.value;
     const subType = (newPropType.value === 'Select' || newPropType.value === 'Array') ? 'String' : null;
-    prop.value = createProp(newPropType.value, current.prop_name, current.description, subType);
+
+    prop.value = createProp(
+      newPropType.value, 
+      isKnownProp(current) ? current.prop_name : 'Unknown', 
+      isKnownProp(current) ? current.description : '', 
+      subType
+    );
   };
 
   if (props.showAlertOnTypeChange === false) {
@@ -148,21 +155,19 @@ function onNewPropTypeSelected(newPropType: { label: string, value: PropTypeValu
     return;
   }
 
-  // Confirmation is required before changing a prop's type because settings are lost.
-    // Use the global confirm modal when available.
-    const { confirm: showConfirm } = useConfirmModal();
-    const { t } = useI18n();
-    const ok = await showConfirm({
-      title: t('modals.change_prop_type_title', 'Change prop type'),
-      message: t('modals.change_prop_type_message', { prop: prop.value.prop_name, type: newPropType.value }),
-      confirmLabel: t('actions.save', 'Yes, change'),
-      cancelLabel: t('actions.cancel', 'Cancel'),
-      color: 'primary'
-    });
+  const { confirm: showConfirm } = useConfirmModal();
+  const { t } = useI18n();
+  const ok = await showConfirm({
+    title: t('modals.change_prop_type_title', 'Change prop type'),
+    message: t('modals.change_prop_type_message', { prop: prop.value.prop_type != 'Unknown' ? prop.value.prop_name : '', type: newPropType.value }),
+    confirmLabel: t('actions.save', 'Yes, change'),
+    cancelLabel: t('actions.cancel', 'Cancel'),
+    color: 'primary'
+  });
 
-    if (ok) {
-      update();
-    }
+  if (ok) {
+    update();
+  }
 }
 
 function onValueTypeChanged() {

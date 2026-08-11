@@ -25,19 +25,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import type { CollectionValueType } from '~/interfaces/brick';
+import { ref, computed, watch, type PropType } from 'vue';
+import type { CollectionValueTypes } from '~/interfaces';
 
 const toast = useToast();
 const { t } = useI18n();
 
-const tags = defineModel<any[]>("value", { 
-  default: [], 
+type TagValue = string | number;
+
+const tags = defineModel<TagValue[]>("value", { 
+  default: () => [], 
   get: (v) => (Array.isArray(v) ? v.map(String) : []),
-  set: (newTags: any[]) => {
-    let processed = newTags;
+  set: (newTags: TagValue[]) => {
+    let processed: (string | number)[] = newTags;
     if (props.value_type === 'Integer') {
-      processed = newTags.map(v => parseInt(v)).filter(n => !isNaN(n));
+      processed = newTags.map(v => parseInt(String(v), 10)).filter(n => !isNaN(n));
     } else if (props.value_type === 'Float') {
       processed = newTags.map(v => parseFloat(String(v).replace(',', '.'))).filter(n => !isNaN(n));
     }
@@ -80,12 +82,12 @@ const props = defineProps({
     default: null
   },
   value_type: {
-    type: Object as PropType<CollectionValueType>,
+    type: Object as PropType<CollectionValueTypes>,
     default: 'String'
   },
   default: {
-    type: Object as PropType<any[]>,
-    default: []
+    type: Array as PropType<TagValue[]>,
+    default: () => []
   },
   show_reset: { 
     type: Boolean, 
@@ -104,19 +106,19 @@ function validateValue(value: string | number): [boolean, { key: string, params?
   let reasonObj: { key: string, params?: Record<string, any> } | null = null;
 
   if (props.value_type === 'Integer' || props.value_type === 'Float') {
-    if (props.min_value !== undefined && (value as number) < props.min_value) {
+    if (props.min_value !== undefined && props.min_value !== null && (value as number) < props.min_value) {
       isValid = false;
       reasonObj = { key: 'array.reason.less_than', params: { n: props.min_value } };
-    } else if (props.max_value !== undefined && (value as number) > props.max_value) {
+    } else if (props.max_value !== undefined && props.max_value !== null && (value as number) > props.max_value) {
       isValid = false;
       reasonObj = { key: 'array.reason.greater_than', params: { n: props.max_value } };
     }
   } else {
     const len = String(value).length;
-    if (props.min_value !== undefined && len < props.min_value) {
+    if (props.min_value !== undefined && props.min_value !== null && len < props.min_value) {
       isValid = false;
       reasonObj = { key: 'array.reason.too_short', params: { n: props.min_value } };
-    } else if (props.max_value !== undefined && len > props.max_value) {
+    } else if (props.max_value !== undefined && props.max_value !== null && len > props.max_value) {
       isValid = false;
       reasonObj = { key: 'array.reason.too_long', params: { n: props.max_value } };
     }
@@ -130,8 +132,8 @@ const isDirty = computed(() => {
 });
 
 watch(() => tags.value, (newVal) => {
-  if (props.min && newVal.length < props.min) {
-      errorMsg.value = t('array.min_items', { min: props.min });
+  if (props.min && newVal && newVal.length < props.min) {
+    errorMsg.value = t('array.min_items', { min: props.min });
   } else {
     errorMsg.value = false;
   }

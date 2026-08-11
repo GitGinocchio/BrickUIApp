@@ -14,7 +14,7 @@
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="soft" :label="t('actions.cancel')" @click="isOpen = false" />
         <UButton 
-                  :label="t('actions.save')" 
+          :label="t('actions.save')" 
           :disabled="!newName || !!feedback" 
           @click="onSave" 
         />
@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { BRICK_NAME_REGEX } from "~/constants/brick";
-import type { Brick } from "~/interfaces/brick";
+import type { Brick } from "~/interfaces";
 
 const { bricks } = useAppState();
 const { renameBrick } = useBrickActions();

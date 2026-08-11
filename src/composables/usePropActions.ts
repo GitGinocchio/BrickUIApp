@@ -1,4 +1,5 @@
-import type { Brick, Prop } from "~/interfaces/brick";
+import type { Brick, Prop, ValidProp } from "~/interfaces";
+import { isValidProp } from "~/utils/props";
 
 
 
@@ -13,14 +14,14 @@ export const usePropActions = () => {
         saveBrick(brick);
     }
 
-    const duplicateProp = (brick: Brick, prop: Prop) => {
+    const duplicateProp = (brick: Brick, prop: ValidProp) => {
         const copyName = `${prop.prop_name}Copy`;
-        if (brick.props.some(p => p.prop_name === copyName)) {
+        if (brick.props.some(p => isValidProp(p) && p.prop_name === copyName)) {
             toast.add({ title: t('errors.copy_exists'), description: '', color: 'error' });
             return;
         }
 
-        const index = brick.props.findIndex(p => p.prop_name === prop.prop_name);
+        const index = brick.props.findIndex(p => isValidProp(p) && p.prop_name === prop.prop_name);
         brick.props.splice(index + 1, 0, { ...prop, prop_name: copyName });
         saveBrick(brick);
     }
@@ -35,14 +36,14 @@ export const usePropActions = () => {
         }
     }
 
-    const openDeletePropModal = async (brick: Brick, prop: Prop) => {
+    const openDeletePropModal = async (brick: Brick, prop: ValidProp) => {
         const { confirm } = useConfirmModal();
         const ok = await confirm({
             title: t('modals.delete_prop_title', 'Delete prop'),
             message: t('modals.delete_prop_message', `Are you sure you want to delete '${prop.prop_name}'?`),
             confirmLabel: t('actions.delete', 'Delete'),
             cancelLabel: t('actions.cancel', 'Cancel'),
-            color: 'danger'
+            color: 'error'
         });
 
         if (ok) {

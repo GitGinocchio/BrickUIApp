@@ -20,6 +20,7 @@
     </Header>
 
     <div class="card-content">
+      <div>
         <div class="profile-picture">
           <img src="..." alt="User Photo" width="128" height="128" class="rounded-full object-cover" />
           <div v-if="editMode" class="button" text>
@@ -68,7 +69,7 @@
           </EditableField>
         </div>
       </div>
-    </NCard>
+    </div>
 
     <div class="card-content">
       <div class="user-info">
@@ -111,19 +112,16 @@
         </EditableField>
       </div>
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import { UserRound, Pencil, Settings2, Upload, UserIcon, SaveAllIcon, Trash2Icon } from 'lucide-vue-next';
+import { Pencil, Settings2, Upload, UserIcon, SaveAllIcon, Trash2Icon } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
 
-// Use NuxtUI components
-// UInput/UButton are globally available; use toast for notifications
 const toast = useToast();
 
-import type { User } from '#interfaces/user';
+import type { User } from '#interfaces';
 import Header from '#components/Header.vue';
 import EditableField from '#components/EditableField.vue';
 
@@ -131,10 +129,8 @@ const headerSections = [
   { defaultIcon: () => h(UserIcon), label: 'User' }
 ]
 
-const _notify = useNotification();
-
 const loading = ref<boolean>(true);
-const user = ref<User>();
+const user = ref<Partial<User>>();
 
 const editMode = ref<boolean>(false);
 const editUser = ref<Partial<User>>({});
@@ -172,17 +168,18 @@ const displayBio = computed(() => {
   }
 })
 
-function hasChangesForField(key: keyof User) {
-  const newVal = editUser.value[key]
-  const oldVal = user.value[key]
+function hasChangesForField<K extends keyof User>(key: K): boolean {
+  const newVal = (editUser.value as Record<string, unknown> | undefined)?.[key as string];
+  const oldVal = (user.value as Record<string, unknown> | undefined)?.[key as string];
 
-  const normalize = (v: any) => {
-    if (v === null || v === undefined) return ''
-    if (typeof v === 'string') return v.trim()
-    return v
-  }
+  const normalize = (v: unknown): string | number | boolean => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v.trim();
+    if (typeof v === 'object') return JSON.stringify(v);
+    return v as string | number | boolean;
+  };
 
-  return normalize(newVal) !== normalize(oldVal)
+  return normalize(newVal) !== normalize(oldVal);
 }
 
 async function onEditConfirm() {
@@ -196,13 +193,13 @@ async function onEditConfirm() {
     user.value = updated
   }
 
-  editUser.value = {}
+  editUser.value = {} as Partial<User>
   editMode.value = false
 }
 
 
 async function onEditDiscard() {
-  editUser.value = {};
+  editUser.value = {} as Partial<User>;
   editMode.value = false;
 }
 

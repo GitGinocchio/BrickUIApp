@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import ColorPicker from '~/components/inputs/ColorPicker.vue';
-import type { ColorPropType } from '~/interfaces/brick';
+import type { ColorPropType } from '~/interfaces';
 
 const prop = defineModel<ColorPropType>("prop");
 

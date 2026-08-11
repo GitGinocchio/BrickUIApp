@@ -27,7 +27,7 @@
             />
           </div>
           
-          <!-- Azioni che avevi in NaiveUI -->
+          <!-- Azioni -->
           <div class="flex border-t border-neutral-200 dark:border-neutral-800 pt-2 gap-2">
             <UButton v-if="enable_saved" size="xs" variant="ghost" icon="i-lucide-save" :label="t('actions.save')" @click="saveColor" />
             <UButton v-if="enable_saved" size="xs" variant="ghost" color="error" icon="i-lucide-trash" :label="t('actions.remove')" @click="removeColor" />
@@ -61,10 +61,11 @@
 
 <script lang="ts" setup>
 import type { PropType } from 'vue';
+
 const { t } = useI18n();
 
 const color = defineModel<string>("color", { required: true });
-const saved = defineModel<string[]>("saved", { default: [] });
+const saved = defineModel<string[]>("saved", { default: () => [] });
 
 type Format = "hex" | "rgb" | "hsl" | "cmyk" | "lab";
 
@@ -75,9 +76,9 @@ const props = defineProps({
     default: "hex"
   },
   swatches: {
-    type: Object as PropType<string[]>,
+    type: Array as PropType<string[]>,
     required: false,
-    default: []
+    default: () => []
   },
   enable_swatches: {
     type: Boolean,
@@ -99,7 +100,7 @@ const props = defineProps({
     required: false,
     default: '#000000'
   }
-})
+});
 
 const saveColor = () => {
   if (!saved.value.includes(color.value)) {
@@ -108,7 +109,7 @@ const saveColor = () => {
 };
 
 const clearColor = () => {
-  color.value = props.default
+  color.value = props.default;
 };
 
 const removeColor = () => {
@@ -117,7 +118,3 @@ const removeColor = () => {
   }
 };
 </script>
-
-<style>
-
-</style>

@@ -18,9 +18,8 @@ pub struct Stop {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
-#[ts(rename = "GradientPropType")]
 #[schemars(description = "Gradient property container.")]
-pub struct Gradient {
+pub struct GradientPropType {
     #[serde(flatten)]
     pub base: PropMeta,
 

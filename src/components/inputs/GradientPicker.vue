@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import type { GradientType, GradientStop } from '#interfaces/brick';
+import type { GradientType, GradientStop } from '#interfaces';
 import type { PropType } from 'vue';
 
 const steps = defineModel<GradientStop[]>("value", { default: () => [] });

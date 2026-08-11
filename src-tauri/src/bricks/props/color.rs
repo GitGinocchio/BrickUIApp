@@ -6,7 +6,7 @@ use super::PropMeta;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Color property container.")]
-pub struct Color {
+pub struct ColorPropType {
     #[serde(flatten)]
     pub base: PropMeta,
 

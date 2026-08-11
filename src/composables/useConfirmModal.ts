@@ -1,22 +1,30 @@
 import { reactive } from 'vue';
 
-type ConfirmOptions = {
+export type ConfirmColor = "neutral" | "primary" | "error" | "secondary" | "success" | "info" | "warning";
+
+// Opzioni passabili dall'utente alla funzione confirm()
+export type ConfirmInputOptions = {
   title?: string;
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  color?: string;
+  color?: ConfirmColor;
 };
 
-const state = reactive({
+// Stato interno completo gestito dal composable
+export type ConfirmState = ConfirmInputOptions & {
+  open: boolean;
+  _resolve?: (value: boolean) => void;
+};
+
+const state = reactive<ConfirmState>({
   open: false,
-  title: '' as string | null,
-  message: '' as string | null,
-  confirmLabel: '' as string | null,
-  cancelLabel: '' as string | null,
+  title: '',
+  message: '',
+  confirmLabel: '',
+  cancelLabel: '',
   color: 'neutral',
-  // internal
-  _resolve: undefined as ((value: boolean) => void) | undefined,
+  _resolve: undefined,
 });
 
 export function useConfirmModalState() {
@@ -24,8 +32,8 @@ export function useConfirmModalState() {
 }
 
 export function useConfirmModal() {
-  async function confirm(opts: ConfirmOptions | string): Promise<boolean> {
-    const o = typeof opts === 'string' ? { message: opts } : opts || {};
+  async function confirm(opts: ConfirmInputOptions | string): Promise<boolean> {
+    const o: ConfirmInputOptions = typeof opts === 'string' ? { message: opts } : opts || {};
 
     const { t } = useI18n();
 

@@ -1,4 +1,4 @@
-import { type Brick } from "#interfaces/brick";
+import { type Brick } from "#interfaces";
 import { type Component } from "vue";
 
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";

@@ -27,9 +27,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { NumericPropType } from '~/interfaces/brick';
+import type { NumericPropType } from '~/interfaces';
 
-const prop = defineModel<NumericPropType<'Int' | 'Float'>>("prop");
+const prop = defineModel<NumericPropType<number>>("prop");
 
 const props = defineProps({
   editMode: {

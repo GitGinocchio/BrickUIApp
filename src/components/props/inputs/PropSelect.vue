@@ -11,9 +11,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { SelectablePropType } from '~/interfaces/brick';
+import type { SelectPropType } from '~/interfaces';
 
-const prop = defineModel<SelectablePropType<any>>("prop");
+const prop = defineModel<SelectPropType>("prop");
 const props = defineProps({
   editMode: {
     type: Boolean,

@@ -14,7 +14,7 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton 
-                  :label="t('actions.cancel')" 
+          :label="t('actions.cancel')" 
           color="neutral" 
           variant="soft" 
           @click="isOpen = false" 
@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { BRICK_NAME_REGEX } from "~/constants/brick";
-import type { Brick } from "~/interfaces/brick";
+import type { Brick } from "~/interfaces";
 
 const { bricks } = useAppState(); 
 const { newBrick } = useBrickActions();

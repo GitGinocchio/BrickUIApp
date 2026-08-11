@@ -95,7 +95,7 @@ import PropsPanel from "~/components/props/PropsPanel.vue";
 
 import MarkdownIt from "markdown-it";
 import { appDataDir, sanitizePath } from "#utils/path";
-import type { Brick } from "#interfaces/brick";
+import type { Brick } from "#interfaces";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import type { DropdownMenuItem } from "@nuxt/ui";

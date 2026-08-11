@@ -2,14 +2,15 @@
   <div class="brick-prop-container w-full">
     <component 
       :is="renderComponent"
-      v-model:prop="prop"
+      v-model:prop="(prop as any)"
       v-bind="dynamicProps"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Prop } from '~/interfaces/brick';
+import type { Prop } from '~/interfaces';
+import { isNotNullProp, isValidProp } from '~/utils/props.ts';
 
 const { updateBrickProp } = useBrickActions();
 
@@ -43,7 +44,7 @@ const emit = defineEmits<{
   (e: 'save'): void
 }>()
 
-watch(() => prop.value.value, () => {
+watch(() => isValidProp(prop.value) && isNotNullProp(prop.value) ? prop.value.value : null, () => {
   updateBrickProp(props.brick_name, prop.value);
   emit("save");
 }, { deep: true })

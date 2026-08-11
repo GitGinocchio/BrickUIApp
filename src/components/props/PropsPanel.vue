@@ -75,7 +75,7 @@
       <template #item="{ element, index }">
         <div class="prop-row draggable group relative py-2">
           <UAccordion
-            :items="[{ slot: 'content', label: element.prop_name, disabled: editMode ? false : element.description == null || element.description == '' }]"
+            :items="getAccordionItems(element)"
             :unmount-on-hide="false"
             :ui="{ trailingIcon: 'hidden', label: 'hidden', trigger: 'py-0 cursor-auto' }"
             multiple
@@ -84,9 +84,9 @@
             <template #leading="{ item, open }">
               <div class="flex items-center w-full py-2 px-2 gap-1">
                 <UIcon :name="open ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" v-if="editMode" />
-                <UIcon :name="open ? 'i-lucide-circle-x' : 'i-lucide-circle-question-mark'" v-else-if="!editMode && element.description" />
+                <UIcon :name="open ? 'i-lucide-circle-x' : 'i-lucide-circle-question-mark'" v-else-if="!editMode && isValidProp(element) && element.description" />
                 <div class="flex items-center gap-2">
-                  <div v-if="editingPropNames.has(element.prop_name)" @click.stop>
+                  <div v-if="isValidProp(element) && editingPropNames.has(element.prop_name)" @click.stop>
                     <UInput
                       :model-value="editingPropNames.get(element.prop_name)"
                       @update:model-value="(val) => editingPropNames.set(element.prop_name, val)"
@@ -94,7 +94,7 @@
                       size="xs"
                     />
                   </div>
-                  <span v-else class="font-semibold text-sm">{{ element.prop_name }}</span>
+                  <span v-else class="font-semibold text-sm">{{ isValidProp(element) ? element.prop_name : 'INVALID_PROP' }}</span>
                 </div>
               </div>
             </template>
@@ -104,7 +104,7 @@
               <div class="flex items-center justify-center gap-0.5">
                 <div class="hidden group-hover:flex items-center justify-center gap-1" v-if="editMode">
                   <UButton
-                    v-if="editingPropNames.has(element.prop_name)"
+                    v-if="isValidProp(element) && editingPropNames.has(element.prop_name)"
                     icon="i-lucide-circle-x"
                     color="neutral"
                     variant="ghost"
@@ -112,14 +112,26 @@
                     @click.stop="togglePropNameEditMode(element)"
                   />
                   <UButton
-                    :icon="editingPropNames.has(element.prop_name) ? 'i-lucide-save' : 'i-lucide-pencil'"
+                    :icon="isValidProp(element) && editingPropNames.has(element.prop_name) ? 'i-lucide-save' : 'i-lucide-pencil'"
                     color="neutral"
                     variant="ghost"
                     size="xs"
-                    @click.stop="editingPropNames.has(element.prop_name) ? onSavePropName(element) : togglePropNameEditMode(element)"
+                    @click.stop="isValidProp(element) && editingPropNames.has(element.prop_name) ? onSavePropName(element) : isValidProp(element) && togglePropNameEditMode(element)"
                   />
-                  <UButton icon="i-lucide-copy" color="neutral" variant="ghost" size="xs" @click.stop="duplicateProp(brick, element)" />
-                  <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click.stop="onRemoveProp(element)" />
+                  <UButton 
+                    icon="i-lucide-copy" 
+                    color="neutral" 
+                    variant="ghost" 
+                    size="xs" 
+                    @click.stop="() => isValidProp(element) && duplicateProp(brick, element)" 
+                  />
+                  <UButton 
+                    icon="i-lucide-trash-2" 
+                    color="error" 
+                    variant="ghost" 
+                    size="xs" 
+                    @click.stop="() => isValidProp(element) && onRemoveProp(element)" 
+                  />
                 </div>
                 <UIcon 
                   v-if="editMode && !open"
@@ -138,7 +150,7 @@
                   :all-props="brick.props"
                 />
                 <p v-else class="text-xs text-gray-500 italic">
-                  {{ element.description }}
+                  {{ isValidProp(element) ? element.description : 'INVALID_PROP' }}
                 </p>
               </div>
             </template>
@@ -159,12 +171,13 @@
 </template>
 
 <script setup lang="ts">
-import { type Brick, type Prop } from '~/interfaces/brick';
+import { type Brick, type Prop, type ValidProp } from '~/interfaces';
 import { Sortable } from 'sortablejs-vue3'
 import PropViewWrapper from './PropViewMode.vue';
 import PropEditWrapper from './PropEditMode.vue';
 import PropEditMode from './PropEditMode.vue';
 import { type SortableOptions } from 'sortablejs';
+import { isValidProp } from '~/utils/props.ts';
 const { saveBrick } = useBrickActions();
 const { duplicateProp, changePropOrder,  openDeletePropModal } = usePropActions();
 const { confirm: showConfirm } = useConfirmModal();
@@ -175,7 +188,7 @@ const { confirm: showConfirm } = useConfirmModal();
 const brick = defineModel<Brick>("brick", { required: true });
 
 // State
-const newProp = ref<Prop | null>(null);
+const newProp = ref<ValidProp | null>(null);
 const editMode = ref(false);
 const editingPropNames = ref<Map<string, string>>(new Map());
 const layout = ref<'grid' | 'list' | 'adaptive'>('adaptive');
@@ -201,6 +214,24 @@ const sortableOptions = computed<SortableOptions>(() => {
   };
 });
 
+function getAccordionItems(element: Prop) {
+  const isValid = isValidProp(element);
+
+  // Se è valido, verifichiamo se la descrizione è vuota
+  const hasNoDescription = isValid 
+    ? !element.description?.trim() 
+    : true;
+
+  return [
+    {
+      slot: 'content',
+      label: isValid ? element.prop_name : 'INVALID_PROP',
+      // In editMode non è mai disabilitato; altrimenti si disabilita se la prop non è valida o non ha descrizione
+      disabled: editMode.value ? false : hasNoDescription,
+    }
+  ];
+}
+
 async function onToggleEditMode() {
   if (!editMode.value) {
     saveBrick(brick.value);
@@ -210,7 +241,7 @@ async function onToggleEditMode() {
   newProp.value = null;
 }
 
-function togglePropNameEditMode(prop: Prop) {
+function togglePropNameEditMode(prop: ValidProp) {
   if (editingPropNames.value.has(prop.prop_name)) {
     editingPropNames.value.delete(prop.prop_name);
   } else {
@@ -218,7 +249,7 @@ function togglePropNameEditMode(prop: Prop) {
   }
 }
 
-function onSavePropName(prop: Prop) {
+function onSavePropName(prop: ValidProp) {
   const isCreating = prop === newProp.value;
   const oldName = prop.prop_name;
   const newName = isCreating 
@@ -230,7 +261,7 @@ function onSavePropName(prop: Prop) {
     return;
   }
 
-  if (brick.value.props.some(p => p.prop_name === newName && p !== prop)) {
+  if (brick.value.props.some(p => isValidProp(p) && p.prop_name === newName && p !== prop)) {
     toast.add({ title: t('errors.name_taken'), description: '', color: 'error' });
     return;
   }
@@ -250,7 +281,7 @@ const onNewProp = () => {
   newProp.value = { prop_type: 'Null', prop_name: '' };
 };
 
-async function onRemoveProp(prop: Prop) {
+async function onRemoveProp(prop: ValidProp) {
   if (prop === newProp.value) {
     newProp.value = null;
     return;

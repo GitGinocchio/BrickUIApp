@@ -8,14 +8,14 @@ use crate::bricks::props::PropType;
 #[schemars(description = "Array property container with typed values.")]
 #[serde(tag = "value_type")]
 pub enum ArrayPropType {
-    String(Array<String, u32>),
-    Integer(Array<i32, i32>),
-    Float(Array<f32, f32>),
+    String(ArrayProp<String, u32>),
+    Integer(ArrayProp<i32, i32>),
+    Float(ArrayProp<f32, f32>),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Array property container with typed values.")]
-pub struct Array<T, M: PartialOrd> {
+pub struct ArrayProp<T, M: PartialOrd> {
     #[serde(flatten)]
     base: PropType<Vec<T>>,
 

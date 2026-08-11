@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Brick } from "~/interfaces/brick";
+import type { Brick } from "~/interfaces";
 import { invoke } from "@tauri-apps/api/core";
 import { appDataDir, sanitizePath } from "#utils/path";
 import { useBrickActions } from "~/composables/useBrickActions";

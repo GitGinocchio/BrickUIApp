@@ -75,8 +75,7 @@ import type { NavigationMenuItem } from '@nuxt/ui';
 import { useAppState } from '~/composables/useAppState';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { Settings } from "~/interfaces/settings";
-import type { Brick } from '~/interfaces/brick';
+import type { Settings, Brick } from "~/interfaces";
 
 const ImportBrickModal = defineAsyncComponent(() => import('~/components/modals/ImportBrickModal.vue'));
 const RenameBrickModal = defineAsyncComponent(() => import('~/components/modals/RenameBrickModal.vue'));
@@ -183,7 +182,7 @@ onMounted(() => {
       message: t('modals.delete_brick_message', `Are you sure you want to delete '${payload.name}'?`),
       confirmLabel: t('actions.delete', 'Delete'),
       cancelLabel: t('actions.cancel', 'Cancel'),
-      color: 'danger'
+      color: 'error'
     });
 
     if (ok) await deleteBrick(payload);

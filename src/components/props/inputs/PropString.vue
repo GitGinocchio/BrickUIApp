@@ -19,9 +19,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { Prop } from '~/interfaces/brick';
+import type { PropType } from '~/interfaces';
 
-const prop = defineModel<Prop>("prop");
+const prop = defineModel<PropType<string>>("prop");
 
 const props = defineProps({
   editMode: {

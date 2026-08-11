@@ -12,9 +12,9 @@
 
 <script setup lang="ts">
 import Array from '~/components/inputs/Array.vue';
-import type { ArrayPropType } from '~/interfaces/brick';
+import type { ArrayPropType } from '~/interfaces';
 
-const prop = defineModel<ArrayPropType<string|number>>("prop", { required: true });
+const prop = defineModel<ArrayPropType>("prop", { required: true });
 
 const props = defineProps({
   defaultMode: {

@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import GradientPicker from '~/components/inputs/GradientPicker.vue';
-import type { GradientPropType } from '~/interfaces/brick';
+import type { GradientPropType } from '~/interfaces';
 
 const prop = defineModel<GradientPropType>("prop");
 
