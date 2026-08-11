@@ -46,15 +46,6 @@
     </USidebar>
 
     <div class="flex-1 flex flex-col min-w-0">
-      <header v-if="false" class="h-12 shrink-0 flex items-center px-4 border-b border-default">
-        <UButton
-          icon="i-lucide-panel-left"
-          color="neutral"
-          variant="ghost"
-          @click="() => { isSidebarOpen = !isSidebarOpen }"
-        />
-      </header>
-
       <div class="flex-1 flex flex-col min-w-0 h-full">
         <UMain class="flex-1 overflow-hidden relative flex flex-col">
           <slot />
