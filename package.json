@@ -28,7 +28,7 @@
     "@tauri-apps/plugin-shell": "^2.3.3",
     "@tauri-apps/plugin-store": "^2.4.3",
     "lucide-vue-next": "^1.0.0",
-    "markdown-it": "^14.1.1",
+    "markdown-it": "^15.0.0",
     "naive-ui": "^2.42.0",
     "ogl": "^1.0.11",
     "sortablejs": "^1.15.7",
