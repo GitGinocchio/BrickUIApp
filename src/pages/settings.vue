@@ -130,7 +130,7 @@ const taskBarBehaviorOptions = TASKBAR_BEHAVIORS.map((value) => formatOption(val
 const startMenuBehaviorOptions = STARTMENU_BEHAVIORS.map((value) => formatOption(value));
 
 const headerSections = [
-  { icon: SettingsIcon, label: t("settings") }
+  { icon: SettingsIcon, label: t("settings.title") }
 ];
 
 onMounted(async () => {

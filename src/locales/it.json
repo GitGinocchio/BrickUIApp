@@ -3,18 +3,18 @@
     "confirm": "Conferma",
     "delete_brick_title": "Elimina brick",
     "delete_brick_message": "Sei sicuro di voler eliminare '{name}'? Questa azione non può essere annullata.",
-    "delete_prop_title": "Elimina prop",
+    "delete_prop_title": "Elimina proprietà",
     "delete_prop_message": "Sei sicuro di voler eliminare '{name}'?",
-    "change_prop_type_title": "Modifica tipo di prop",
-    "change_prop_type_message": "Sei sicuro di voler cambiare '{prop}' in {type}? Tutte le impostazioni per questa prop andranno perse.",
+    "change_prop_type_title": "Modifica tipo di proprietà",
+    "change_prop_type_message": "Sei sicuro di voler cambiare '{prop}' in {type}? Tutte le impostazioni di questa proprietà andranno perse.",
     "unsaved_changes_title": "Modifiche non salvate",
-    "unsaved_changes_message": "Hai una nuova prop non salvata. Scartare le modifiche?",
+    "unsaved_changes_message": "Hai una nuova proprietà non salvata. Scartare le modifiche?",
     "import_brick_title": "Importa Brick",
     "new_brick_title": "Crea nuovo brick",
     "rename_brick_title": "Modifica Brick",
     "info": "Info",
     "warning": "Avviso",
-    "import_verify_instructions_html": "Puoi verificare il brick cambiando l'estensione del file da .brick a .zip ed ispezionando i file all'interno."
+    "import_verify_instructions_html": "Puoi verificare il brick cambiando l'estensione del file da .brick a .zip ed ispezionando i file al suo interno."
   },
   "actions": {
     "delete": "Elimina",
@@ -30,15 +30,15 @@
     "login": "Accedi",
     "register": "Registrati",
     "remove": "Rimuovi",
-    "clear": "Cancella",
+    "clear": "Pulisci",
     "confirm": "Conferma",
-    "reset": "Ripristina",
+    "reset": "Reimposta",
     "resend_email": "Reinvia email"
   },
   "errors": {
     "invalid_name": "Nome non valido (solo lettere)",
     "name_taken": "Nome già in uso",
-    "copy_exists": "La copia esiste già",
+    "copy_exists": "Esiste già una copia",
     "invalid_name_format": "Formato del nome non valido",
     "duplicate_name": "Nome duplicato",
     "name_exists": "Un brick con questo nome esiste già",
@@ -46,20 +46,20 @@
     "unexpected": "Si è verificato un errore imprevisto"
   },
   "placeholders": {
-    "prop_name": "Nome prop...",
-    "prop_description": "Inserisci la descrizione della prop (Markdown supportato)",
-    "brick_description": "Inserisci la descrizione del tuo brick...",
+    "prop_name": "Nome proprietà...",
+    "prop_description": "Scrivi la descrizione della proprietà (Markdown supportato)",
+    "brick_description": "Scrivi la descrizione del tuo brick...",
     "email": "Email",
-    "brick_name": "Inserisci il nome del tuo brick"
+    "brick_name": "Scrivi il nome del tuo brick"
   },
   "messages": {
-    "no_props": "Questo brick non ha prop!",
+    "no_props": "Questo brick non ha proprietà!",
     "work_in_progress": "Lavori in corso :P"
   },
   "tabs": {
     "info": "Info",
-    "props": "Prop",
-    "emits": "Emit",
+    "props": "Proprietà",
+    "emits": "Eventi",
     "permissions": "Permessi"
   },
   "auth": {
@@ -73,8 +73,8 @@
     "name": "Nome"
   },
   "get_started": {
-    "slogan_line1": "che bello vederti qui!",
-    "slogan_line2": "Accedi o Registrati per fare parte della nostra famiglia"
+    "slogan_line1": "bello vederti qui!",
+    "slogan_line2": "Accedi o Registrati per far parte della nostra famiglia"
   },
   "validation": {
     "email_required": "L'email è richiesta",
@@ -83,7 +83,7 @@
     "password_min": "La password deve contenere almeno 8 caratteri",
     "password_max": "La password è troppo lunga",
     "confirm_password": "Conferma la tua password",
-    "passwords_do_not_match": "Le password non corrispondono"
+    "passwords_do_not_match": "Le password non coincidono"
   },
   "notifications": {
     "registered_title": "Registrazione completata con successo!",
@@ -97,9 +97,21 @@
     "test_notification": "Notifica di test"
   },
   "bricks": {
+    "title": "Bricks",
     "no_description": "Questo brick non ha alcuna descrizione."
   },
+  "walls": {
+    "title": "Walls"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "search_placeholder": "Cerca widget o temi..."
+  },
+  "user": {
+    "title": "Utente"
+  },
   "settings": {
+    "title": "Impostazioni",
     "general": {
       "title": "Impostazioni Generali"
     },
@@ -115,21 +127,21 @@
     "position": "Posizione",
     "behavior": "Comportamento",
     "taskbar": {
-      "title": "Comportamento Barra delle applicazioni",
+      "title": "Comportamento Taskbar",
       "attention": "Attenzione",
-      "change_warning": "La modifica del comportamento della barra delle applicazioni potrebbe rendere la navigazione più difficile."
+      "change_warning": "La modifica del comportamento della taskbar potrebbe rendere la navigazione più difficile."
     },
     "start_menu": {
       "title": "Menu Start",
-      "restart_hint": "Riavvia l'applicazione per applicare le modifiche al menu Start."
+      "restart_hint": "Riavvia l'app per applicare le modifiche al menu start."
     },
     "windows_integration": "Integrazione con Windows",
     "system_tray": {
       "icon": "Icona System Tray",
       "description": "Mostra BrickUI nell'area di notifica",
-      "hide_on_close": "Nascondi alla chiusura",
-      "hide_description": "Riduci ad icona nell'area di notifica invece di chiudere",
-      "reopen_hint": "Puoi riaprirlo facendo doppio clic sull'icona nell'area di notifica."
+      "hide_on_close": "Riduci ad icona alla chiusura",
+      "hide_description": "Riduci nella tray anziché chiudere",
+      "reopen_hint": "Puoi riaprire facendo doppio clic sull'icona nella tray."
     },
     "autostart": {
       "title": "Avvio automatico",
@@ -142,9 +154,10 @@
     "reason": {
       "less_than": "minore di {n}",
       "greater_than": "maggiore di {n}",
-      "too_short": "troppo corto (min {n})",
-      "too_long": "troppo lungo (max {n})"
+      "too_short": "troppo corto (minimo {n})",
+      "too_long": "troppo lungo (massimo {n})"
     },
     "min_items": "Devi inserire almeno {min} elementi."
-  }
+  },
+  "coming_soon": "In arrivo :P"
 }

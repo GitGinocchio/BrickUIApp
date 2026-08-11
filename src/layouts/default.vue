@@ -101,7 +101,7 @@ function handleMouseLeave() {
 function getTopNavigation() {
   return [
     { 
-      label: t('bricks'), 
+      label: t('bricks.title'), 
       icon: 'i-lucide-blocks', 
       to: '/bricks', 
       active: route.path === '/bricks',
@@ -110,7 +110,7 @@ function getTopNavigation() {
       }
     },
     { 
-      label: t('walls'), 
+      label: t('walls.title'), 
       icon: 'i-lucide-brick-wall', 
       to: '/walls', 
       active: route.path === '/walls',
@@ -119,7 +119,7 @@ function getTopNavigation() {
       }
     },
     { 
-      label: t('marketplace'), 
+      label: t('marketplace.title'), 
       icon: 'i-lucide-shopping-basket', 
       to: '/marketplace', 
       active: route.path === '/marketplace',
@@ -133,7 +133,7 @@ function getTopNavigation() {
 function getBottomNavigation() {
   return [
     { 
-      label: t('user'), 
+      label: t('user.title'), 
       icon: 'i-lucide-circle-user', 
       to: '/get-started', 
       active: route.path === '/get-started', 
@@ -142,7 +142,7 @@ function getBottomNavigation() {
       }
     },
     { 
-      label: t('settings'), 
+      label: t('settings.title'), 
       icon: 'i-lucide-settings', 
       to: '/settings', 
       active: route.path === '/settings',

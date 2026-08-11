@@ -119,14 +119,14 @@
 import { Pencil, Settings2, Upload, UserIcon, SaveAllIcon, Trash2Icon } from 'lucide-vue-next';
 import { invoke } from '@tauri-apps/api/core';
 
-const toast = useToast();
+const { t } = useI18n();
 
 import type { User } from '#interfaces';
 import Header from '#components/Header.vue';
 import EditableField from '#components/EditableField.vue';
 
 const headerSections = [
-  { defaultIcon: () => h(UserIcon), label: 'User' }
+  { defaultIcon: () => h(UserIcon), label: t('user.title') }
 ]
 
 const loading = ref<boolean>(true);

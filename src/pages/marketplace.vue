@@ -6,7 +6,7 @@
     <UInput
       icon="i-lucide-search"
       size="sm"
-      :placeholder="t('search_placeholder') || 'Search widgets or themes...'"
+      :placeholder="t('marketplace.search_placeholder') || 'Search widgets or themes...'"
       class="max-w-md"
       :ui="{ root: 'rounded-xl' }"
     />
@@ -16,11 +16,11 @@
         <div class="py-4">
           
           <div v-if="item.key === 'bricks'" class="grid grid-cols-[repeat(auto-fill,minmax(25rem,1fr))] gap-4">
-             <p class="text-neutral-400 italic">{{ t('download_bricks_hint') }}</p>
+             <p class="text-neutral-400 italic">{{ t('coming_soon') }}</p>
           </div>
 
           <div v-else-if="item.key === 'walls'">
-            <p class="text-neutral-400 italic">{{ t('download_themes_hint') }}</p>
+            <p class="text-neutral-400 italic">{{ t('coming_soon') }}</p>
           </div>
 
           <div v-else-if="item.key === 'wallpapers'">
@@ -44,7 +44,7 @@ const { t } = useI18n();
 
 // Definizione delle sezioni per l'Header (Breadcrumb)
 const sections = computed(() => [
-  { icon: ShoppingBasket, label: t('marketplace') },
+  { icon: ShoppingBasket, label: t('marketplace.title') },
 ]);
 
 // Configurazione dei Tab per UTabs

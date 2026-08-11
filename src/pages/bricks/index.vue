@@ -34,6 +34,6 @@ const { bricks } = useAppState();
 const { openNewBrickModal } = useBrickActions();
 
 const sections = computed(() => [
-  { icon: Blocks, label: t('bricks'), onclick: () => router.push('/bricks') },
+  { icon: Blocks, label: t('bricks.title'), onclick: () => router.push('/bricks') },
 ]);
 </script>

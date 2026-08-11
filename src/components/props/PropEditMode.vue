@@ -74,6 +74,9 @@ import type { Prop } from '~/interfaces/generated/Prop.ts';
 import { VALID_PROPS_TYPES } from '~/constants/props.ts';
 import { createProp, isCollectionProp, isKnownProp, isNumericProp, isValidProp } from '~/utils/props.ts';
 
+const { confirm } = useConfirmModal();
+const { t } = useI18n();
+
 // --- Props & Emits ---
 const prop = defineModel<Prop>("prop", { required: true });
 const props = defineProps<{
@@ -122,7 +125,7 @@ function asOption(v: AllPropsType): SelectMenuItem {
     icon: iconsMap[v] || 'i-lucide-circle'
   }
 }
-const { t } = useI18n();
+
 const propTypeOption = computed(() => asOption(prop.value.prop_type));
 const propTypeOptions: SelectMenuItem[] = VALID_PROPS_TYPES.map((v) => asOption(v));
 
@@ -155,9 +158,7 @@ async function onNewPropTypeSelected(newPropType: { label: string, value: ValidP
     return;
   }
 
-  const { confirm: showConfirm } = useConfirmModal();
-  const { t } = useI18n();
-  const ok = await showConfirm({
+  const ok = await confirm({
     title: t('modals.change_prop_type_title', 'Change prop type'),
     message: t('modals.change_prop_type_message', { prop: prop.value.prop_type != 'Unknown' ? prop.value.prop_name : '', type: newPropType.value }),
     confirmLabel: t('actions.save', 'Yes, change'),

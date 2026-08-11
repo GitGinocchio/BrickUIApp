@@ -164,7 +164,7 @@ const dropdownItems = computed<DropdownMenuItem[]>(() => [
 ]);
 
 const sections = computed(() => [
-  { icon: 'i-lucide-blocks', label: t("bricks"), to: "/bricks" },
+  { icon: 'i-lucide-blocks', label: t("bricks.title"), to: "/bricks" },
   { icon: iconUrl.value || 'i-lucide-cuboid', label: brickName.value },
 ]);
 

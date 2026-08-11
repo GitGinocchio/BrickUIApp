@@ -10,7 +10,7 @@ import { BrickWall } from 'lucide-vue-next';
 const { t } = useI18n();
 
 const headerSections = computed(() => [
-  { icon: BrickWall, label: t('walls') }
+  { icon: BrickWall, label: t('walls.title') }
 ]);
 </script>
 
