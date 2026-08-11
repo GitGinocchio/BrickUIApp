@@ -7,14 +7,14 @@ import {
   setBrickState,
 } from "./state";
 import { addBrickToCache, getBrickFromCache, removeBrickFromCache } from "./cache";
-import type { Brick, Prop } from "../interfaces/brick";
+import type { Brick, Prop } from "#interfaces";
 import { loadVueModuleToCJS } from "./vueLoader";
 import { createModuleCache } from "./moduleCache";
-import { sanitizePath } from "../utils/path";
-import { formatPropValue } from "../utils/format";
+import { sanitizePath } from "#utils/path";
+import { formatPropValue } from "#utils/format";
 import { BaseDirectory, readTextFile } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { catchBrickError } from "../utils/errors";
+import { catchBrickError } from "#utils/errors";
 import { initBrickWatcher } from "./watcher";
 
 export const app = createApp({
@@ -87,7 +87,7 @@ export async function toggleBrick(brick: Brick) {
 
 export async function updateBrickProp(name: string, prop: Prop) {
   const brick = getBrickFromState(name);
-  if (brick) brick.props[prop.prop_name] = formatPropValue(prop);
+  if (brick && isValidProp(prop) && isNotNullProp(prop)) brick.props[prop.prop_name] = formatPropValue(prop);
 }
 
 export async function deleteBrick(brick: Brick) {

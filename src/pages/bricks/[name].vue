@@ -104,7 +104,7 @@ const {
   duplicateBrick, 
   toggleBrick,
   shareBrick,
-  openDeleteBrickModal, 
+  openDeleteBrickModal,
   openRenameBrickModal 
 } = useBrickActions();
 const route = useRoute();
@@ -153,7 +153,7 @@ const dropdownItems = computed<DropdownMenuItem[]>(() => [
     label: t('actions.delete'),
     icon: 'i-lucide-trash-2',
     color: 'primary',
-    onSelect: () => openDeleteBrickModal(brick.value)
+    onSelect: async () => await openDeleteBrickModal(brick.value)
   },
   {
     label: `v. ${brick.value?.version.join(".")}`,

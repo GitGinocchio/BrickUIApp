@@ -2,7 +2,6 @@ import { reactive } from 'vue';
 
 export type ConfirmColor = "neutral" | "primary" | "error" | "secondary" | "success" | "info" | "warning";
 
-// Opzioni passabili dall'utente alla funzione confirm()
 export type ConfirmInputOptions = {
   title?: string;
   message?: string;
@@ -11,7 +10,6 @@ export type ConfirmInputOptions = {
   color?: ConfirmColor;
 };
 
-// Stato interno completo gestito dal composable
 export type ConfirmState = ConfirmInputOptions & {
   open: boolean;
   _resolve?: (value: boolean) => void;

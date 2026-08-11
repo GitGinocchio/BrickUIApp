@@ -130,7 +130,7 @@
                     color="error" 
                     variant="ghost" 
                     size="xs" 
-                    @click.stop="() => isValidProp(element) && onRemoveProp(element)" 
+                    @click.stop="() => onRemoveProp(element)" 
                   />
                 </div>
                 <UIcon 
@@ -281,13 +281,12 @@ const onNewProp = () => {
   newProp.value = { prop_type: 'Null', prop_name: '' };
 };
 
-async function onRemoveProp(prop: ValidProp) {
+async function onRemoveProp(prop: Prop) {
   if (prop === newProp.value) {
     newProp.value = null;
     return;
   }
 
-  // Use composable-backed confirm modal
   await openDeletePropModal(brick.value, prop);
 }
 

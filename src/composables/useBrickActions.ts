@@ -19,6 +19,7 @@ In modo che prima avvengano le modifiche in ram e poi le modifiche sul filesyste
 */
 
 export const useBrickActions = () => {
+  const { confirm } = useConfirmModal();
   const { t } = useI18n();
   const toast = useToast();
 
@@ -150,11 +151,9 @@ export const useBrickActions = () => {
   };
 
   const openDeleteBrickModal = async (brick: Brick) => {
-    // Use the global confirm modal for in-app flows; fall back to emitting to main if needed
-    const { confirm } = useConfirmModal();
     const ok = await confirm({
       title: t('modals.delete_brick_title', 'Delete brick'),
-      message: t('modals.delete_brick_message', `Are you sure you want to delete '${brick.name}'? This action cannot be undone.`),
+      message: t('modals.delete_brick_message', { name: brick.name }),
       confirmLabel: t('actions.delete', 'Delete'),
       cancelLabel: t('actions.cancel', 'Cancel'),
       color: 'error'
@@ -162,8 +161,6 @@ export const useBrickActions = () => {
 
     if (ok) {
       deleteBrick(brick);
-    } else {
-      // No-op on cancel. The existing Tauri flow still listens for main events and opens the old modal if triggered from main.
     }
   };
 
