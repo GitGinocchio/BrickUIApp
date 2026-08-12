@@ -48,6 +48,13 @@
       v-model:prop="prop"
     />
 
+    <UFormField v-if="prop.prop_type === 'Gradient'" :label="t('props.skip_alpha')">
+      <USwitch
+        v-model="prop.skip_alpha"
+        :default-value="false"
+      />
+    </UFormField>
+
     <UFormField v-if="shouldShowDefaultInput" :label="t('props.default_value')">
       <component :is="renderDefaultComponent" class="w-full" :prop="(prop as any)" :editMode="true" />
     </UFormField>

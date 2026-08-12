@@ -155,7 +155,6 @@ function getBottomNavigation() {
 
 // Lifecycle e Tauri Listeners (Logica originale intatta)
 onMounted(async () => {
-  console.log(settings.value);
   setLocale(settings.value.language);
   
   listen<{ view: string }>("goto", (event) => router.push(event.payload.view));

@@ -1,6 +1,6 @@
 import { reactive } from "vue";
 import type { BrickError, BrickState } from "./types";
-import type { Brick } from "#interfaces/brick";
+import type { Brick } from "#interfaces";
 import { formatProps } from "#utils/format";
 
 export const bricksState = reactive(new Map<string, BrickState>());
@@ -8,7 +8,7 @@ export const bricksState = reactive(new Map<string, BrickState>());
 export function setBrickState(brick: Brick) {
   bricksState.set(brick.name, reactive({
     enabled: brick.enabled,
-    props: reactive(formatProps(brick.props)),
+    props: reactive(formatProps(brick.props.filter((p) => isValidProp(p) && isNotNullProp(p)))),
     errors: reactive([])
   }));
 }

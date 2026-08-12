@@ -16,7 +16,7 @@
           class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20"
           :style="{ left: stop.position + '%' }"
         >
-          <UPopover :ui="{ content: 'p-3 w-48 flex flex-col gap-3' }">
+          <UPopover :ui="{ content: 'p-3 flex flex-col gap-3' }">
             <button
               class="size-4 rounded-full border-2 border-white shadow-lg cursor-grab active:cursor-grabbing ring-1 ring-black/20"
               :style="{ backgroundColor: stop.color }"
@@ -25,44 +25,43 @@
 
             <template #content>
               <div class="space-y-3">
-                <div class="flex flex-col gap-1.5">
-                  <span class="text-xs font-medium text-neutral-400">Color</span>
-                  <UInput 
-                    v-model="stop.color" 
-                    type="color" 
-                    size="xs" 
-                    variant="outline"
-                    @update:model-value="(val) => onSetColor(index, val)"
-                  />
-                </div>
+                <!-- Color Picker con binding diretto e gestore eventi -->
+                <ColorPicker
+                  :ui="{ button: 'flex w-full' }"
+                  :enable_saved="false"
+                  :enable_swatches="false"
+                  v-model:color="stop.color"
+                  :alpha="!props.skip_alpha"
+                  @update:color="(val) => onSetColor(index, val)"
+                />
 
+                <!-- Input Posizione -->
                 <div class="flex flex-col gap-1.5">
                   <span class="text-xs font-medium text-neutral-400">Position (%)</span>
-                  <UInput
-                    v-model.number="stop.position"
-                    type="number"
-                    size="xs"
+                  <UInputNumber
+                    v-model="stop.position"
+                    size="sm"
                     :step="0.5"
                     :min="0"
                     :max="100"
                   />
                 </div>
 
-                <div class="flex gap-2 pt-2 border-t border-neutral-800">
+                <!-- Pulsanti Azione -->
+                <div class="flex justify-between gap-2 pt-2 border-t border-neutral-800">
                   <UButton
                     icon="i-lucide-copy"
                     size="xs"
                     variant="ghost"
                     color="neutral"
-                    class="flex-1"
                     @click="duplicateStop(index)"
                   />
+                  <div />
                   <UButton
                     icon="i-lucide-trash"
                     size="xs"
                     variant="ghost"
                     color="error"
-                    class="flex-1"
                     @click="removeStop(index)"
                   />
                 </div>
@@ -85,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import ColorPicker from './ColorPicker.vue';
 import type { GradientType, GradientStop } from '#interfaces';
 import type { PropType } from 'vue';
 

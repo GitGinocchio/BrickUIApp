@@ -1,7 +1,7 @@
 import { type UnwatchFn, watch } from "@tauri-apps/plugin-fs";
 import { appDataDir } from "#utils/path";
 import { invoke } from "@tauri-apps/api/core";
-import type { Brick } from "#interfaces/brick";
+import type { Brick } from "#interfaces";
 import { reloadBrick } from "./index";
 
 let unWatch: UnwatchFn = undefined;

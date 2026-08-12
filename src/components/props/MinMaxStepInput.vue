@@ -56,6 +56,7 @@
       </div>
     </UFormField>
 
+    <!-- Step Value -->
     <UFormField label="Step value:" v-if="model.prop_type === 'Int' || model.prop_type === 'Float'">
       <div class="max-w-fit">
         <div class="relative flex items-center">

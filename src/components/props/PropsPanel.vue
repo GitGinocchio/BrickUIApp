@@ -233,6 +233,7 @@ function getAccordionItems(element: Prop) {
 }
 
 async function onToggleEditMode() {
+  console.log(brick.value);
   if (!editMode.value) {
     saveBrick(brick.value);
   }
@@ -298,7 +299,7 @@ onBeforeRouteLeave(async (_to, _from, next) => {
       message: 'You have an unsaved new prop. Discard changes?',
       confirmLabel: 'Discard',
       cancelLabel: 'Keep editing',
-      color: 'neutral'
+      color: 'primary'
     });
 
     if (!ok) {

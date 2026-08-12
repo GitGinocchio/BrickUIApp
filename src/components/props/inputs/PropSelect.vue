@@ -4,7 +4,7 @@
     :default-value="prop.default"
     :items="prop.options"
     :multiple="prop.max && prop.max  > 1"
-    :required="prop.min && prop.min !== 0"
+    :required="prop.min && prop.min >= 0"
     class="w-full"
     clear
   />
