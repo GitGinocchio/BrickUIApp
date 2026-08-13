@@ -67,17 +67,6 @@ export default defineNuxtConfig({
     strict: false,
     typeCheck: false,
     shim: false,
-    tsConfig: {
-      compilerOptions: {
-        target: "ES2024",
-        lib: ["ES2024", "ES2015", "ES2024.Collection", "DOM", "DOM.Iterable"],
-        useDefineForClassFields: true,
-        noUnusedLocals: true,
-        noUnusedParameters: true,
-        noFallthroughCasesInSwitch: true,
-        skipLibCheck: true,
-      }
-    }
   },
 
   vite: {
