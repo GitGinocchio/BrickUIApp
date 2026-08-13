@@ -9,7 +9,7 @@ use crate::bricks::props::PropType;
 #[serde(tag = "value_type")]
 pub enum ArrayPropType {
     String(ArrayProp<String, u32>),
-    Integer(ArrayProp<i32, i32>),
+    Int(ArrayProp<i32, i32>),
     Float(ArrayProp<f32, f32>),
 }
 

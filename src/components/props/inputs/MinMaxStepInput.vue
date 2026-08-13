@@ -7,6 +7,7 @@
           <UInputNumber 
             class="w-full" 
             v-model="model.min"
+            :min="0"
             :max="maxLimitForMin"
             :step="step"
             orientation="vertical"
@@ -35,6 +36,7 @@
           <UInputNumber 
             class="w-full"
             :min="minLimitForMax"
+            :max="isCollectionProp(model) ? 50 : undefined"
             :step="step"
             v-model="model.max"
             orientation="vertical"
@@ -92,10 +94,6 @@ import type { NumericOrCollectionProp } from '~/interfaces';
 
 const model = defineModel<NumericOrCollectionProp>('prop', { required: true });
 
-const isNumericProp = computed(() =>
-  model.value.prop_type === 'Int' || model.value.prop_type === 'Float'
-);
-
 // Calcolo dinamico dello Step
 const step = computed(() => {
   const p = model.value;
@@ -103,11 +101,10 @@ const step = computed(() => {
   if (p.prop_type === 'Float') return p.step ?? 0.01;
   if (p.prop_type === 'Int') return p.step ?? 1;
 
-  // Caso Array o Select
-  if ('value_type' in p) {
+  if (isCollectionProp(model.value)) {
     switch (p.value_type) {
       case 'Float': return 0.1;
-      case 'Integer':
+      case 'Int':
       case 'String': 
       default: return 1;
     }
@@ -117,22 +114,22 @@ const step = computed(() => {
 });
 
 // Etichette dinamiche
-const minLabel = computed(() => isNumericProp.value ? 'Min value:' : 'Min items:');
-const maxLabel = computed(() => isNumericProp.value ? 'Max value:' : 'Max items:');
+const minLabel = computed(() => isNumericProp(model.value) ? 'Min value:' : 'Min items:');
+const maxLabel = computed(() => isNumericProp(model.value) ? 'Max value:' : 'Max items:');
 
 // Limiti incrociati per gli input numerici
 const maxLimitForMin = computed(() => {
-  if (model.value.max != null) {
-    return Number(model.value.max) - step.value;
-  }
-  return undefined;
+  if (model.value.min >= 50 && isCollectionProp(model.value)) return 50
+  if (model.value.max == null) return undefined;
+
+  return Number(model.value.max);
 });
 
 const minLimitForMax = computed(() => {
-  if (model.value.min != null) {
-    return Number(model.value.min) + step.value;
-  }
-  return undefined;
+  if (model.value.min == null) return 1;
+
+  if (model.value.min === 0) return 1
+  else return Number(model.value.min)
 });
 
 // Handler aggiornamento Max

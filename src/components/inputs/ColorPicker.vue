@@ -157,15 +157,15 @@ const props = defineProps({
     default: () => ({})
   },
   buttonColor: {
-    type: Object as PropType<"neutral" | "primary" | "secondary" | "success" | "info" | "warning" | "error">,
+    type: String as PropType<"neutral" | "primary" | "secondary" | "success" | "info" | "warning" | "error">,
     default: 'neutral'
   },
   buttonVariant: {
-    type: Object as PropType<"link" | "subtle" | "solid" | "outline" | "soft" | "ghost">,
+    type: String as PropType<"link" | "subtle" | "solid" | "outline" | "soft" | "ghost">,
     default: 'subtle'
   },
   buttonSize: {
-    type: Object as PropType<"md" | "xs" | "sm" | "lg" | "xl">,
+    type: String as PropType<"md" | "xs" | "sm" | "lg" | "xl">,
     default: 'md'
   }
 });

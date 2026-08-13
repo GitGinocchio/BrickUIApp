@@ -1,31 +1,32 @@
 <template>
-  <UFormField :error="errorMsg">
-    <template #label v-if="show_reset">
-      <div class="flex justify-between w-full">
-        <UButton
-          v-if="isDirty"
-          variant="link"
-          padding="none"
-          size="xs"
-          :label="t('actions.reset')"
-          icon="i-heroicons-arrow-path"
-          @click="resetToDefault"
-        />
-      </div>
-    </template>
-
-    <UInputTags
-      v-model="tags"
-      :add-on-blur="true"
-      :add-on-paste="true"
-      :add-on-tab="true"
-      :max="props.max"
-    />
+  <UFormField class="w-full" :error="error">
+    <div class="flex items-center gap-2 w-full">
+      <UInputTags
+        class="flex-1"
+        :model-value="tags"
+        @add-tag="validateTag"
+        @update:model-value="onTagsUpdate"
+        :add-on-blur="true"
+        :add-on-paste="true"
+        :add-on-tab="true"
+        :max="props.max ?? 50"
+      />
+      <UButton
+        v-if="show_reset && isDirty"
+        variant="link"
+        padding="none"
+        size="xs"
+        :label="t('actions.reset')"
+        icon="i-heroicons-arrow-path"
+        class="shrink-0"
+        @click="resetToDefault"
+      />
+    </div>
   </UFormField>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, type PropType } from 'vue';
+import { computed, type PropType } from 'vue';
 import type { CollectionValueTypes } from '~/interfaces';
 
 const toast = useToast();
@@ -33,44 +34,14 @@ const { t } = useI18n();
 
 type TagValue = string | number;
 
-const tags = defineModel<TagValue[]>("value", { 
-  default: () => [], 
-  get: (v) => (Array.isArray(v) ? v.map(String) : []),
-  set: (newTags: TagValue[]) => {
-    let processed: (string | number)[] = newTags;
-    if (props.value_type === 'Integer') {
-      processed = newTags.map(v => parseInt(String(v), 10)).filter(n => !isNaN(n));
-    } else if (props.value_type === 'Float') {
-      processed = newTags.map(v => parseFloat(String(v).replace(',', '.'))).filter(n => !isNaN(n));
-    }
-
-    const validTags = processed.filter(val => {
-      const [isValid, reasonObj] = validateValue(val);
-
-      if (!isValid) {
-        const reasonText = reasonObj ? t(reasonObj.key, reasonObj.params || {}) : '';
-        toast.add({
-          title: t('array.invalid_value_title'),
-          description: t('array.invalid_value_description', { val, reason: reasonText }),
-          color: 'error',
-          icon: 'i-heroicons-exclamation-triangle'
-        });
-      }
-        
-      return isValid;
-    });
-
-    return validTags;
-  }
-});
-
+const tags = defineModel<TagValue[]>("value", { default: () => [] });
 const props = defineProps({
   min: {
     type: Number,
     default: 0
   },
   max: {
-    type: Object as PropType<number | null>,
+    type: Number,
     default: null
   },
   min_value: {
@@ -78,11 +49,11 @@ const props = defineProps({
     default: null
   },
   max_value: {
-    type: Object as PropType<number | null>,
+    type: Number,
     default: null
   },
   value_type: {
-    type: Object as PropType<CollectionValueTypes>,
+    type: String as PropType<CollectionValueTypes>,
     default: 'String'
   },
   default: {
@@ -95,47 +66,71 @@ const props = defineProps({
   }
 });
 
-const errorMsg = ref<string | boolean>(false);
+const resetToDefault = () => (tags.value = [...props.default]);
 
-const resetToDefault = () => {
-  tags.value = [...props.default];
-};
+const error = computed(() => validateNumberOfTags(tags.value))
 
-function validateValue(value: string | number): [boolean, { key: string, params?: Record<string, any> } | null] {
-  let isValid = true;
-  let reasonObj: { key: string, params?: Record<string, any> } | null = null;
-
-  if (props.value_type === 'Integer' || props.value_type === 'Float') {
-    if (props.min_value !== undefined && props.min_value !== null && (value as number) < props.min_value) {
-      isValid = false;
-      reasonObj = { key: 'array.reason.less_than', params: { n: props.min_value } };
-    } else if (props.max_value !== undefined && props.max_value !== null && (value as number) > props.max_value) {
-      isValid = false;
-      reasonObj = { key: 'array.reason.greater_than', params: { n: props.max_value } };
-    }
-  } else {
-    const len = String(value).length;
-    if (props.min_value !== undefined && props.min_value !== null && len < props.min_value) {
-      isValid = false;
-      reasonObj = { key: 'array.reason.too_short', params: { n: props.min_value } };
-    } else if (props.max_value !== undefined && props.max_value !== null && len > props.max_value) {
-      isValid = false;
-      reasonObj = { key: 'array.reason.too_long', params: { n: props.max_value } };
-    }
+function onTagsUpdate(newTags: TagValue[]) {
+  if (props.value_type === 'Int') {
+    newTags = newTags.map(v => parseInt(String(v), 10)).filter(n => !isNaN(n));
+  } else if (props.value_type === 'Float') {
+    newTags = newTags.map(v => parseFloat(String(v).replace(',', '.'))).filter(n => !isNaN(n));
   }
 
-  return [isValid, reasonObj];
+  newTags = [...new Set(newTags)];
+
+  if (props.min_value) {
+    newTags = newTags.filter(v => typeof v === 'string' ? v.length >= props.min_value : v >= props.min_value)
+  }
+
+  if (props.max_value) {
+    newTags = newTags.filter(v => typeof v === 'string' ? v.length <= props.max_value : v <= props.max_value)
+  }
+
+  tags.value = newTags
+}
+
+function validateNumberOfTags(tags: TagValue[]) {
+  if (tags.length < props.min) {
+    return t('array.reason.too_short', { n: props.min })
+  } else if (props.max && tags.length > props.max) {
+    return t('array.reason.too_long', { n: props.max })
+  }
+
+  return false
+}
+
+function validateTag(tag: TagValue) {
+  let reason: string | null = null;
+
+  let parsed = props.value_type === 'Int' ? parseInt(String(tag), 10) : parseFloat(String(tag))
+
+  if (props.value_type in ['Int', 'Float'] && isNaN(parsed)) {
+    reason = props.value_type === 'Int' ? t('array.reason.not_an_integer') : t('array.reason.not_a_float')
+  }
+
+  if (props.min_value !== null && (typeof tag === 'number' ? parsed : String(tag).length) < props.min_value) {
+    reason = t('array.reason.less_than', { n: props.min_value })
+  } else if (props.max_value !== null && (typeof tag === 'number' ? parsed : String(tag).length) > props.max_value) {
+    reason = t('array.reason.greater_than', { n: props.max_value })
+  }
+
+  if (!reason) return;
+
+  toast.add({
+    title: t('array.invalid_value_title'),
+    description: t('array.invalid_value_description', { val: tag, reason: reason }),
+    color: 'error',
+    icon: 'i-heroicons-exclamation-triangle'
+  });
 }
 
 const isDirty = computed(() => {
-  return JSON.stringify(tags.value) !== JSON.stringify(props.default);
-});
+  const current = tags.value || [];
+  const defaults = props.default || [];
 
-watch(() => tags.value, (newVal) => {
-  if (props.min && newVal && newVal.length < props.min) {
-    errorMsg.value = t('array.min_items', { min: props.min });
-  } else {
-    errorMsg.value = false;
-  }
-}, { immediate: true });
+  if (current.length !== defaults.length) return true;
+
+  return !current.every((val, index) => String(val) === String(defaults[index]));
+});
 </script>

@@ -1,25 +1,26 @@
-import type { CollectionValueTypes, GradientStop, NotNullProp, Prop, ValidProp } from "~/interfaces";
+import type { CollectionValueTypes, GradientStop, NotNullProp, Prop, SelectPropValueTypes, ValidProp } from "~/interfaces";
 import type { AllPropsType } from "~/interfaces";
 
-export function isKnownProp<T extends { prop_type: string }>(prop: T): prop is Exclude<T, { prop_type: 'Unknown' }> {
+
+interface BaseProp { prop_type: string; }
+
+export function isKnownProp<T extends BaseProp>(prop: T): prop is Exclude<T, { prop_type: 'Unknown' }> {
   return prop.prop_type !== 'Unknown';
 }
 
-export function isValidProp<T extends { prop_type: string }>(prop: T): prop is Exclude<T, { prop_type: 'Unknown' | 'Deprecated' }> {
+export function isValidProp<T extends BaseProp>(prop: T): prop is Exclude<T, { prop_type: 'Unknown' | 'Deprecated' }> {
   return prop.prop_type !== 'Unknown' && prop.prop_type !== 'Deprecated';
 }
 
-export function isNotNullProp(prop: ValidProp): prop is NotNullProp {
+export function isNotNullProp<T extends BaseProp>(prop: T): prop is Exclude<T, { prop_type: 'Null' }> {
   return prop.prop_type !== 'Null';
 }
 
-export function isCollectionProp<T extends ValidProp>(prop: T): prop is Extract<T, { prop_type: 'Select' | 'Array' }> {
+export function isCollectionProp<T extends BaseProp>(prop: T): prop is Extract<T, { prop_type: 'Select' | 'Array' }> {
   return prop.prop_type === 'Select' || prop.prop_type === 'Array';
 }
 
-export function isNumericProp<T extends { prop_type: string }>(
-  prop: T
-): prop is Extract<T, { prop_type: 'Int' | 'Float' }> {
+export function isNumericProp<T extends BaseProp>(prop: T): prop is Extract<T, { prop_type: 'Int' | 'Float' }> {
   return prop.prop_type === 'Int' || prop.prop_type === 'Float';
 }
 
@@ -43,13 +44,13 @@ export function createProp(
   type: AllPropsType,
   name: string,
   description: string | null,
-  value_type: CollectionValueTypes = 'String'
+  value_type: CollectionValueTypes
 ): Prop {
 
   switch (type) {
     case "String":
     case "Text":
-      return createBaseProp(type, name, description);
+      return createBaseProp<string>(type, name, description);
 
     case "Bool":
       return { ...createBaseProp<boolean>('Bool', name, description), default: false };
@@ -65,14 +66,14 @@ export function createProp(
       return {
         ...createBaseProp<any[]>('Select', name, description),
         options: [],
-        value_type,
+        value_type: value_type as SelectPropValueTypes,
         min: null, max: null, min_value: null, max_value: null
       };
 
     case "Array":
       return {
         ...createBaseProp<any[]>('Array', name, description),
-        value_type,
+        value_type: value_type as SelectPropValueTypes,
         min: null, max: null, min_value: null, max_value: null
       };
 

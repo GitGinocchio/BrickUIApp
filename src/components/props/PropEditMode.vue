@@ -14,7 +14,7 @@
 
     <UFormField :label="t('placeholders.prop_type', 'Type')">
       <USelectMenu
-        v-model="propTypeOption"
+        :model-value="propTypeOption"
         class="w-full"
         :icon="(propTypeOption as any).icon"
         :items="propTypeOptions"
@@ -27,9 +27,11 @@
       :label="t('props.value_type')"
     >
       <USelectMenu
-        v-model="prop.value_type"
-        :options="valueTypeOptions"
-        @update:model-value="onValueTypeChanged"
+        :model-value="valueTypeOption"
+        class="w-full"
+        :icon="(valueTypeOption as any).icon"
+        :items="valueTypeOptions"
+        @update:model-value="(value) => onValueTypeChanged(value)"
       >
         <template #item="{ item }">
           <UIcon :name="(item as any).icon" class="w-4 h-4" />
@@ -39,16 +41,24 @@
     </UFormField>
 
     <UFormField v-if="prop.prop_type === 'Select'" :label="t('props.options')">
-      <Array v-model:value="prop.options" />
+      <Array class="w-full" 
+        v-model:value="prop.options" 
+        :value_type="prop.value_type" 
+        :min="prop.min"
+        :min_value="prop.min_value"
+        :max_value="prop.max_value"
+        :default="prop.default"
+        :show_reset="false"
+      />
     </UFormField>
 
     <MinMaxStepInput
       class="flex flex-row w-full gap-4" 
-      v-if="isValidProp(prop) && (isCollectionProp(prop) || isNumericProp(prop))"
+      v-if="isCollectionProp(prop) || isNumericProp(prop)"
       v-model:prop="prop"
     />
 
-    <UFormField v-if="prop.prop_type === 'Gradient'" :label="t('props.skip_alpha')">
+    <UFormField v-if="prop.prop_type === 'Gradient' || prop.prop_type == 'Color'" :label="t('props.skip_alpha')">
       <USwitch
         v-model="prop.skip_alpha"
         :default-value="false"
@@ -73,12 +83,12 @@
 </template>
 
 <script setup lang="ts">
-import { type AllPropsType, type DatePropType, type ValidPropType } from '#interfaces'
+import { type AllPropsType, type CollectionValueTypes, type DatePropType, type ValidPropType } from '#interfaces'
 import type { SelectMenuItem } from '@nuxt/ui';
 import Array from '../inputs/Array.vue';
-import MinMaxStepInput from './MinMaxStepInput.vue';
+import MinMaxStepInput from './inputs/MinMaxStepInput.vue'
 import type { Prop } from '~/interfaces/generated/Prop.ts';
-import { VALID_PROPS_TYPES } from '~/constants/props.ts';
+import { COLLECTION_VALUE_TYPES, VALID_PROPS_TYPES } from '~/constants/props.ts';
 import { createProp, isCollectionProp, isKnownProp, isNumericProp, isValidProp } from '~/utils/props.ts';
 
 const { confirm } = useConfirmModal();
@@ -104,7 +114,6 @@ const renderDefaultComponent = computed(() => {
   }
 });
 
-// --- Mapping Icone ---
 const iconsMap: Record<AllPropsType, string> = {
   Select: 'i-lucide-list-todo',
   Array: 'i-lucide-list',
@@ -123,7 +132,15 @@ const iconsMap: Record<AllPropsType, string> = {
   Unknown: 'i-lucide-circle-question-mark'
 };
 
-// --- Computed ---
+
+const propTypeOption = computed(() => asOption(prop.value.prop_type));
+const propTypeOptions: SelectMenuItem[] = VALID_PROPS_TYPES.map((v) => asOption(v));
+
+const valueTypeOption = computed(() => asOption(isValidProp(prop.value) && isCollectionProp(prop.value) ? prop.value.value_type : null));
+const valueTypeOptions: SelectMenuItem[] = COLLECTION_VALUE_TYPES.map((v) => asOption(v as AllPropsType));
+
+const shouldShowDefaultInput = computed(() => prop.value.prop_type !== 'Null');
+
 function asOption(v: AllPropsType): SelectMenuItem {
   return {
     label: v.replace(/([A-Z])/g, " $1").trim(),
@@ -133,35 +150,29 @@ function asOption(v: AllPropsType): SelectMenuItem {
   }
 }
 
-const propTypeOption = computed(() => asOption(prop.value.prop_type));
-const propTypeOptions: SelectMenuItem[] = VALID_PROPS_TYPES.map((v) => asOption(v));
-
-const valueTypeOptions = [
-  { label: 'String', value: 'String', icon: 'i-lucide-type' },
-  { label: 'Float', value: 'Float', icon: 'i-lucide-decimals-arrow-right' },
-  { label: 'Integer', value: 'Integer', icon: 'i-lucide-arrow-up-1-0' },
-];
-
-const shouldShowDefaultInput = computed(() => prop.value.prop_type !== 'Null');
-
-// --- Methods ---
-async function onNewPropTypeSelected(newPropType: { label: string, value: ValidPropType, icon: string }) {
+async function onNewPropTypeSelected(newPropType: { value: ValidPropType }) {
   if (prop.value.prop_type === newPropType.value) return;
 
   const update = () => {
     const current = prop.value;
-    const subType = (newPropType.value === 'Select' || newPropType.value === 'Array') ? 'String' : null;
+    const subType: CollectionValueTypes = (newPropType.value === 'Select' || newPropType.value === 'Array') ? 'String' : null;
 
-    prop.value = createProp(
-      newPropType.value, 
-      isKnownProp(current) ? current.prop_name : 'Unknown', 
-      isKnownProp(current) ? current.description : '', 
+    const propName = isKnownProp(current) ? current.prop_name : 'test';
+    const description = isKnownProp(current) ? current.description : '';
+
+    const newPropObject = createProp(
+      newPropType.value as AllPropsType, 
+      propName, 
+      description, 
       subType
     );
+
+    prop.value = newPropObject;
   };
 
   if (props.showAlertOnTypeChange === false) {
     update();
+    console.log(prop.value);
     return;
   }
 
@@ -176,11 +187,21 @@ async function onNewPropTypeSelected(newPropType: { label: string, value: ValidP
   if (ok) {
     update();
   }
+
+  console.log(prop.value);
 }
 
-function onValueTypeChanged() {
+function onValueTypeChanged(item: SelectMenuItem) {
+  if (!isValidProp(prop.value) || !isCollectionProp(prop.value)) return;
+
+  if (typeof item === 'object' && item !== null && 'value' in item) {
+    prop.value.value_type = (item as { value: any }).value;
+  }
+
   if (prop.value.prop_type === 'Select') prop.value.options = [];
-  else if (prop.value.prop_type === 'Array') prop.value.default = [];
+  
+  prop.value.default = [];
+  prop.value.value = []
 }
 
 // Vincoli Date

@@ -55,7 +55,7 @@
           class="flex-1"
           @keydown.enter="onSavePropName(newProp)"
         />
-        <UButton icon="i-lucide-save" color="primary" @click="onSavePropName(newProp)" />
+        <UButton icon="i-lucide-save-plus" color="primary" @click="onSavePropName(newProp)" />
         <UButton icon="i-lucide-trash-2" color="error" variant="ghost" @click="onRemoveProp(newProp)" />
       </div>
       <PropEditMode v-model:prop="newProp" :all-props="brick.props" />
@@ -144,10 +144,11 @@
 
             <template #content>
               <div class="pl-4 border-dashed ml-3.5 mr-3.5 mb-4">
-                <PropEditWrapper
+                <PropEditMode 
                   v-if="editMode"
                   v-model:prop="brick.props[index]"
                   :all-props="brick.props"
+                  :show-alert-on-type-change="false"
                 />
                 <p v-else class="text-xs text-gray-500 italic">
                   {{ isValidProp(element) ? element.description : 'INVALID_PROP' }}
@@ -157,7 +158,11 @@
           </UAccordion>
 
           <div class="prop-value-wrapper mt-1 px-2">
-            <PropViewWrapper v-model:prop="brick.props[index]" @save="() => saveBrick(brick)" :brick_name="brick.name" />
+            <PropViewMode 
+              v-model:prop="brick.props[index]" 
+              @save="() => saveBrick(brick)" 
+              :brick_name="brick.name" 
+            />
           </div>
         </div>
       </template>
@@ -173,9 +178,8 @@
 <script setup lang="ts">
 import { type Brick, type Prop, type ValidProp } from '~/interfaces';
 import { Sortable } from 'sortablejs-vue3'
-import PropViewWrapper from './PropViewMode.vue';
-import PropEditWrapper from './PropEditMode.vue';
-import PropEditMode from './PropEditMode.vue';
+import PropViewMode from './PropViewMode.vue';
+import PropEditMode  from './PropEditMode.vue';
 import { type SortableOptions } from 'sortablejs';
 import { isValidProp } from '~/utils/props.ts';
 const { saveBrick } = useBrickActions();

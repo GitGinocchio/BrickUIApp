@@ -1,7 +1,6 @@
-import type { AllPropsType, ValidPropType } from "~/interfaces";
-import type { SatisfiesArray } from "~/utils/constants";
+import type { AllPropsType, CollectionValueTypes, ValidPropType } from "~/interfaces";
 
-export const VALID_PROPS_TYPES = [
+export const VALID_PROPS_TYPES = createExhaustiveArray<ValidPropType>()(
   "Bool", 
   "String", 
   "Text", 
@@ -15,10 +14,16 @@ export const VALID_PROPS_TYPES = [
   "Array", 
   "Select", 
   "Null"
-] as const satisfies SatisfiesArray<ValidPropType>;
+);
 
-export const ALL_PROPS_TYPES = [
+export const ALL_PROPS_TYPES = createExhaustiveArray<AllPropsType>()(
   ...VALID_PROPS_TYPES,
   "Deprecated", 
   "Unknown"
-] as const satisfies SatisfiesArray<AllPropsType>;
+);
+
+export const COLLECTION_VALUE_TYPES = createExhaustiveArray<CollectionValueTypes>()(
+  "Float",
+  "Int",
+  "String"
+);

@@ -9,7 +9,7 @@ use crate::bricks::props::PropType;
 #[serde(tag = "value_type")]
 pub enum SelectPropType {
     String(Select<String, u32>),
-    Integer(Select<i32, i32>),
+    Int(Select<i32, i32>),
     Float(Select<i32, i32>),
 }
 
