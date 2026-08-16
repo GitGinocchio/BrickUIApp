@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { type AllPropsType, type CollectionValueTypes, type DatePropType, type ValidPropType } from '#interfaces'
+import { type AllPropsKind, type CollectionValueKind, type DatePropType, type ValidPropKind } from '#interfaces'
 import type { SelectMenuItem } from '@nuxt/ui';
 import Array from '../inputs/Array.vue';
 import MinMaxStepInput from './inputs/MinMaxStepInput.vue'
@@ -108,13 +108,13 @@ const renderDefaultComponent = computed(() => {
     case 'Array': return defineAsyncComponent(() => import('./inputs/PropArray.vue'));
     case 'Select': return defineAsyncComponent(() => import('./inputs/PropSelect.vue'));
     case 'Bool': return defineAsyncComponent(() => import('./inputs/PropSwitch.vue'));
-    case 'Int': return defineAsyncComponent(() => import('./inputs/PropInt.vue'));
-    case 'Float': return defineAsyncComponent(() => import('./inputs/PropFloat.vue'));
+    case 'Int': return defineAsyncComponent(() => import('./inputs/PropNumeric.vue'));
+    case 'Float': return defineAsyncComponent(() => import('./inputs/PropNumeric.vue'));
     default: return defineAsyncComponent(() => import('./inputs/PropString.vue'));
   }
 });
 
-const iconsMap: Record<AllPropsType, string> = {
+const iconsMap: Record<AllPropsKind, string> = {
   Select: 'i-lucide-list-todo',
   Array: 'i-lucide-list',
   String: 'i-lucide-type',
@@ -137,11 +137,11 @@ const propTypeOption = computed(() => asOption(prop.value.prop_type));
 const propTypeOptions: SelectMenuItem[] = VALID_PROPS_TYPES.map((v) => asOption(v));
 
 const valueTypeOption = computed(() => asOption(isValidProp(prop.value) && isCollectionProp(prop.value) ? prop.value.value_type : null));
-const valueTypeOptions: SelectMenuItem[] = COLLECTION_VALUE_TYPES.map((v) => asOption(v as AllPropsType));
+const valueTypeOptions: SelectMenuItem[] = COLLECTION_VALUE_TYPES.map((v) => asOption(v as AllPropsKind));
 
 const shouldShowDefaultInput = computed(() => prop.value.prop_type !== 'Null');
 
-function asOption(v: AllPropsType): SelectMenuItem {
+function asOption(v: AllPropsKind): SelectMenuItem {
   return {
     label: v.replace(/([A-Z])/g, " $1").trim(),
     type: 'item',
@@ -150,18 +150,18 @@ function asOption(v: AllPropsType): SelectMenuItem {
   }
 }
 
-async function onNewPropTypeSelected(newPropType: { value: ValidPropType }) {
+async function onNewPropTypeSelected(newPropType: { value: ValidPropKind }) {
   if (prop.value.prop_type === newPropType.value) return;
 
   const update = () => {
     const current = prop.value;
-    const subType: CollectionValueTypes = (newPropType.value === 'Select' || newPropType.value === 'Array') ? 'String' : null;
+    const subType: CollectionValueKind = (newPropType.value === 'Select' || newPropType.value === 'Array') ? 'String' : null;
 
     const propName = isKnownProp(current) ? current.prop_name : 'test';
     const description = isKnownProp(current) ? current.description : '';
 
     const newPropObject = createProp(
-      newPropType.value as AllPropsType, 
+      newPropType.value as AllPropsKind, 
       propName, 
       description, 
       subType

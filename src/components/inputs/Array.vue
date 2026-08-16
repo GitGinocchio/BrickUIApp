@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue';
-import type { CollectionValueTypes } from '~/interfaces';
+import type { CollectionValueKind } from '~/interfaces';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -53,7 +53,7 @@ const props = defineProps({
     default: null
   },
   value_type: {
-    type: String as PropType<CollectionValueTypes>,
+    type: String as PropType<CollectionValueKind>,
     default: 'String'
   },
   default: {

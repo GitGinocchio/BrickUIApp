@@ -17,9 +17,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { PropType } from '~/interfaces';
+import type { BoolPropType } from '~/interfaces';
 
-const prop = defineModel<PropType<string>>("prop");
+const prop = defineModel<BoolPropType>("prop");
 const props = defineProps({
   editMode: {
     type: Boolean,
@@ -27,9 +27,9 @@ const props = defineProps({
   }
 })
 
-const targetValue = computed<string>({
+const targetValue = computed<boolean>({
   get: () => props.editMode ? prop.value.default : prop.value.value,
-  set: (newValue) => {
+  set: (newValue: boolean) => {
     if (props.editMode) {
       prop.value.default = newValue;
     } else {

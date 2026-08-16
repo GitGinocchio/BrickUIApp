@@ -5,9 +5,8 @@ use ts_rs::TS;
 use super::PropMeta;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
-#[ts(rename = "GradientStop")]
 #[schemars(description = "Gradient stop color property container.")]
-pub struct Stop {
+pub struct GradientStopSpec {
     #[schemars(description = "The actual color of the stop color.")]
     #[schemars(regex(pattern = "^#[0-9A-Fa-f]{8}$"))]
     pub color: String,
@@ -19,17 +18,17 @@ pub struct Stop {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Gradient property container.")]
-pub struct GradientPropType {
+pub struct GradientPropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
     #[schemars(description = "Default gradient value as an array of stop colors.")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<Vec<Stop>>,
+    pub default: Option<Vec<GradientStopSpec>>,
 
     #[schemars(description = "Current gradient value as an array of stop colors.")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<Vec<Stop>>,
+    pub value: Option<Vec<GradientStopSpec>>,
 
     #[schemars(description = "The gradient type to render.")]
     #[serde(default, skip_serializing_if = "Option::is_none")]

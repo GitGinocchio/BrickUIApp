@@ -3,9 +3,10 @@
     <div class="relative flex items-center">
       <UInputNumber 
         v-model="targetValue"
-        :step="prop.step || 0.1"
-        :min="prop.min"
-        :max="prop.max"
+        :step="prop.step ?? (prop.prop_type === 'Float' ? 0.01 : 1)"
+        :min="prop.min ?? undefined"
+        :max="prop.max ?? undefined"
+        :step-snapping="true"
         class="w-full"
         orientation="vertical"
       />
@@ -28,7 +29,7 @@
 <script lang="ts" setup>
 import type { NumericPropType } from '~/interfaces';
 
-const prop = defineModel<NumericPropType<number>>("prop");
+const prop = defineModel<NumericPropType>("prop");
 
 const props = defineProps({
   editMode: {

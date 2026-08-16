@@ -7,7 +7,7 @@
           <UInputNumber 
             class="w-full" 
             v-model="model.min"
-            :min="0"
+            :min="isNumericProp(model) ? undefined : 0"
             :max="maxLimitForMin"
             :step="step"
             orientation="vertical"
@@ -119,17 +119,48 @@ const maxLabel = computed(() => isNumericProp(model.value) ? 'Max value:' : 'Max
 
 // Limiti incrociati per gli input numerici
 const maxLimitForMin = computed(() => {
-  if (model.value.min >= 50 && isCollectionProp(model.value)) return 50
+  // Gestione specifica per Collezioni (es. Array/Select con limite max 50)
+  if (isCollectionProp(model.value) && model.value.min != null && model.value.min >= 50) {
+    return 50;
+  }
+
   if (model.value.max == null) return undefined;
 
-  return Number(model.value.max);
+  const maxVal = Number(model.value.max);
+
+  if (isNumericProp(model.value)) {
+    // Calcola lo step (0.01 per Float, 1 per Int)
+    const step = model.value.step ?? (model.value.prop_type === 'Float' ? 0.01 : 1);
+    
+    // Arrotonda per evitare problemi di precisione dei float in JS (es. -10.000000000000002)
+    return Number((maxVal - step).toFixed(6));
+  }
+
+  return maxVal;
 });
 
 const minLimitForMax = computed(() => {
-  if (model.value.min == null) return 1;
+  if (model.value.min == null) {
+    // Per le collezioni la dimensione minima ha senso sia 0 o 1, 
+    // ma per i numeri generici non c'è limite inferiore predefinito
+    return isCollectionProp(model.value) ? 1 : undefined;
+  }
 
-  if (model.value.min === 0) return 1
-  else return Number(model.value.min)
+  const minVal = Number(model.value.min);
+
+  if (isCollectionProp(model.value)) {
+    // Se è una collezione, la dimensione max deve essere almeno min o min + 1
+    return Math.max(1, minVal);
+  }
+
+  if (isNumericProp(model.value)) {
+    const step = model.value.step ?? (model.value.prop_type === 'Float' ? 0.01 : 1);
+    
+    // Arrotonda per evitare floating point drift
+    return Number((minVal + step).toFixed(6));
+  }
+
+  return minVal;
 });
 
 // Handler aggiornamento Max

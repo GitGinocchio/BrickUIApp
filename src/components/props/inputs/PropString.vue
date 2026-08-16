@@ -19,9 +19,9 @@
 </template>
 
 <script lang="ts" setup>
-import type { PropType } from '~/interfaces';
+import type { StringPropType } from '~/interfaces';
 
-const prop = defineModel<PropType<string>>("prop");
+const prop = defineModel<StringPropType>("prop");
 
 const props = defineProps({
   editMode: {

@@ -30,8 +30,8 @@ const renderComponent = computed(() => {
     case 'Array': return defineAsyncComponent(() => import('./inputs/PropArray.vue'));
     case 'Select': return defineAsyncComponent(() => import('./inputs/PropSelect.vue'));
     case 'Bool': return defineAsyncComponent(() => import('./inputs/PropSwitch.vue'));
-    case 'Int': return defineAsyncComponent(() => import('./inputs/PropInt.vue'));
-    case 'Float': return defineAsyncComponent(() => import('./inputs/PropFloat.vue'));
+    case 'Int': return defineAsyncComponent(() => import('./inputs/PropNumeric.vue'));
+    case 'Float': return defineAsyncComponent(() => import('./inputs/PropNumeric.vue'));
     default: return defineAsyncComponent(() => import('./inputs/PropString.vue'));
   }
 });

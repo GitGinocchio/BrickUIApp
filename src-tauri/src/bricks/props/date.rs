@@ -7,7 +7,7 @@ use super::PropMeta;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Date property container.")]
-pub struct DatePropType {
+pub struct DatePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
@@ -29,7 +29,7 @@ pub struct DatePropType {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Datetime property container.")]
-pub struct DateTimePropType {
+pub struct DateTimePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
@@ -48,7 +48,7 @@ pub struct DateTimePropType {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Time property container.")]
-pub struct TimePropType {
+pub struct TimePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 

@@ -85,10 +85,10 @@
 
 <script setup lang="ts">
 import ColorPicker from './ColorPicker.vue';
-import type { GradientType, GradientStop } from '#interfaces';
+import type { GradientType, GradientStopSpec } from '#interfaces';
 import type { PropType } from 'vue';
 
-const steps = defineModel<GradientStop[]>("value", { default: () => [] });
+const steps = defineModel<GradientStopSpec[]>("value", { default: () => [] });
 
 const props = defineProps({
   type: {
@@ -96,7 +96,7 @@ const props = defineProps({
     default: 'Linear' as GradientType
   },
   default: {
-    type: Object as PropType<GradientStop[]>,
+    type: Object as PropType<GradientStopSpec[]>,
     default: []
   },
   skip_alpha: {

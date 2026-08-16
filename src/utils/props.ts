@@ -1,5 +1,5 @@
-import type { CollectionValueTypes, GradientStop, NotNullProp, Prop, SelectPropValueTypes, ValidProp } from "~/interfaces";
-import type { AllPropsType } from "~/interfaces";
+import type { CollectionValueKind, GradientStopSpec, Prop, SelectPropValueKind } from "~/interfaces";
+import type { AllPropsKind } from "~/interfaces";
 
 
 interface BaseProp { prop_type: string; }
@@ -41,10 +41,10 @@ function createBaseProp<T>(type: string, name: string, description: string | nul
 }
 
 export function createProp(
-  type: AllPropsType,
+  type: AllPropsKind,
   name: string,
   description: string | null,
-  value_type: CollectionValueTypes
+  value_type: CollectionValueKind
 ): Prop {
 
   switch (type) {
@@ -66,14 +66,14 @@ export function createProp(
       return {
         ...createBaseProp<any[]>('Select', name, description),
         options: [],
-        value_type: value_type as SelectPropValueTypes,
+        value_type: value_type as SelectPropValueKind,
         min: null, max: null, min_value: null, max_value: null
       };
 
     case "Array":
       return {
         ...createBaseProp<any[]>('Array', name, description),
-        value_type: value_type as SelectPropValueTypes,
+        value_type: value_type as SelectPropValueKind,
         min: null, max: null, min_value: null, max_value: null
       };
 
@@ -87,7 +87,7 @@ export function createProp(
 
     case "Gradient":
       return {
-          ...createBaseProp<GradientStop[]>('Gradient', name, description),
+          ...createBaseProp<GradientStopSpec[]>('Gradient', name, description),
         skip_alpha: false,
         type: "Linear",
         default: [],

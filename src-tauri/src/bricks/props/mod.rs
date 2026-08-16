@@ -1,20 +1,20 @@
 pub mod numeric;
-use super::props::numeric::NumericPropType;
+use super::props::numeric::NumericPropSpec;
 
 pub mod array;
-use super::props::array::ArrayPropType;
+use crate::bricks::props::array::ArrayPropKind;
 
 pub mod select;
-use super::props::select::SelectPropType;
+use crate::bricks::props::select::SelectPropKind;
 
 pub mod date;
-use super::props::date::{DatePropType, DateTimePropType, TimePropType};
+use super::props::date::{DatePropSpec, DateTimePropSpec, TimePropSpec};
 
 pub mod color;
-use super::props::color::ColorPropType;
+use super::props::color::ColorPropSpec;
 
 pub mod gradient;
-use super::props::gradient::GradientPropType;
+use super::props::gradient::GradientPropSpec;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -38,8 +38,7 @@ pub struct PropMeta {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Generic property container.")]
-#[ts(export)]
-pub struct PropType<T> {
+pub struct PropSpec<T> {
     #[serde(flatten)]
     pub meta: PropMeta,
 
@@ -53,7 +52,8 @@ pub struct PropType<T> {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
-#[serde(untagged)] 
+#[serde(untagged)]
+#[ts(export)]
 pub enum Prop {
     ValidProp(ValidProp),
     Deprecated(DeprecatedProp),
@@ -72,7 +72,7 @@ pub struct DeprecatedProp {
     #[serde(skip_deserializing, default = "default_deprecated_tag")]
     #[ts(type = "\"Deprecated\"")]
     pub prop_type: String,
-
+    
     #[serde(flatten)]
     pub meta: PropMeta,
 }
@@ -98,51 +98,51 @@ pub enum InvalidProp {
 pub enum ValidProp {
     // Bool
     #[schemars(description = "Boolean property type.")]
-    Bool(PropType<bool>),
+    Bool(PropSpec<bool>),
 
     // String
     #[schemars(description = "String property type.")]
-    String(PropType<String>),
+    String(PropSpec<String>),
 
     // Text
     #[schemars(description = "Multiline text property type.")]
-    Text(PropType<String>),
+    Text(PropSpec<String>),
 
     // Int
     #[schemars(description = "Integer property type.")]
-    Int(NumericPropType<i32>),
+    Int(NumericPropSpec<i32>),
 
     // Float
     #[schemars(description = "Floating point property type.")]
-    Float(NumericPropType<f32>),
+    Float(NumericPropSpec<f32>),
 
     // Color
     #[schemars(description = "Color property type.")]
-    Color(ColorPropType),
+    Color(ColorPropSpec),
 
     // Gradient
     #[schemars(description = "Gradient property type.")]
-    Gradient(GradientPropType),
+    Gradient(GradientPropSpec),
 
     // Date
     #[schemars(description = "Date property type.")]
-    Date(DatePropType),
+    Date(DatePropSpec),
 
     // Datetime
     #[schemars(description = "Datetime property type.")]
-    Datetime(DateTimePropType),
+    Datetime(DateTimePropSpec),
 
     // Time
     #[schemars(description = "Time property type.")]
-    Time(TimePropType),
+    Time(TimePropSpec),
 
     // Array
     #[schemars(description = "Array property containing a list of values.")]
-    Array(ArrayPropType),
+    Array(ArrayPropKind),
 
     // Select
     #[schemars(description = "Selectable property with predefined options.")]
-    Select(SelectPropType),
+    Select(SelectPropKind),
 
     // Null
     #[schemars(description = "Null property type.")]
