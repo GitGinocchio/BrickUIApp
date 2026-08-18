@@ -5,31 +5,39 @@
 <script setup lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
-import { onMounted, ref, watchEffect } from "vue";
-import { useNotification } from "naive-ui";
+import { onMounted, ref, watchEffect, h } from "vue";
 import {
   handleClickThrough,
   simulateFakeMouseMoved,
   simulateFakeMousePressed,
-} from "../../utils/mouseClickThrough";
-import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "../../loader";
+} from "#utils/mouseClickThrough";
+import { deleteBrick, initLoader, toggleBrick, updateBrickProp } from "~/loader";
 import { onBrickError, onBrickWarn } from "#utils/errors";
-import type { Brick, Prop } from "../../interfaces/brick";
-import type { Settings } from "../../interfaces/settings";
+import type { Brick, Prop } from "#interfaces";
+import type { Settings } from "#interfaces";
 
-const { settings, theme, bricks } = useAppState();
+const { settings, bricks } = useAppState();
 
 definePageMeta({
   layout: 'overlay'
 });
 
-const currentNotificationTheme = ref(theme.value.Notification);
-watchEffect(() => {
-  currentNotificationTheme.value = theme.value.Notification;
-});
-
 const currentWindow = getCurrentWindow();
-const notification = useNotification();
+const toast = useToast();
+const { t } = useI18n();
+
+// Create a small compatibility wrapper so functions that expect the naive NotificationApi still work.
+const notification = {
+  destroyAll: () => toast.clear(),
+  success: (opts: any) => toast.add({ title: opts.title, description: opts.description ?? (opts.content ? opts.content() : undefined), color: 'success', duration: opts.duration ?? 3000 }),
+  info: (opts: any) => toast.add({ title: opts.title, description: opts.description ?? (opts.content ? opts.content() : undefined), color: 'info', duration: opts.duration ?? 3000 }),
+  error: (opts: any) => {
+    // If opts.content/action are VNode factories, render them inside description to preserve original layout
+    const description = () => h('div', [ opts.content ? opts.content() : null, opts.action ? opts.action() : null ]);
+    toast.add({ title: opts.title, description, color: 'error', duration: opts.duration ?? 0 });
+  }
+};
+
 const isReady = ref(false);
 const overlay = ref<HTMLDivElement>();
 
@@ -66,13 +74,13 @@ onMounted(async () => {
 
     await initLoader(
       bricks.value,
-      async (...args) => await onBrickError(notification, ...args),
-      async (...args) => await onBrickWarn(notification, ...args)
+      async (...args) => await onBrickError(toast, ...args),
+      async (...args) => await onBrickWarn(toast, ...args)
     );
 
     notification.success({
-      title: "Bricks loaded successfully!",
-      description: "All bricks has been loaded successfully",
+          title: t('notifications.bricks_loaded_title'),
+          description: t('notifications.bricks_loaded_message'),
       keepAliveOnHover: true,
       duration: 3000,
       closable: true,
@@ -82,7 +90,7 @@ onMounted(async () => {
 
     await currentWindow.show();
   } catch (error) {
-    let technicalMessage = "Unexpected error";
+    let technicalMessage = t('errors.unexpected');
 
     if (error instanceof Error) {
       technicalMessage = `${error.message}\n\n${error.stack || ""}`;
@@ -95,7 +103,7 @@ onMounted(async () => {
     console.error("Errore in onMounted:", error);
 
     notification.error({
-      title: "Error occurred while loading bricks",
+          title: t('notifications.bricks_load_error_title'),
       description: technicalMessage,
       closable: true,
     });
@@ -111,7 +119,7 @@ watch(
     if (settings.notifications.position !== old.notifications.position) {
       notification.destroyAll();
       notification.info({
-        title: "Test notification",
+              title: t('notifications.test_notification'),
         duration: 750,
       });
     }

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::config::save_yaml_async;
 
@@ -9,7 +10,7 @@ use super::write_template_if_missing;
 use super::write_schema_if_missing;
 use super::load_yaml_async;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Top-level application settings.")]
 pub struct Settings {
     #[serde(default = "default_schema", rename = "$schema")]
@@ -71,14 +72,14 @@ fn default_schema() -> String {
     "./.schemas/settings.schema.json".to_string()
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     EN,
     IT,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
     Light,
@@ -104,7 +105,7 @@ impl Default for Settings {
 
 /* Notifications */
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Configuration for notifications display.")]
 pub struct Notifications {
     #[serde(default)]
@@ -120,7 +121,7 @@ impl Default for Notifications {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Possible positions for notifications on screen.")]
 pub enum NotificationPosition {
     #[schemars(description = "Notifications appear at the top center.")]
@@ -155,7 +156,7 @@ impl Default for NotificationPosition {
 
 /* Sidebar */
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Sidebar settings")]
 pub struct Sidebar {
     position: SidebarPosition
@@ -169,7 +170,7 @@ impl Default for Sidebar {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Position of the app sidebar")]
 pub enum SidebarPosition {
     #[serde(rename = "right")]
@@ -180,7 +181,7 @@ pub enum SidebarPosition {
 
 /* System Tray */
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Configuration for the system tray icon.")]
 pub struct SystemTray {
     #[schemars(description = "Determines whether enable or not the system tray icon")]
@@ -202,7 +203,8 @@ impl Default for SystemTray {
 
 /* TaskBar */
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[ts(rename = "Taskbar")]
 #[schemars(description = "Configuration for windows taskbar.")]
 pub struct TaskBar {
     #[serde(default)]
@@ -217,7 +219,7 @@ impl Default for TaskBar {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Taskbar behavior.")]
 pub enum TaskBarBehavior {
     #[schemars(description = "Taskbar is hidden and the space is used by apps and bricks.")]
@@ -236,7 +238,7 @@ impl Default for TaskBarBehavior {
 }
 
 /* Start Menu */
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Configuration for windows start menu.")]
 pub struct StartMenu {
     #[serde(default)]
@@ -251,7 +253,7 @@ impl Default for StartMenu {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(rename_all = "kebab-case")]
 pub enum StartMenuBehavior {
     #[schemars(description = "Disables Ctrl+Esc from opening the Start menu.")]

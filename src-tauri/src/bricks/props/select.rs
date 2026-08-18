@@ -1,22 +1,23 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-use crate::bricks::props::PropType;
+use crate::bricks::props::PropSpec;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Selectable property container with typed options.")]
 #[serde(tag = "value_type")]
-pub enum SelectPropType {
-    String(Select<String, u32>),
-    Integer(Select<i32, i32>),
-    Float(Select<i32, i32>),
+pub enum SelectPropKind {
+    String(SelectPropSpec<String, u32>),
+    Int(SelectPropSpec<i32, i32>),
+    Float(SelectPropSpec<i32, i32>),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Selectable property container with typed options.")]
-pub struct Select<T: Default, M: Default + PartialOrd> {
+pub struct SelectPropSpec<T, M: PartialOrd> {
     #[serde(flatten)]
-    base: PropType<Vec<T>>,
+    base: PropSpec<Vec<T>>,
 
     #[schemars(description = "List of selectable options.")]
     pub options: Vec<T>,

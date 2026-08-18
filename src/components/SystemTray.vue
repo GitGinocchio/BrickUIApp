@@ -23,7 +23,8 @@ import { Image } from '@tauri-apps/api/image';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { BaseDirectory } from '@tauri-apps/api/path';
 
-import { type Language, languages, type Theme, themes } from '#interfaces/settings';
+import type { Language, Theme } from '#interfaces';
+import { LANGUAGES, THEMES } from '~/constants/settings';
 
 let tray: TrayIcon = null;
 
@@ -96,7 +97,7 @@ async function createMenu(){
                     id: 'language',
                     text: 'Language',
                     icon: languagesIcon,
-                    items: languages.map((language) => {
+                    items: LANGUAGES.map((language) => {
                         return {
                             text: language,
                             id: language,
@@ -112,7 +113,7 @@ async function createMenu(){
                     id: 'theme',
                     text: 'Theme',
                     icon: paletteIcon,
-                    items: themes.map((theme) => {
+                    items: THEMES.map((theme) => {
                         return {
                             text: theme,
                             id: theme,

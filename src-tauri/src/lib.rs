@@ -8,12 +8,12 @@ use crate::setup::setup;
 
 mod profiler;
 mod winapi;
-mod config;
+pub mod config;
 mod state;
 mod keyring;
-mod bricks;
+pub mod bricks;
 mod utils;
-mod api;
+pub mod api;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

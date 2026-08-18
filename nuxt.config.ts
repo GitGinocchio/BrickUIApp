@@ -3,7 +3,8 @@
 import { resolve } from "path";
 
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/i18n'],
+  modules: ['@nuxtjs/i18n', '@nuxt/ui'],
+  css: ['~/assets/css/main.css'],
 
   compatibilityDate: '2025-05-15',
   // (optional) Enable the Nuxt devtools
@@ -66,25 +67,9 @@ export default defineNuxtConfig({
     strict: false,
     typeCheck: false,
     shim: false,
-    tsConfig: {
-      compilerOptions: {
-        target: "ES2024",
-        lib: ["ES2024", "ES2024.Collection", "DOM", "DOM.Iterable"],
-        useDefineForClassFields: true,
-        noUnusedLocals: true,
-        noUnusedParameters: true,
-        noFallthroughCasesInSwitch: true,
-        skipLibCheck: true,
-      }
-    }
   },
 
   vite: {
-    // Se Naive UI ti dà problemi di rendering, aggiungila qui invece che sopra
-    ssr: {
-      noExternal: ['naive-ui', 'vueuc', 'date-fns-tz']
-    },
-
     build: {
       target: 'esnext'
     },

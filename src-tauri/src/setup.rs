@@ -90,7 +90,7 @@ pub fn setup_single_instance(app: &AppHandle, args: Vec<String>, _cwd: String) {
             .last();
 
         if let Some(bricks) = bricks {
-            app.emit_to("main", "open_brick", bricks)
+            app.emit_to("main", "import_brick", bricks)
                 .expect("Error while sending 'opened_brick' event:");
         }
     }
