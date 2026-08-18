@@ -37,6 +37,7 @@
 # Preview
 ## Brick page
 <img width="1081" height="828" alt="brickui2" src="https://github.com/user-attachments/assets/61fbdcc0-dc74-4829-8fcf-f756dabc8d87" />
+
 ## Settings page
 <img width="1084" height="832" alt="brickui" src="https://github.com/user-attachments/assets/9e6c5b12-9ff4-41ad-892b-07872704bdd3" />
 
