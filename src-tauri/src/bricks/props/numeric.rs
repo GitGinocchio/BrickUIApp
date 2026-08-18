@@ -1,13 +1,14 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-use crate::bricks::props::PropType;
+use crate::bricks::props::PropSpec;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Property container for numeric types, including optional bounds.")]
-pub struct NumericPropType<T: Default + PartialOrd> {
+pub struct NumericPropSpec<T: PartialOrd> {
     #[serde(flatten)]
-    base: PropType<T>,
+    base: PropSpec<T>,
 
     #[schemars(description = "Minimum allowed value (inclusive).")]
     #[serde(default, skip_serializing_if = "Option::is_none")]

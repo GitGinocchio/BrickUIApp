@@ -1,14 +1,167 @@
 {
-    "bricks" : "Bricks",
-    "walls" : "Walls",
-    "edit" : "Edit",
-    "user" : "User",
-    "delete" : "Delete",
-    "duplicate" : "Duplicate",
-    "description" : "Description",
-    "props" : "Props",
-    "emits" : "Emits",
-    "bricks-manager" : "Bricks Manager",
-    "settings" : "Settings",
-    "marketplace" : "Marketplace"
+  "modals": {
+    "confirm": "Confirm",
+    "delete_brick_title": "Delete brick",
+    "delete_brick_message": "Are you sure you want to delete '{name}'? This action cannot be undone.",
+    "delete_prop_title": "Delete prop",
+    "delete_prop_message": "Are you sure you want to delete '{name}'?",
+    "change_prop_type_title": "Change prop type",
+    "change_prop_type_message": "Are you sure you want to change '{prop}' to {type}? All settings for this prop will be lost.",
+    "unsaved_changes_title": "Unsaved changes",
+    "unsaved_changes_message": "You have an unsaved new prop. Discard changes?",
+    "import_brick_title": "Import Brick",
+    "new_brick_title": "Create new brick",
+    "rename_brick_title": "Edit Brick",
+    "info": "Info",
+    "warning": "Warning",
+    "import_verify_instructions_html": "You can verify the brick by changing the file extension from .brick to .zip and inspect the files inside."
+  },
+  "actions": {
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "keep_editing": "Keep editing",
+    "save": "Save",
+    "ok": "OK",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "share": "Share",
+    "create": "Create",
+    "login": "Login",
+    "register": "Register",
+    "remove": "Remove",
+    "clear": "Clear",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "resend_email": "Resend email"
+  },
+  "errors": {
+    "invalid_name": "Invalid name (letters only)",
+    "name_taken": "Name already taken",
+    "copy_exists": "Copy already exists",
+    "invalid_name_format": "Invalid name format",
+    "duplicate_name": "Duplicate name",
+    "name_exists": "A brick with this name already exists",
+    "invalid_input": "Invalid Input",
+    "unexpected": "An unexpected error occurred"
+  },
+  "placeholders": {
+    "prop_name": "Prop name...",
+    "prop_description": "Type the prop's description (Markdown supported)",
+    "brick_description": "Type your brick's description...",
+    "email": "Email",
+    "brick_name": "Type your brick's name"
+  },
+  "messages": {
+    "no_props": "This brick has no props!",
+    "work_in_progress": "Work in progress :P"
+  },
+  "tabs": {
+    "info": "Info",
+    "props": "Props",
+    "emits": "Emits",
+    "permissions": "Permissions"
+  },
+  "auth": {
+    "signup": "Sign Up",
+    "signin": "Sign In"
+  },
+  "labels": {
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "name": "Name"
+  },
+  "get_started": {
+    "slogan_line1": "lovely to see you here!",
+    "slogan_line2": "Login or Register and be part of our family"
+  },
+  "validation": {
+    "email_required": "Email is required",
+    "invalid_email": "Invalid email format",
+    "password_required": "Password is required",
+    "password_min": "Password must be at least 8 characters",
+    "password_max": "Password is too long",
+    "confirm_password": "Please confirm your password",
+    "passwords_do_not_match": "Passwords do not match"
+  },
+  "notifications": {
+    "registered_title": "Successfully registered!",
+    "registered_message": "We've sent a confirmation email to {email}. Click the link to activate your account.",
+    "email_sent_title": "Email Sent!",
+    "error_with_code": "Error {code}",
+    "login_error_with_code": "Login Error: {code}",
+    "bricks_loaded_title": "Bricks loaded successfully!",
+    "bricks_loaded_message": "All bricks have been loaded successfully",
+    "bricks_load_error_title": "Error occurred while loading bricks",
+    "test_notification": "Test notification"
+  },
+  "bricks": {
+    "title" : "Bricks",
+    "no_description": "This brick has no description."
+  },
+  "props" : {
+    "default_value" : "Default value"
+  },
+  "walls" : {
+    "title" : "Walls"
+  },
+  "marketplace" : {
+    "title" : "Marketplace",
+    "search_placeholder" : "Search widgets or themes..."
+  },
+  "user" : {
+    "title" : "User"
+  },
+  "settings": {
+    "title" : "Settings",
+    "general": {
+      "title": "General Settings"
+    },
+    "language": "Language",
+    "language_help": "Select your preferred language",
+    "theme": "Theme",
+    "sidebar": {
+      "title": "Sidebar"
+    },
+    "notifications": {
+      "title": "Notifications"
+    },
+    "position": "Position",
+    "behavior": "Behavior",
+    "taskbar": {
+      "title": "Taskbar Behavior",
+      "attention": "Attention",
+      "change_warning": "Changing taskbar behavior may make navigation harder."
+    },
+    "start_menu": {
+      "title": "Start Menu",
+      "restart_hint": "Restart app to apply start menu changes."
+    },
+    "windows_integration": "Windows Integration",
+    "system_tray": {
+      "icon": "System Tray Icon",
+      "description": "Show BrickUI in the system tray",
+      "hide_on_close": "Hide on Close",
+      "hide_description": "Minimize to tray instead of closing",
+      "reopen_hint": "You can reopen it by double-clicking the tray icon."
+    },
+    "autostart": {
+      "title": "Autostart",
+      "description": "Launch BrickUI when Windows starts"
+    }
+  },
+  "array": {
+    "invalid_value_title": "Invalid value",
+    "invalid_value_description": "The value \"{val}\" was removed because it is {reason}.",
+    "reason": {
+      "less_than": "less than {n}",
+      "greater_than": "greater than {n}",
+      "too_short": "too short (min {n})",
+      "too_long": "too long (max {n})"
+    },
+    "min_items": "You must enter at least {min} items."
+  },
+  "coming_soon" : "Coming soon :P"
 }
+

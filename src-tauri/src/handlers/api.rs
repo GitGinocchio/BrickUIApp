@@ -5,9 +5,9 @@ use tokio::sync::Mutex;
 
 use crate::{
     api::{
-        auth::{UserIdentity, resend::ResendResponse}, users::User, utils::ApiResponse
+        auth::{UserIdentity, resend::ResendResponse}, users::{UpdateUser, User}, utils::ApiResponse
     }, 
-    state::user::{BrickUIUserState, refresh_session_if_present}
+    state::user::{BrickUIUserState, get_valid_access_token, refresh_session_if_present}
 };
 
 #[tauri::command(async)]
@@ -76,10 +76,10 @@ pub async fn auth_get_identity(
 pub async fn users_get_me(
     state: State<'_, Arc<Mutex<BrickUIUserState>>>
 ) -> Result<ApiResponse<User>, String> {
-    let (access_token, need_refresh) = {
+    {
         let guard = state.lock().await;
 
-        if !guard.can_update_user() {
+        if !guard.can_fetch_user() {
             let user = guard
                 .get_user()
                 .clone()
@@ -87,20 +87,29 @@ pub async fn users_get_me(
 
             return Ok(ApiResponse::Success(user))
         }
-
-        let access_token = guard.get_access_token().clone();
-        let need_refresh = guard.can_refresh_session() && guard.is_session_expired();
-
-        (access_token, need_refresh)
-    };
-
-    if need_refresh {
-        refresh_session_if_present(state.inner().clone()).await?;
     }
 
-    let access_token = access_token.ok_or("No access token")?;
+    let access_token = get_valid_access_token(state.inner()).await?;
 
-    match crate::api::users::me::me(&access_token).await? {
+    match crate::api::users::me::get_me(&access_token).await? {
+        ApiResponse::Success(user) => {
+            let mut guard = state.lock().await;
+            guard.update_user(user.clone());
+
+            return Ok(ApiResponse::Success(user));
+        },
+        error => return Ok(error)
+    }
+}
+
+#[tauri::command(async)]
+pub async fn users_update_me(
+    state: State<'_, Arc<Mutex<BrickUIUserState>>>,
+    update: UpdateUser
+) -> Result<ApiResponse<User>, String> {
+    let access_token = get_valid_access_token(state.inner()).await?;
+
+    match crate::api::users::me::update_me(&access_token, update).await? {
         ApiResponse::Success(user) => {
             let mut guard = state.lock().await;
             guard.update_user(user.clone());

@@ -1,8 +1,9 @@
-use std::{fmt, sync::{Mutex, mpsc::RecvTimeoutError}, time::Duration};
+use std::{fmt, sync::{Arc, Mutex, mpsc::RecvTimeoutError}, time::Duration};
 
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use tauri::{AppHandle, Emitter as _};
+use tokio::sync::RwLock;
 use std::sync::mpsc;
 
 use serde::Serialize;
@@ -22,7 +23,12 @@ use windows::{
     core::HSTRING
 };
 
-use crate::{winapi::{bluetooth::{AcceptPairingMessage, PairingMessage}, com::initialize_com}};
+use crate::{state::iconcache::BrickUIconCacheState, winapi::{
+        bluetooth::{
+            AcceptPairingMessage, 
+            PairingMessage
+        }, com::initialize_com, icons::{cache::{get_or_insert, get_or_insert_sync}, extractor::stream_to_png_bytes}
+    }};
 
 #[derive(Debug)]
 struct PendingPairing {
@@ -45,6 +51,9 @@ pub struct WinRTDevice {
     pub can_pair: bool,
     pub kind: String,
     pub name: String,
+
+    pub glyph_icon: String,
+    pub thumb_icon: String,
 
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
@@ -123,19 +132,7 @@ pub(super) fn extract_winrt_device_address(id: &str) -> String {
 
 impl WinRTDevice {
     #[cfg_attr(feature = "profiling", tracing::instrument)]
-    pub fn from_info(info: &DeviceInformation) -> Result<Self, String> {
-        let glyph_thumb = info
-            .GetGlyphThumbnailAsync()
-            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
-            .get()
-            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
-
-        let thumb = info
-            .GetThumbnailAsync()
-            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
-            .get()
-            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
-
+    pub fn from_info(info: &DeviceInformation, icon_cache: Arc<RwLock<BrickUIconCacheState>>) -> Result<Self, String> {
         let id = info
             .Id()
             .map_err(|e| format!("Id Error: {e}"))?
@@ -172,6 +169,41 @@ impl WinRTDevice {
 
         println!("Properties: {properties:?}");
 
+        let glyph_thumb = info
+            .GetGlyphThumbnailAsync()
+            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
+            .get()
+            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
+
+        let thumb = info
+            .GetThumbnailAsync()
+            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?
+            .get()
+            .map_err(|e| format!("GetGlyphThumbnailAsync Error: {e}"))?;
+
+        let glyph_thumb_stream = glyph_thumb
+            .CloneStream()
+            .map_err(|e| format!("Error cloning stream: {e}"))?;
+
+        let thumb_stream = thumb
+            .CloneStream()
+            .map_err(|e| format!("Error cloning stream: {e}"))?;
+
+        let glyph_bytes = stream_to_png_bytes(&glyph_thumb_stream)?;
+        let thumb_bytes = stream_to_png_bytes(&thumb_stream)?;
+
+        let glyph_icon = get_or_insert_sync(
+            icon_cache.clone(), 
+            format!("{}-glyph",id), 
+            glyph_bytes
+        )?;
+        
+        let thumb_icon = get_or_insert_sync(
+            icon_cache, 
+            format!("{}-thumb", id), 
+            thumb_bytes
+        )?;
+
         /*
         let serializable_props = HashMap::new();
         for key_value in properties {
@@ -192,7 +224,9 @@ impl WinRTDevice {
             name,
             pairing,
             raw_info: info.clone(),
-            protection_level: None
+            protection_level: None,
+            glyph_icon,
+            thumb_icon
         })
     }
 
@@ -329,7 +363,7 @@ impl WinRTDevice {
         response
     }
 
-    pub async fn unpair(&mut self) -> Result<(), std::string::String> {
+    pub fn unpair(&mut self) -> Result<(), std::string::String> {
         if !self.is_paired {
             return Ok(());
         }
@@ -338,7 +372,7 @@ impl WinRTDevice {
             .pairing
             .UnpairAsync()
             .map_err(|e| format!("UnpairAsync error: {e}"))?
-            .await
+            .get()
             .map_err(|e| format!("UnpairAsync await error: {e}"))?;
 
         match result

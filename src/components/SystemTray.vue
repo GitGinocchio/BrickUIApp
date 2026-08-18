@@ -5,19 +5,30 @@ import { Window } from '@tauri-apps/api/window';
 import { defaultWindowIcon } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
 import { emitTo } from '@tauri-apps/api/event';
-import { CheckMenuItem, CheckMenuItemOptions, SubmenuOptions, Menu, Submenu, IconMenuItemOptions, MenuItem, MenuItemOptions, PredefinedMenuItemOptions, PredefinedMenuItem, IconMenuItem } from '@tauri-apps/api/menu';
+import { 
+    CheckMenuItem, 
+    type CheckMenuItemOptions, 
+    type SubmenuOptions, 
+    Menu, 
+    Submenu, 
+    type IconMenuItemOptions, 
+    MenuItem, 
+    type MenuItemOptions, 
+    type PredefinedMenuItemOptions, 
+    PredefinedMenuItem, 
+    IconMenuItem 
+} from '@tauri-apps/api/menu';
 import { TrayIcon } from '@tauri-apps/api/tray';
-import { Brick } from 'interfaces/brick';
-import { Language, languages, Settings, Theme, themes } from '../interfaces/settings';
-import { inject, onMounted, onUnmounted, ref, Ref, watch } from 'vue';
 import { Image } from '@tauri-apps/api/image';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { BaseDirectory } from '@tauri-apps/api/path';
 
+import type { Language, Theme } from '#interfaces';
+import { LANGUAGES, THEMES } from '~/constants/settings';
+
 let tray: TrayIcon = null;
 
-const settings = inject("settings") as Ref<Settings>;
-const bricks = inject("bricks") as Ref<Brick[]>;
+const { settings, bricks } = useAppState();
 
 let iconsLoaded = false;
 let paletteIcon: Image;
@@ -86,7 +97,7 @@ async function createMenu(){
                     id: 'language',
                     text: 'Language',
                     icon: languagesIcon,
-                    items: languages.map((language) => {
+                    items: LANGUAGES.map((language) => {
                         return {
                             text: language,
                             id: language,
@@ -102,7 +113,7 @@ async function createMenu(){
                     id: 'theme',
                     text: 'Theme',
                     icon: paletteIcon,
-                    items: themes.map((theme) => {
+                    items: THEMES.map((theme) => {
                         return {
                             text: theme,
                             id: theme,

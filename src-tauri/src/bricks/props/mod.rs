@@ -1,133 +1,150 @@
 pub mod numeric;
-use super::props::numeric::NumericPropType;
+use super::props::numeric::NumericPropSpec;
 
 pub mod array;
-use super::props::array::ArrayPropType;
+use crate::bricks::props::array::ArrayPropKind;
 
 pub mod select;
-use super::props::select::SelectPropType;
+use crate::bricks::props::select::SelectPropKind;
 
 pub mod date;
-use super::props::date::{DatePropType, DateTimePropType, TimePropType};
+use super::props::date::{DatePropSpec, DateTimePropSpec, TimePropSpec};
 
 pub mod color;
-use super::props::color::Color;
+use super::props::color::ColorPropSpec;
 
 pub mod gradient;
-use super::props::gradient::Gradient;
+use super::props::gradient::GradientPropSpec;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Metadata property container.")]
 pub struct PropMeta {
     #[schemars(
         description = "The unique identifier for this property. Must exactly match the `prop_name` used in the corresponding `brick.vue` file to ensure proper binding and synchronization."
     )]
     #[schemars(regex(pattern = "^[a-zA-Z][a-zA-Z0-9]*(?:_[a-zA-Z0-9]+)*$"))]
-    prop_name: String,
+    pub prop_name: String,
 
     #[schemars(
         description = "A brief textual description providing additional details or context about the property. \nThis helps users understand the purpose or usage of the property."
     )]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    pub description: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Generic property container.")]
-pub struct PropType<T: Default> {
+pub struct PropSpec<T> {
     #[serde(flatten)]
-    meta: PropMeta,
+    pub meta: PropMeta,
 
     #[schemars(description = "Current value of the property. May be null if `default` is null.")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    value: Option<T>,
+    pub value: Option<T>,
 
     #[schemars(description = "Default value of the property.")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    default: Option<T>,
+    pub default: Option<T>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(untagged)]
+#[ts(export)]
+pub enum Prop {
+    ValidProp(ValidProp),
+    Deprecated(DeprecatedProp),
+    InvalidProp(InvalidProp),
+}
+
+/// Struttura dedicata per le proprietà deprecate/non riconosciute.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[ts(export)]
+pub struct DeprecatedProp {
+    /// In deserializzazione cattura il valore originale di "prop_type" (es. "OldCustomProp")
+    #[serde(rename(deserialize = "prop_type"))]
+    pub deprecated_type: String,
+
+    /// In serializzazione scrive "prop_type": "Deprecated" nel JSON di output
+    #[serde(skip_deserializing, default = "default_deprecated_tag")]
+    #[ts(type = "\"Deprecated\"")]
+    pub prop_type: String,
+    
+    #[serde(flatten)]
+    pub meta: PropMeta,
+}
+
+fn default_deprecated_tag() -> String {
+    "Deprecated".to_string()
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
+#[serde(tag = "prop_type")]
+#[ts(export)]
+pub enum InvalidProp {
+    /// 2. Fallback finale per strutture totalmente sconosciute o malformate.
+    #[schemars(description = "Fallback for completely unknown or malformed structures.")]
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[serde(tag = "prop_type")]
 #[schemars(description = "Enumeration of supported property types for a Brick.")]
-pub enum Prop {
-    // Primitives
+#[ts(export)]
+pub enum ValidProp {
+    // Bool
     #[schemars(description = "Boolean property type.")]
-    Bool {
-        #[serde(flatten)]
-        data: PropType<bool>,
-    },
+    Bool(PropSpec<bool>),
 
+    // String
     #[schemars(description = "String property type.")]
-    String {
-        #[serde(flatten)]
-        data: PropType<String>,
-    },
+    String(PropSpec<String>),
 
+    // Text
     #[schemars(description = "Multiline text property type.")]
-    Text {
-        #[serde(flatten)]
-        data: PropType<String>,
-    },
+    Text(PropSpec<String>),
 
+    // Int
     #[schemars(description = "Integer property type.")]
-    Int {
-        #[serde(flatten)]
-        data: NumericPropType<i64>,
-    },
+    Int(NumericPropSpec<i32>),
 
+    // Float
     #[schemars(description = "Floating point property type.")]
-    Float {
-        #[serde(flatten)]
-        data: NumericPropType<f64>,
-    },
+    Float(NumericPropSpec<f32>),
 
-    // Color / Gradient
+    // Color
     #[schemars(description = "Color property type.")]
-    Color {
-        #[serde(flatten)]
-        data: Color,
-    },
+    Color(ColorPropSpec),
 
+    // Gradient
     #[schemars(description = "Gradient property type.")]
-    Gradient {
-        #[serde(flatten)]
-        data: Gradient,
-    },
+    Gradient(GradientPropSpec),
 
-    // Dates and times
+    // Date
     #[schemars(description = "Date property type.")]
-    Date {
-        #[serde(flatten)]
-        data: DatePropType,
-    },
+    Date(DatePropSpec),
 
+    // Datetime
     #[schemars(description = "Datetime property type.")]
-    Datetime {
-        #[serde(flatten)]
-        data: DateTimePropType,
-    },
+    Datetime(DateTimePropSpec),
 
+    // Time
     #[schemars(description = "Time property type.")]
-    Time {
-        #[serde(flatten)]
-        data: TimePropType,
-    },
+    Time(TimePropSpec),
 
     // Array
     #[schemars(description = "Array property containing a list of values.")]
-    Array {
-        #[serde(flatten)]
-        data: ArrayPropType,
-    },
+    Array(ArrayPropKind),
 
     // Select
     #[schemars(description = "Selectable property with predefined options.")]
-    Select {
-        #[serde(flatten)]
-        data: SelectPropType,
-    },
+    Select(SelectPropKind),
+
+    // Null
+    #[schemars(description = "Null property type.")]
+    Null(PropMeta)
 }

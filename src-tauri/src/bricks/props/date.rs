@@ -1,11 +1,13 @@
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use super::PropMeta;
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Date property container.")]
-pub struct DatePropType {
+pub struct DatePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
@@ -13,10 +15,10 @@ pub struct DatePropType {
         description = "Current date value of the property in the format `DD-MM` or `DD-MM-YYYY`. May be null if `default` is null."
     )]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<u64>,
+    pub value: Option<NaiveDate>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<u64>,
+    pub default: Option<NaiveDate>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,
@@ -25,17 +27,17 @@ pub struct DatePropType {
     pub allow_future: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Datetime property container.")]
-pub struct DateTimePropType {
+pub struct DateTimePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<u64>,
+    pub value: Option<NaiveDateTime>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<u64>,
+    pub default: Option<NaiveDateTime>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,
@@ -44,17 +46,17 @@ pub struct DateTimePropType {
     pub allow_future: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, TS)]
 #[schemars(description = "Time property container.")]
-pub struct TimePropType {
+pub struct TimePropSpec {
     #[serde(flatten)]
     pub base: PropMeta,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub value: Option<u64>,
+    pub value: Option<NaiveTime>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default: Option<u64>,
+    pub default: Option<NaiveTime>,
 
     #[serde(default = "default_allow_past")]
     pub allow_past: bool,

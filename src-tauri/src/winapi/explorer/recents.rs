@@ -1,16 +1,20 @@
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf, sync::Arc};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use windows::Win32::{
     System::Com::CoTaskMemFree,
     UI::Shell::{Common::ITEMIDLIST, SHGetNameFromIDList, SIGDN_NORMALDISPLAY},
 };
 
-use crate::winapi::{
-    icons::{IconsMap, get_icon, get_icon_async},
-    resolve_lnk,
+use crate::{
+    state::iconcache::BrickUIconCacheState, 
+    winapi::icons::{
+        cache::get_icon_from_file, 
+        resolver::parse_icon_location
+    }
 };
+use crate::winapi::resolve_lnk;
 
 // Questo non so se ha senso, forse basta risolvere l'lnk
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,21 +68,19 @@ fn resolve_pidl_name(id_list: &lnk::LinkTargetIdList) -> Option<String> {
 #[cfg_attr(feature = "profiling", tracing::instrument)]
 pub async fn get_explorer_recents(
     app_data_dir: &PathBuf,
-    icon_cache_dir: &PathBuf,
-    icons_map: &mut IconsMap,
-    max_files: usize,
+    icon_cache: Arc<RwLock<BrickUIconCacheState>>
 ) -> Result<Vec<Recent>, String> {
     let recents_dir = app_data_dir.join("Microsoft\\Windows\\Recent");
 
     let mut recents: Vec<Recent> = Vec::new();
 
     for entry in fs::read_dir(&recents_dir).map_err(|e| e.to_string())? {
+        let icon_cache_clone = icon_cache.clone();
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
 
         if path.extension().map(|e| e == "lnk").unwrap_or(false) {
             // qui servirebbe risolvere il .lnk → percorso reale
-            println!("{path:?}");
             let lnk = match resolve_lnk(&path) {
                 Ok(lnk) => lnk,
                 Err(e) => {
@@ -149,17 +151,9 @@ pub async fn get_explorer_recents(
                     }
                 });
 
-            let (icon_pathbuf, icon_index) = crate::winapi::icons::parse_icon_location(&icon_path);
+            let (icon_pathbuf, icon_index) = parse_icon_location(&icon_path);
 
-            let icon = match crate::winapi::icons::get_icon_async(
-                &icon_pathbuf,
-                icon_index,
-                icon_cache_dir,
-                icons_map,
-                max_files,
-            )
-            .await?
-            {
+            let icon = match get_icon_from_file(icon_cache_clone, &icon_pathbuf, icon_index).await? {
                 Some(cached_icon_path) => cached_icon_path,
                 None => icon_path,
             };

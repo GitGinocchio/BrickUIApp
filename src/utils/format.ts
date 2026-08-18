@@ -1,13 +1,13 @@
-import { Prop } from "interfaces/brick";
+import { type NotNullProp } from "#interfaces";
 
-export function formatPropsValueOrDefault(propsArray: Prop[]): Record<string, any> {
+export function formatPropsValueOrDefault(propsArray: NotNullProp[]): Record<string, any> {
   return Object.fromEntries(
     propsArray.map((p) => [p.prop_name, p.value ?? p.default])
   );
 }
 
 
-export function formatPropValue(prop: Prop): any {
+export function formatPropValue(prop: NotNullProp): any {
   let value: any;
 
   // Se il prop e' un select e il massimo di scelte e' una, passiamo solo l'unica scelta
@@ -30,9 +30,9 @@ export function formatPropValue(prop: Prop): any {
   return value;
 }
 
-export function formatProps(props: Prop[]): Record<string, any> {
+export function formatProps(props: NotNullProp[]): Record<string, any> {
   return Object.fromEntries(
-    props.map((p: Prop) => {
+    props.map((p) => {
       return [p.prop_name, formatPropValue(p)];
     })
   );

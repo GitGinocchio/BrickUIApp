@@ -1,7 +1,94 @@
-* {
-    user-select: none;
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  /* --- PALETTE PRIMARY (Il Rosso Brick dell'immagine) --- */
+  /* Basata sul colore core #CC4B57 */
+  --color-primary-50: #fef2f3;
+  --color-primary-100: #fde1e4;
+  --color-primary-200: #fbc9ce;
+  --color-primary-300: #f7a3ab;
+  --color-primary-400: #f0717d;
+  --color-primary-500: #e44a59; 
+  --color-primary-600: #cc4b57; /* COLORE ORIGINALE LOGO */
+  --color-primary-700: #ad2e3a;
+  --color-primary-800: #8f2933;
+  --color-primary-900: #77262f;
+  --color-primary-950: #421014;
+
+  /* --- PALETTE SECONDARY (Grigio Ardesia Caldo) --- */
+  /* Sostituiamo il bronzo con un tono che bilancia il rosso forte */
+  --color-secondary-50: #f8f9fa;
+  --color-secondary-100: #f1f3f5;
+  --color-secondary-200: #e9ecef;
+  --color-secondary-300: #dee2e6;
+  --color-secondary-400: #ced4da;
+  --color-secondary-500: #adb5bd;
+  --color-secondary-600: #868e96;
+  --color-secondary-700: #495057;
+  --color-secondary-800: #343a40;
+  --color-secondary-900: #212529;
+  --color-secondary-950: #1a1d20;
+
+  /* --- PALETTE GRAY (Charcoal Neutro) --- */
+  --color-neutral-50: #f9f9f9;
+  --color-neutral-100: #f2f2f2;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717;
+  --color-neutral-950: #0a0a0a;
+
+  /* --- ERROR / SUCCESS / WARNING --- */
+  --color-error-500: #ef4444;
+  --color-success-500: #22c55e;
+  --color-warning-500: #f59e0b;
 }
 
-html {
-    background-color: #101014;
+/* --- LOGICA ADATTIVA --- */
+:root {
+  --ui-primary: var(--color-primary-600);
+  --ui-secondary: var(--color-secondary-700);
+  --ui-gray: var(--color-gray-900);
+  --ui-bg: var(--color-neutral-50); /* Sfondo chiaro pulito per far risaltare il rosso */
+}
+
+.dark {
+  --ui-primary: var(--color-primary-500);
+  --ui-secondary: var(--color-secondary-400);
+  --ui-gray: var(--color-gray-100);
+  --ui-bg: var(--color-neutral-950);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--ui-primary) / 0.4) !important;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgb(var(--ui-primary) / 0.7) !important;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }

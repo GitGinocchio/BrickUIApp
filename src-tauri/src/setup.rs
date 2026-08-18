@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::{error::Error, path::PathBuf, sync::Arc};
 
 use tauri::{App, AppHandle, Emitter as _, Manager as _, Window, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
@@ -11,10 +11,8 @@ use crate::profiler::{
 };
 
 use crate::{
-    api::deeplink::handle_deeplink, config::settings::TaskBarBehavior, state::{
-        bluetooth::BrickUIBluetoothState, 
-        generic::BrickUIGenericState, 
-        user::{
+    api::deeplink::handle_deeplink, bricks::brick::Brick, config::{generate_types_if_missing, settings::TaskBarBehavior, write_schema_if_missing}, state::{
+        bluetooth::BrickUIBluetoothState, generic::BrickUIGenericState, iconcache::BrickUIconCacheState, user::{
             BrickUIUserState, 
             refresh_session_if_present
         }
@@ -35,81 +33,22 @@ use crate::{
     }
 };
 
-pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
-    #[cfg(feature = "profiling")]
-    setup_global_subscriber();
-
-    let deep_link = app.deep_link();
-    deep_link.register("brickui").map_err(|e| format!("Error registering 'brickui' deeplink: {e}"))?;
-    deep_link.register_all().map_err(|e| format!("Error registering all deeplink: {e}"))?;
-
-    let app_handle = app.handle().clone();
-
-    deep_link.on_open_url(move |event| {
-        let urls = event.urls();
-        println!("deep link URLs: {:?}", urls);
-
-        let last_url = match urls.last() {
-            None => return,
-            Some(l) => l.to_string()
-        };
-
-        let app_handle = app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            if let Err(e) = handle_deeplink(&app_handle, &last_url).await {
-                eprintln!("Error handling deeplink: {:?}", e);
-            }
-        });
-    });
-
-    initialize_com()?;
-    inititalize_sockets()?;
-
-    let app_handle = app.app_handle();
-    let resolver = app_handle.path();
-    let resource_path = resolver.resource_dir()?;
-    let path = resolver.app_data_dir()?;
-
-    // General App State
-    let state = BrickUIGenericState::new(&path, &resource_path)?;
-    let settings = state.get_settings().clone();
-
-    app.manage(Arc::new(Mutex::new(state)));
-
-    // Bluetooth State
-    let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
-    app.manage(bt_state.clone());
-
-    // User State
-    let user_state = Arc::new(Mutex::new(BrickUIUserState::new()?));
-    app.manage(user_state.clone());
-
-    // Mostra o nascondi taskbar secondo settings
-    if settings.taskbar.behavior == TaskBarBehavior::Show {
-        show_taskbar(&app_handle)?;
-    } else {
-        hide_taskbar(&app_handle)?;
-    }
-
-    let app_handle_clone = app_handle.clone();
-
-    // Avvia metodi in background (evitando di bloccare la UI)
-    tauri::async_runtime::spawn(
-        async move {
-            // Fa partire gli event listeners
-            start_event_listeners(&app_handle_clone).await?;
-
-            // Aggiorna la sessione se presente
-            let mut guard = bt_state.write().await;
-            guard.watcher = Some(start_bluetooth_watcher(bt_state.clone(), &app_handle_clone).await?);
-
-            if let Err(e) = refresh_session_if_present(user_state).await {
-                eprintln!("An error occurred while refreshing session on startup: {e}");
-            }
-
-            Ok::<(), String>(())
-        },
-    );
+async fn initialize_dirs(path: &PathBuf, resource_path: &PathBuf) -> Result<(), String> {
+    tokio::fs::create_dir_all(path)
+        .await
+        .map_err(|e| format!("Errore nella creazione della directory di dati: {e}"))?;
+    
+    tokio::fs::create_dir_all(path.join("bricks"))
+        .await
+        .map_err(|e| format!("Errore nella creazione della directory per i widgets (bricks): {e}"))?;
+    
+    tokio::fs::create_dir_all(path.join("walls"))
+        .await
+        .map_err(|e| format!("Errore nella creazione della directory per i widgets (walls): {e}"))?;
+    
+    tokio::fs::create_dir_all(resource_path.join(".schemas"))
+        .await
+        .map_err(|e| format!("Errore nella creazione della directory per gli schemas: {e}"))?;
 
     Ok(())
 }
@@ -151,7 +90,7 @@ pub fn setup_single_instance(app: &AppHandle, args: Vec<String>, _cwd: String) {
             .last();
 
         if let Some(bricks) = bricks {
-            app.emit_to("main", "open_brick", bricks)
+            app.emit_to("main", "import_brick", bricks)
                 .expect("Error while sending 'opened_brick' event:");
         }
     }
@@ -166,7 +105,7 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
         static HANDLED: once_cell::sync::Lazy<Mutex<bool>> =
             once_cell::sync::Lazy::new(|| Mutex::new(false));
 
-        let mut handled = tauri::async_runtime::block_on(async { HANDLED.lock().await });
+        let mut handled = HANDLED.blocking_lock();
 
         if *handled {
             // già gestito, non fare nulla
@@ -186,13 +125,13 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             .state::<Arc<Mutex<BrickUIGenericState>>>()
             .clone();
 
-        let (settings, backup) = tauri::async_runtime::block_on(async {
-            let state_guard = state.lock().await;
+        let (settings, backup) = {
+            let state_guard = state.blocking_lock();
             (
                 state_guard.get_settings().clone(),
                 state_guard.get_backup().clone(),
             )
-        });
+        };
 
         if settings.systemtray.enabled && settings.systemtray.hidetaskbaricon {
             if let Some(window) = app_handle.get_window(&window_label) {
@@ -230,4 +169,99 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
 
         app_handle.exit(0);
     }
+}
+
+pub fn setup(app: &mut App) -> Result<(), Box<dyn Error>> {
+    #[cfg(feature = "profiling")]
+    setup_global_subscriber();
+
+    let deep_link = app.deep_link();
+    deep_link.register("brickui").map_err(|e| format!("Error registering 'brickui' deeplink: {e}"))?;
+    deep_link.register_all().map_err(|e| format!("Error registering all deeplink: {e}"))?;
+
+    let app_handle = app.handle().clone();
+
+    deep_link.on_open_url(move |event| {
+        let urls = event.urls();
+        println!("deep link URLs: {:?}", urls);
+
+        let last_url = match urls.last() {
+            None => return,
+            Some(l) => l.to_string()
+        };
+
+        let app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = handle_deeplink(&app_handle, &last_url).await {
+                eprintln!("Error handling deeplink: {:?}", e);
+            }
+        });
+    });
+
+    initialize_com()?;
+    inititalize_sockets()?;
+
+    let app_handle = app.app_handle();
+    let resolver = app_handle.path();
+    let resource_path = resolver.resource_dir()?;
+    let path = resolver.app_data_dir()?;
+
+    // General App State
+    let (generic, iconcache) = tauri::async_runtime::block_on(async move {
+        initialize_dirs(&path, &resource_path).await?;
+        generate_types_if_missing(&resource_path, &path).await?;
+        write_schema_if_missing::<Brick>(&resource_path, "brick.schema.json").await?;
+
+        let generic = BrickUIGenericState::new(&resource_path).await?;
+        let iconcache = BrickUIconCacheState::new(&resource_path).await?;
+
+        Ok::<(BrickUIGenericState, BrickUIconCacheState), String>((generic, iconcache))
+    })?;
+
+    let settings = generic.get_settings().clone();
+    app.manage(Arc::new(Mutex::new(generic)));
+
+    let ic_state = Arc::new(RwLock::new(iconcache));
+    app.manage(ic_state.clone());
+
+    // Bluetooth State
+    let bt_state = Arc::new(RwLock::new(BrickUIBluetoothState::new()?));
+    app.manage(bt_state.clone());
+
+    // User State
+    let user_state = Arc::new(Mutex::new(BrickUIUserState::new()?));
+    app.manage(user_state.clone());
+
+    // Mostra o nascondi taskbar secondo settings
+    if settings.taskbar.behavior == TaskBarBehavior::Show {
+        show_taskbar(&app_handle)?;
+    } else {
+        hide_taskbar(&app_handle)?;
+    }
+
+    let app_handle_clone = app_handle.clone();
+
+    // Avvia metodi in background (evitando di bloccare la UI)
+    tauri::async_runtime::spawn(
+        async move {
+            // Fa partire gli event listeners
+            start_event_listeners(&app_handle_clone).await?;
+
+            if let Err(e) = refresh_session_if_present(user_state).await {
+                eprintln!("An error occurred while refreshing session on startup: {e:#?}");
+            }
+
+            // Aggiorna la sessione se presente
+            let mut guard = bt_state.write().await;
+            guard.watcher = Some(start_bluetooth_watcher(
+                bt_state.clone(), 
+                ic_state.clone(), 
+                &app_handle_clone
+            ).await?);
+
+            Ok::<(), String>(())
+        },
+    );
+
+    Ok(())
 }
