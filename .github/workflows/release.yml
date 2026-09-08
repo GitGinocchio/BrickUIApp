@@ -48,7 +48,7 @@ jobs:
           git fetch --tags --force
 
       - name: Run release-plz
-        uses: release-plz/action@v0.5.131
+        uses: release-plz/action@v0.5.133
         with:
           manifest_path: ./src-tauri/Cargo.toml
           verbose: true
